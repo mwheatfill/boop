@@ -30,8 +30,11 @@
   },
   "dependencies": {
     "@tanstack/react-router": "^1.169.2",
+    "@ai-sdk/azure": "^3.0.64",
+    "@ai-sdk/react": "^3.0.179",
     "@tanstack/react-router-devtools": "^1.166.13",
     "@tanstack/react-start": "^1.167.65",
+    "ai": "^6.0.177",
     "better-auth": "^1.6.10",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",

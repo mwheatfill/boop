@@ -27,6 +27,7 @@ declare namespace Cloudflare {
     FOUNDRY_AI_GATEWAY_URL?: string
     FOUNDRY_API_KEY?: string
     FOUNDRY_API_VERSION?: string
+    FOUNDRY_DEPLOYMENT?: string
     ANTHROPIC_API_KEY?: string
     OPENAI_API_KEY?: string
 
