@@ -21,6 +21,7 @@
     "db:studio": "drizzle-kit studio",
     "openapi:generate": "tsx scripts/generate-openapi.ts",
     "openapi:check": "node scripts/check-openapi-contract.mjs",
+    "email:dev": "email dev --dir src/lib/email/templates --port 3001",
     "intent:list": "intent list",
     "intent:list:json": "intent list --json",
     "intent:stale": "intent stale",
@@ -38,6 +39,7 @@
     "next-themes": "^0.4.6",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-email": "^6.1.1",
     "tailwind-merge": "^3.5.0",
     "zod": "^4.4.3",
     "zod-openapi": "^5.4.6"
