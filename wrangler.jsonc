@@ -10,20 +10,44 @@
   "vars": {
     "PUBLIC_APP_NAME": "template-cf-fullstack"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "template-cf-fullstack-local",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "drizzle"
+    }
+  ],
   "env": {
     "dev": {
       "name": "template-cf-fullstack-dev",
       "vars": {
         "PUBLIC_APP_NAME": "template-cf-fullstack-dev",
         "PUBLIC_ENV": "dev"
-      }
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "template-cf-fullstack-dev",
+          "database_id": "REPLACE_WITH_DEV_D1_ID",
+          "migrations_dir": "drizzle"
+        }
+      ]
     },
     "production": {
       "name": "template-cf-fullstack-prod",
       "vars": {
         "PUBLIC_APP_NAME": "template-cf-fullstack-prod",
         "PUBLIC_ENV": "production"
-      }
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "template-cf-fullstack-prod",
+          "database_id": "REPLACE_WITH_PROD_D1_ID",
+          "migrations_dir": "drizzle"
+        }
+      ]
     }
   }
 }
