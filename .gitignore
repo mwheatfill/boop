@@ -1,0 +1,16 @@
+node_modules
+dist
+.wrangler
+.tanstack
+.dev.vars
+.dev.vars.bak-*
+coverage
+*.log
+.DS_Store
+.env
+.env.local
+.env.*.local
+.idea
+*.tsbuildinfo
+.vite
+worker-configuration.d.ts

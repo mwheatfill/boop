@@ -1,0 +1,9 @@
+Copyright (c) SwitchThink. All rights reserved.
+
+This software is proprietary. Unauthorized copying, modification, distribution,
+or use of this software, in whole or in part, is strictly prohibited without
+prior written consent of the copyright holder.
+
+Apps cloned from this template inherit this license. Replace this file or
+adjust the `license` field in package.json if a different license applies to
+the cloned app.

@@ -1,0 +1,38 @@
+{
+  "name": "template-cf-fullstack",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "packageManager": "pnpm@11.0.9",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "intent:list": "intent list",
+    "intent:list:json": "intent list --json",
+    "intent:stale": "intent stale",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
+    "@tanstack/intent": "^0.0.41",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.3",
+    "typescript": "^6.0.3"
+  },
+  "lint-staged": {
+    "*": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@biomejs/biome",
+      "esbuild",
+      "workerd"
+    ]
+  }
+}
