@@ -93,6 +93,7 @@ These have ADRs in `docs/adr/`. If you're tempted to deviate, read the ADR first
 - **Don't write code that the OpenAPI contract doesn't describe.** Server functions take Zod-validated inputs that flow into `openapi.json`. The CI guard (`scripts/check-openapi-contract.mjs`) blocks deploys when this drifts.
 - **Don't bypass the auth abstraction.** All identity reads go through `getCurrentUser(request)`. Don't import Better Auth directly from route guards or server functions.
 - **Don't trust training data over current docs.** When library guidance from training conflicts with what `intent load`, an MCP server, or `llms.txt` says, the live source wins. Verify before writing.
+- **Don't tack on rules; revise them.** When an existing rule almost-but-not-quite covered a case you hit, revise that rule. Don't add a near-duplicate elsewhere or append a caveat. The bar to add a *new* rule is "no existing rule, slightly tightened, would have prevented this." Apply the same principle to ADRs and to the spec.
 - **Don't add comments that explain "what."** Code says what; comments say why, only when non-obvious.
 - **Don't use em dashes in prose.** Repo voice convention. Use commas, parens, or split sentences.
 
