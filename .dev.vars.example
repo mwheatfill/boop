@@ -1,0 +1,62 @@
+# Local development environment variables.
+# Copy this file to `.dev.vars` and fill in values you want active locally.
+# `.dev.vars` is gitignored. For deployed environments, set these via
+# `wrangler secret put` or GitHub Secrets.
+
+# --- Public (safe to expose to client) ---
+PUBLIC_APP_NAME=template-cf-fullstack-local
+PUBLIC_ENV=local
+
+# --- Auth providers (Better Auth) ---
+# Each block activates the corresponding provider when filled in.
+# Leave commented to keep the provider disabled.
+
+# Better Auth core
+# BETTER_AUTH_SECRET=replace-with-32-byte-random
+# BETTER_AUTH_URL=http://localhost:3000
+
+# Email + password (no extra config; activates if BETTER_AUTH_SECRET is set)
+
+# Email-OTP (uses your configured email transport below)
+
+# Social OAuth
+# GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_SECRET=
+# GITHUB_CLIENT_ID=
+# GITHUB_CLIENT_SECRET=
+# APPLE_CLIENT_ID=
+# APPLE_CLIENT_SECRET=
+
+# Microsoft Entra OIDC
+# ENTRA_CLIENT_ID=
+# ENTRA_CLIENT_SECRET=
+# ENTRA_TENANT_ID=
+# ENTRA_REDIRECT_URI=http://localhost:3000/api/auth/callback/entra
+
+# --- AI provider (uncomment one) ---
+# AI_PROVIDER=cloudflare-workers-ai
+# (no API key needed; Cloudflare binding handled in wrangler.jsonc)
+
+# AI_PROVIDER=foundry
+# FOUNDRY_AI_GATEWAY_URL=https://gateway.ai.cloudflare.com/v1/<account>/<gateway>/azure-openai/<resource>/<deployment>
+# FOUNDRY_API_KEY=
+# FOUNDRY_API_VERSION=2024-10-21
+
+# AI_PROVIDER=anthropic
+# ANTHROPIC_API_KEY=
+
+# AI_PROVIDER=openai
+# OPENAI_API_KEY=
+
+# --- Email transport (uncomment one) ---
+# EMAIL_TRANSPORT=resend
+# RESEND_API_KEY=
+
+# EMAIL_TRANSPORT=graph
+# GRAPH_TENANT_ID=
+# GRAPH_CLIENT_ID=
+# GRAPH_CLIENT_SECRET=
+# GRAPH_SHARED_MAILBOX=alerts@example.com
+
+# EMAIL_TRANSPORT=cloudflare-email
+# (no extra config; uses Cloudflare Email binding in wrangler.jsonc)

@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "template-cf-fullstack",
+  "compatibility_date": "2026-05-09",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "PUBLIC_APP_NAME": "template-cf-fullstack"
+  },
+  "env": {
+    "dev": {
+      "name": "template-cf-fullstack-dev",
+      "vars": {
+        "PUBLIC_APP_NAME": "template-cf-fullstack-dev",
+        "PUBLIC_ENV": "dev"
+      }
+    },
+    "production": {
+      "name": "template-cf-fullstack-prod",
+      "vars": {
+        "PUBLIC_APP_NAME": "template-cf-fullstack-prod",
+        "PUBLIC_ENV": "production"
+      }
+    }
+  }
+}
