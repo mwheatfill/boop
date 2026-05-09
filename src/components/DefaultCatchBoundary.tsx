@@ -25,25 +25,20 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
         >
           Try again
         </button>
-        {isRoot ? (
-          <Link
-            to="/"
-            className="inline-flex h-9 items-center rounded-md border border-border px-4 text-sm font-medium hover:bg-muted"
-          >
-            Home
-          </Link>
-        ) : (
-          <Link
-            to="/"
-            className="inline-flex h-9 items-center rounded-md border border-border px-4 text-sm font-medium hover:bg-muted"
-            onClick={(event) => {
-              event.preventDefault()
-              window.history.back()
-            }}
-          >
-            Go back
-          </Link>
-        )}
+        <Link
+          to="/"
+          className="inline-flex h-9 items-center rounded-md border border-border px-4 text-sm font-medium hover:bg-muted"
+          onClick={
+            isRoot
+              ? undefined
+              : (event) => {
+                  event.preventDefault()
+                  window.history.back()
+                }
+          }
+        >
+          {isRoot ? 'Home' : 'Go back'}
+        </Link>
       </div>
     </div>
   )

@@ -1,11 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 
-type Props = {
-  children?: ReactNode
-}
-
-export function NotFound({ children }: Props) {
+export function NotFound({ children }: { children?: ReactNode }) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6 text-center">
       <p className="text-2xl font-semibold">Page not found</p>

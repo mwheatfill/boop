@@ -2,8 +2,6 @@
 import { createRootRoute, HeadContent, Link, Scripts } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import type { ReactNode } from 'react'
-import { DefaultCatchBoundary } from '@/components/DefaultCatchBoundary'
-import { NotFound } from '@/components/NotFound'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import appCss from '@/styles/app.css?url'
@@ -21,8 +19,6 @@ export const Route = createRootRoute({
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
-  errorComponent: DefaultCatchBoundary,
-  notFoundComponent: () => <NotFound />,
   shellComponent: RootDocument,
 })
 
@@ -47,7 +43,7 @@ function RootDocument({ children }: { children: ReactNode }) {
             </div>
           </header>
           <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
-          {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-right" /> : null}
+          {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
           <Scripts />
         </ThemeProvider>
       </body>
