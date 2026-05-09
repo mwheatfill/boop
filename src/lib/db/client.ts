@@ -1,3 +1,7 @@
+// Contract for recipes to consume. The template doesn't call createDb itself;
+// recipes that need DB access (auth/better-auth, app-specific recipes) import
+// it. Keep the wiring identical across recipes by sourcing from here.
+
 import { drizzle } from 'drizzle-orm/d1'
 import * as schema from './schema'
 

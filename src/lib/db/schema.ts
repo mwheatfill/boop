@@ -4,5 +4,8 @@
 // re-exporting from here.
 //
 // After adding tables, run `pnpm db:generate` to produce a migration.
+//
+// `export {}` keeps this a valid module under tsconfig's isolatedModules;
+// remove it once you have real exports.
 
 export {}

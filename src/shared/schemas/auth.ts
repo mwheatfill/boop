@@ -1,3 +1,7 @@
+// Contract for auth provider recipes. All implementations of getCurrentUser
+// must return a User shape conforming to UserSchema. The OpenAPI pipeline
+// references this schema as the canonical user representation.
+
 import { z } from './openapi'
 
 export const UserSchema = z

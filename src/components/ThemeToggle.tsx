@@ -17,7 +17,8 @@ export function ThemeToggle() {
     setMounted(true)
   }, [])
 
-  const wrapperClass = 'inline-flex items-center gap-1 rounded-lg border border-border bg-card p-1'
+  const wrapperClass =
+    'inline-flex items-center gap-1 rounded-lg border border-border bg-card p-1 text-card-foreground'
 
   if (!mounted) {
     return (
@@ -30,7 +31,7 @@ export function ThemeToggle() {
   }
 
   return (
-    <div role="toolbar" aria-label="Theme" className={cn(wrapperClass, 'text-card-foreground')}>
+    <div role="toolbar" aria-label="Theme" className={wrapperClass}>
       {themes.map(({ value, label, icon: Icon }) => {
         const active = theme === value
         return (

@@ -16,7 +16,16 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6 text-center">
-      <ErrorComponent error={error} />
+      {import.meta.env.DEV ? (
+        <ErrorComponent error={error} />
+      ) : (
+        <div className="flex flex-col gap-2">
+          <p className="font-medium">Something went wrong.</p>
+          <p className="text-sm text-muted-foreground">
+            Please try again or return to the home page.
+          </p>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-center gap-2">
         <button
           type="button"

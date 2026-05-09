@@ -20,7 +20,7 @@
     "db:migrate:prod": "wrangler d1 migrations apply DB --remote",
     "db:studio": "drizzle-kit studio",
     "openapi:generate": "tsx scripts/generate-openapi.ts",
-    "openapi:check": "node scripts/check-openapi-contract.mjs",
+    "openapi:check": "tsx scripts/check-openapi-contract.ts",
     "intent:list": "intent list",
     "intent:list:json": "intent list --json",
     "intent:stale": "intent stale",
