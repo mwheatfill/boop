@@ -11,7 +11,9 @@ function HomePage() {
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           template-cf-fullstack
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight">Build great apps on Cloudflare.</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Build modern, secure, production-ready apps on Cloudflare.
+        </h1>
         <p className="max-w-2xl text-muted-foreground">
           TanStack Start, D1 + Drizzle, Better Auth, AI SDK + AI Elements, React Email, and an
           agent-ready governance layer baked in. Edit{' '}
