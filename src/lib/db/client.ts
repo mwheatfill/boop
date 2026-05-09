@@ -6,5 +6,3 @@ export type Database = ReturnType<typeof drizzle<typeof schema>>
 export function createDb(d1: D1Database): Database {
   return drizzle(d1, { schema })
 }
-
-export { schema }

@@ -12,4 +12,4 @@ export const UserSchema = z
   })
   .meta({ id: 'User' })
 
-export type UserSchemaType = z.infer<typeof UserSchema>
+export type User = z.infer<typeof UserSchema>

@@ -1,18 +1,18 @@
 import { env } from 'cloudflare:workers'
 import { createDb } from '@/lib/db/client'
 import type { User } from '@/shared/types/auth'
-import { createAuth, getCurrentUserFromAuth } from './better-auth-provider'
+import { type AuthInstance, createAuth, getCurrentUserFromAuth } from './better-auth-provider'
 
 export type { User }
 
+function getAuth(): AuthInstance {
+  return createAuth(createDb(env.DB))
+}
+
 export async function getCurrentUser(request: Request): Promise<User | null> {
-  const db = createDb(env.DB)
-  const auth = createAuth(db)
-  return getCurrentUserFromAuth(request, auth)
+  return getCurrentUserFromAuth(request, getAuth())
 }
 
 export function authHandler(request: Request): Response | Promise<Response> {
-  const db = createDb(env.DB)
-  const auth = createAuth(db)
-  return auth.handler(request)
+  return getAuth().handler(request)
 }

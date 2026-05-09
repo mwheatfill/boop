@@ -36,5 +36,11 @@ export function getAIClient(): AIClient {
 }
 
 export function getDefaultModelName(): string {
-  return env.FOUNDRY_DEPLOYMENT ?? 'gpt-4o-mini'
+  if (!env.FOUNDRY_DEPLOYMENT) {
+    throw new Error(
+      'FOUNDRY_DEPLOYMENT is not set. Set it to your Foundry deployment name in env, ' +
+        'or override the model name at the call site.',
+    )
+  }
+  return env.FOUNDRY_DEPLOYMENT
 }
