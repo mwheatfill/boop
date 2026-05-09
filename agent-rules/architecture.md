@@ -112,7 +112,7 @@ See [ADR-0006](../docs/adr/0006-foundry-via-ai-gateway.md).
 
 ## Email
 
-Templates are React Email components in `src/lib/email/templates/`. The send pipeline in `src/lib/email/send.ts` is transport-pluggable; default is Resend, recipes cover Microsoft Graph (default for internal apps) and Cloudflare Email Service.
+Templates are React Email components in `src/lib/email/templates/`. The send pipeline in `src/lib/email/send.ts` is transport-pluggable; transport is selected via env. Recipes cover Resend (consumer transactional), Microsoft Graph (shared mailbox sending), and Cloudflare Email Service (Cloudflare-native).
 
 ## Validation
 

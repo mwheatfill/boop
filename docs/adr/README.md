@@ -43,6 +43,4 @@ Format follows Michael Nygard's pattern: status, context, decision, consequences
 
 ## What ADRs are not
 
-ADRs aren't for tactical decisions, configuration footnotes, or back-and-forth design memos. The bar for an ADR is "a future reader of the codebase will ask 'why was this chosen?' and need a real answer."
-
-For working notes and design conversations, see `docs/findings.md` and the brief in the original project context.
+ADRs aren't for tactical decisions, configuration footnotes, or working memos. The bar for an ADR is "a future reader of the codebase will ask 'why was this chosen?' and need a real answer."

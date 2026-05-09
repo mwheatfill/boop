@@ -1,14 +1,14 @@
 ---
 title: "template-cf-fullstack"
 type: "Template"
-status: Draft
+status: Active
 author: "Michael Wheatfill, Cloud & Collaboration Architect"
-description: "Cloudflare Workers + TanStack Start template for SwitchThink internal apps."
+description: "Cloudflare Workers + TanStack Start template with AI, modern auth, and agent-ready governance baked in."
 ---
 
 # template-cf-fullstack
 
-Starter for Cloudflare Workers + TanStack Start apps with Entra OIDC auth, D1, AI Elements, and an agent-ready governance layer.
+Starter for great apps on Cloudflare. TanStack Start for the framework, D1 + Drizzle for data, Better Auth for identity (consumer or enterprise), AI SDK + AI Elements for AI features, and an agent-ready governance layer so AI coding agents work effectively in apps cloned from this template.
 
 ## What's in the box
 
@@ -19,9 +19,9 @@ Starter for Cloudflare Workers + TanStack Start apps with Entra OIDC auth, D1, A
 | Routing | TanStack Router (file-based) |
 | Data | TanStack Query + Form + Table + Virtual |
 | Database | Cloudflare D1 (Drizzle ORM) — Neon Postgres available via [recipe](https://github.com/mwheatfill/app-platform-recipes/tree/main/recipes/data-layer) |
-| Auth | Better Auth + Entra OIDC, behind a `getCurrentUser()` abstraction |
-| AI | Vercel AI SDK + AI Elements, default provider Microsoft Foundry via Cloudflare AI Gateway |
-| Email | React Email 6 templates, Resend default |
+| Auth | Better Auth with email+password, email-OTP, social OAuth, and Entra OIDC all wired (active providers via env). All identity reads through a `getCurrentUser()` abstraction |
+| AI | Vercel AI SDK + AI Elements (shadcn-style chat UI), provider via env (Cloudflare Workers AI / Foundry / Anthropic / OpenAI), recommended pattern: AI Gateway-fronted |
+| Email | React Email 6 templates, transport via env (Resend / Microsoft Graph / Cloudflare Email Service) |
 | UI | shadcn/ui with base-ui primitives, Tailwind v4, `next-themes` |
 | Validation | Zod + zod-openapi (single-source `openapi.json` contract) |
 | Testing | Vitest + Testing Library |
@@ -65,11 +65,12 @@ Optional capabilities live in the [recipes repo](https://github.com/mwheatfill/a
 curl -sSL https://raw.githubusercontent.com/mwheatfill/app-platform-recipes/main/install.sh | bash -s -- <recipe-name>
 ```
 
-Common starting recipes for apps cloned from this template:
+Common starting recipes:
 
-- `data-layer/switch-to-neon-postgres` — swap D1 for Neon + Hyperdrive
-- `auth/swap-better-auth-for-cloudflare-access` — swap Better Auth for Cloudflare Access
-- `microsoft-foundry/chat-completion` — production-ready Foundry-via-AI-Gateway setup
+- `data-layer/switch-to-neon-postgres` — swap D1 for Neon + Hyperdrive when the app needs Postgres-only features or scale
+- `auth/swap-better-auth-for-cloudflare-access` — swap Better Auth for Cloudflare Access when the app fronts behind Access
+- `microsoft-foundry/chat-completion` — production AI Gateway setup against Microsoft Foundry
+- `cloudflare-workers-ai/setup` — Cloudflare-native AI provider, no external API key
 - `mcp/expose-app-as-mcp-server` — make the app callable by AI agents over MCP
 - `email/graph-shared-mailbox` — send mail via Microsoft Graph from a shared mailbox
 
@@ -87,9 +88,8 @@ If you're using a different agent harness, the rules in `agent-rules/` apply unc
 ## Documentation
 
 - [`AGENTS.md`](AGENTS.md) — agent onboarding, session protocol, stack snapshot
-- [`agent-rules/`](agent-rules/) — governance rules
+- [`agent-rules/`](agent-rules/) — governance rules (cross-harness)
 - [`docs/adr/`](docs/adr/) — Architecture Decision Records (why each major choice)
-- [`docs/findings.md`](docs/findings.md) — Phase 1 reference-app survey findings (historical)
 
 ## License
 

@@ -25,9 +25,9 @@ You're an AI coding agent (Claude Code, Codex, Cursor, Aider, or similar) workin
 | Runtime | Cloudflare Workers (Wrangler 4, multi-env: `dev`, `production`) |
 | Framework | TanStack Start (SSR + file-based routing + API routes) |
 | Database | Cloudflare D1 + Drizzle ORM (Neon Postgres available via recipe) |
-| Auth | Better Auth + Entra OIDC, behind a `getCurrentUser()` abstraction in `src/lib/auth/` |
-| AI | Vercel AI SDK + AI Elements; provider via env (`AI_PROVIDER`), default Microsoft Foundry via Cloudflare AI Gateway |
-| Email | React Email 6 templates; transport via `src/lib/email/send.ts` (Resend default) |
+| Auth | Better Auth, providers via env (email+password, email-OTP, social OAuth, Entra OIDC). All identity reads via `getCurrentUser()` in `src/lib/auth/` |
+| AI | Vercel AI SDK + AI Elements; provider via env (`AI_PROVIDER`: `cloudflare-workers-ai` / `foundry` / `anthropic` / `openai`); recommended pattern AI Gateway-fronted |
+| Email | React Email 6 templates; transport via env (`EMAIL_TRANSPORT`: `resend` / `graph` / `cloudflare-email`) |
 | UI | shadcn/ui (base-ui primitives), Tailwind v4, `next-themes` for theme provider |
 | Validation | Zod + zod-openapi → generated `openapi.json` contract (CI-enforced) |
 | Testing | Vitest + Testing Library |
@@ -80,8 +80,8 @@ These have ADRs in `docs/adr/`. If you're tempted to deviate, read the ADR first
 - TanStack Start as the framework ([ADR-0002](docs/adr/0002-tanstack-start-framework.md))
 - D1 default for the data layer; Neon via recipe ([ADR-0003](docs/adr/0003-d1-default-data-layer.md))
 - Drizzle as the ORM ([ADR-0004](docs/adr/0004-drizzle-orm.md))
-- Better Auth + Entra OIDC default; Cloudflare Access via recipe ([ADR-0005](docs/adr/0005-better-auth-with-entra-default.md))
-- Microsoft Foundry via Cloudflare AI Gateway as the default AI provider ([ADR-0006](docs/adr/0006-foundry-via-ai-gateway.md))
+- Better Auth as the auth library, providers via env; Cloudflare Access via recipe ([ADR-0005](docs/adr/0005-better-auth-with-entra-default.md))
+- AI SDK + AI Elements; AI provider via env, AI Gateway recommended for production ([ADR-0006](docs/adr/0006-foundry-via-ai-gateway.md))
 - Auth provider abstraction (`getCurrentUser`) ([ADR-0007](docs/adr/0007-auth-provider-abstraction.md))
 - Neutral agent governance (this file + `agent-rules/`) ([ADR-0008](docs/adr/0008-neutral-agent-governance.md))
 - Discoverability surface in template (`.well-known/`, robots, sitemap, llms.txt) ([ADR-0009](docs/adr/0009-discoverability-in-template.md))

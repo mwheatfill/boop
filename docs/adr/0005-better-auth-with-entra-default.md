@@ -1,65 +1,47 @@
 ---
-title: "ADR-0005: Better Auth + Entra OIDC default; Cloudflare Access via recipe"
+title: "ADR-0005: Better Auth as the auth library; providers via env"
 type: "Architecture Decision Record"
 status: Accepted
 date: 2026-05-09
-author: "Michael Wheatfill, Cloud & Collaboration Architect"
-description: "Better Auth handles in-app OIDC against Entra by default. Cloudflare Access is documented as a swap recipe."
+description: "Better Auth ships with email+password, email-OTP, social OAuth, and Entra OIDC all wired; env vars activate which providers are live."
 ---
 
-# ADR-0005: Better Auth + Entra OIDC default; Cloudflare Access via recipe
+# ADR-0005: Better Auth as the auth library; providers via env
 
 ## Status
 
 Accepted (2026-05-09)
 
-## Context
+## What
 
-SwitchThink uses Microsoft Entra ID for identity. Conditional Access policies attach per Entra application registration, so per-app CA targeting (standard MFA for one app, phishing-resistant MFA for another) requires per-app Entra registrations.
+Better Auth is the auth library. The template wires four authentication providers; each activates via env vars (no env vars → provider disabled):
 
-Two viable patterns:
+- **Email + password** — universal default
+- **Email-OTP** — passwordless via mailed code
+- **Social OAuth** — Google, Apple, GitHub (configure the ones you want)
+- **Entra OIDC** — Microsoft Entra ID for enterprise SSO
 
-- **OIDC-in-app:** each app registration is its own Entra app; the app handles the OIDC redirect flow, session cookies, and validation. Per-app CA targeting works naturally.
-- **Cloudflare Access:** a single Entra registration shared across multiple apps protected by Cloudflare Access. The Worker reads `Cf-Access-Jwt-Assertion`. Uniform CA policy across all apps; loses per-app targeting.
+App code reads identity through `getCurrentUser(request)` ([ADR-0007](0007-auth-provider-abstraction.md)), so changing which providers are active doesn't touch route guards or server functions.
 
-The right pattern is app-dependent. The template needs a default and a clean swap path.
+## When this default is right
 
-## Decision
+- Apps needing authentication of any shape: consumer (email + social), enterprise (OIDC), or mixed
+- Want session management, CSRF, RBAC hooks, and a Drizzle adapter out of the box
+- Want to add or remove providers without touching app code
 
-**Default: OIDC-in-app via Better Auth.** Each cloned app gets its own Entra app registration. Better Auth handles OIDC, sessions, and validation. The app reads identity from the session via the `getCurrentUser()` abstraction ([ADR-0007](0007-auth-provider-abstraction.md)).
+## When to switch
 
-**Alternative: Cloudflare Access.** Documented as `auth/swap-better-auth-for-cloudflare-access.md` recipe. Apps choose this on day one if uniform CA policy is acceptable.
+- Want Cloudflare Access fronting the app (uniform identity policy at the edge; loses per-app conditional-access targeting)
+  - **Recipe:** [`auth/swap-better-auth-for-cloudflare-access.md`](https://github.com/mwheatfill/app-platform-recipes/tree/main/recipes/auth)
+- Identity provider isn't OIDC-compatible and Better Auth has no plugin for it
 
-## Consequences
+## Notable
 
-**Positive:**
-
-- Per-app Conditional Access targeting works naturally. SwitchThink can apply MFA to one app and phishing-resistant MFA to another without splitting Cloudflare Access groups.
-- Identity stays in Entra. App-level RBAC reads Entra group claims; no separate identity store.
-- Better Auth provides a clean OIDC implementation, session management, and Drizzle adapter.
-- The auth abstraction means swapping to Cloudflare Access is mechanical when an app prefers that model.
-
-**Negative:**
-
-- More moving parts than Cloudflare Access (which delegates everything to the edge). Each app maintains its own Entra registration, OIDC config, and session store.
-- Better Auth is younger than Auth.js. APIs occasionally shift; pin carefully.
-- Local development requires the OIDC flow to work, which means a local Entra app registration (or a dev-friendly bypass).
-
-**Neutral / trade-off:**
-
-- "Conditional Access is the single policy engine" is the governing principle. App-level RBAC (group-claim-based) is independent of identity policy and lives in app code regardless of which auth pattern is used.
-
-## Alternatives considered
-
-- **Cloudflare Access default** — simpler app code (no auth flow to maintain), but loses per-app CA targeting for SwitchThink's pattern. Lost on policy granularity. Documented as a swap recipe for apps where this trade is the right one.
-- **Auth.js (NextAuth)** — works in TanStack Start but has weaker Entra-specific tooling and a less clean adapter pattern for Drizzle. Lost on integration ergonomics.
-- **Clerk / Auth0** — excellent DX, but pulls identity out of Entra (or requires an Entra-as-IdP setup that adds latency). Lost on identity coherence with the rest of SwitchThink's M365 stack. Cost is also a factor for many small apps.
-- **DIY OIDC** — high foot-gun. Lost on security risk vs. value.
+- Better Auth is the implementation detail. App code imports `getCurrentUser` from `src/lib/auth/`, never `better-auth` directly. The abstraction is the boundary; see [ADR-0007](0007-auth-provider-abstraction.md).
+- `User` shape is identity-only (`id`, `email`, `name?`, `groups[]`). Multi-tenant apps add a separate `getActiveTenant()` rather than extending `User`.
+- Group claims from OIDC (Entra groups, etc.) populate `User.groups`; app code does RBAC against those.
 
 ## References
 
 - [Better Auth documentation](https://better-auth.com/)
-- [Microsoft Entra ID OIDC](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc)
-- [Cloudflare Access documentation](https://developers.cloudflare.com/cloudflare-one/identity/applications/)
-- Recipe: `auth/swap-better-auth-for-cloudflare-access.md`
-- Brief: `claude-code-brief.md`, "Auth" section
+- [Better Auth providers](https://better-auth.com/docs/authentication)
