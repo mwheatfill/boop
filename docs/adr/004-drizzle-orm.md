@@ -1,39 +1,24 @@
----
-title: "ADR-0004: Drizzle as the ORM"
-type: "Architecture Decision Record"
-status: Accepted
-date: 2026-05-09
-description: "Drizzle ORM speaks both D1 and Postgres dialects, keeping the data-layer swap mechanical."
----
-
 # ADR-004: Drizzle as the ORM
 
-## Status
+![Status](https://img.shields.io/badge/status-Accepted-brightgreen) ![Date](https://img.shields.io/badge/date-2026--05--09-blue)
 
-Accepted (2026-05-09)
+## Context
 
-## What
+Workers caps compressed bundles at 1 MB, which rules out Prisma's generated client at scale for many apps. The ORM also has to speak both SQLite and Postgres dialects so the D1→Neon swap ([ADR-003](003-d1-default-data-layer.md)) stays mechanical rather than a rewrite. Schema-as-code is the team default.
 
-Drizzle is the ORM. Schemas are TypeScript objects in `src/lib/db/schema.ts` (empty stub by default; recipes such as `auth/better-auth` extend it). `drizzle-kit generate` produces SQL migration files in `drizzle/`.
+## Decision
 
-## When this default is right
+[Drizzle ORM](https://orm.drizzle.team/) as the ORM, with schemas as TypeScript objects in `src/lib/db/schema.ts` (empty stub by default; recipes such as `auth/better-auth` extend it). [`drizzle-kit generate`](https://orm.drizzle.team/kit-docs/overview) writes new SQL migrations into `drizzle/`. CI applies them to D1 with `pnpm exec wrangler d1 migrations apply DB --remote` (dev) or `... --env production --remote` (prod); `drizzle-kit migrate` is not used because D1 needs migrations applied through wrangler so they're recorded in the D1 migrations table. `drizzle-kit push` is local-dev only — never run against a production DB.
 
-- Want one ORM API across SQLite (D1) and Postgres (Neon) so the data-layer swap stays mechanical
-- Care about bundle weight (Workers caps compressed bundles at 1 MB; Drizzle's runtime is small)
-- TypeScript-heavy team that prefers schema-as-code
+## Consequences
 
-## When to switch
+**Positive:**
 
-- Want Prisma's generated client ergonomics and don't mind the bundle weight
-- Prefer schema-first SQL files (with the ORM reading the SQL); pick something else
+- One ORM API across SQLite (D1) and Postgres (Neon) keeps the data-layer swap mechanical.
+- Small runtime footprint fits the Workers 1 MB compressed bundle ceiling.
+- Type inference flows from schema to queries automatically.
 
-## Notable
+**Negative:**
 
-- `drizzle-kit generate` writes new migration SQL into `drizzle/`. CI applies migrations to D1 with `pnpm exec wrangler d1 migrations apply DB --remote` (dev) or `... --config wrangler.production.jsonc --remote` (production). `drizzle-kit migrate` is not used here because D1 needs its migrations applied through wrangler, which records them in the D1 migrations table.
-- `drizzle-kit push` is for local dev iteration only; never run against a production DB.
-- Type inference flows from schema to queries automatically; complex relations occasionally need explicit typing for performance.
-
-## References
-
-- [Drizzle ORM documentation](https://orm.drizzle.team/)
-- [Drizzle Kit documentation](https://orm.drizzle.team/kit-docs/overview)
+- Less ergonomic than Prisma's generated client for complex relations; occasionally needs explicit typing for performance.
+- No client-generation step, so IDE autocomplete on relations is slightly less polished than Prisma.

@@ -1,18 +1,12 @@
----
-title: "ADR-0010: Skill currency protocol (Intent + MCP)"
-type: "Architecture Decision Record"
-status: Accepted
-date: 2026-05-09
-description: "Seven-step doc-resolution protocol so AI agents reference current sources over training data."
----
-
 # ADR-011: Skill currency protocol (Intent + MCP)
 
-## Status
+![Status](https://img.shields.io/badge/status-Accepted-brightgreen) ![Date](https://img.shields.io/badge/date-2026--05--09-blue)
 
-Accepted (2026-05-09)
+## Context
 
-## What
+Library APIs change; agent training data goes stale. Without a stated protocol, agents reach for whichever syntax their training memorized, often a major version behind, sometimes for a deprecated package the vendor has since superseded. Apps that wire the new syntax against the new package (or the old syntax against the new package) break in non-obvious ways at runtime. A layered protocol makes the resolution path deterministic and pushes the most current source to the top.
+
+## Decision
 
 A layered protocol agents follow when resolving documentation questions, codified in [`agent-rules/lookup-order.md`](../../agent-rules/lookup-order.md):
 
@@ -26,28 +20,21 @@ A layered protocol agents follow when resolving documentation questions, codifie
 7. Training data         → last resort; verify against (2)–(5)
 ```
 
-`@tanstack/intent` is installed as a devDep. MCP servers are pre-configured in `.claude/settings.json`. Cadence rules for Intent live in [`agent-rules/intent.md`](../../agent-rules/intent.md).
+`@tanstack/intent` is installed as a devDep. MCP servers are pre-configured in `.mcp.json` per [ADR-010](010-neutral-agent-governance.md). Cadence rules for Intent live in [`agent-rules/intent.md`](../../agent-rules/intent.md).
 
-## When this default is right
+## Consequences
 
-Always. Library APIs change; agent training data goes stale. The protocol keeps agents on current sources by default.
+**Positive:**
 
-## When to switch
+- Each layer is more current than the one below it. Intent skills version-lock to installed packages; MCP servers are vendor-maintained.
+- Layers degrade gracefully: if Intent has no skill for a package, agents fall through to MCPs; if no MCP, fall through to `llms.txt`; etc.
+- New agent-readable doc surfaces (a vendor publishing an MCP, a library shipping `SKILL.md`) slot into existing layers without rewriting the rule.
 
-Don't switch the protocol. Add layers. New agent-readable doc surfaces (a vendor publishing an MCP server, a library shipping `SKILL.md`) slot into existing layers without rewriting the rule.
+**Negative:**
 
-## Notable
+- TanStack Intent is pre-1.0 (`0.0.x`); the protocol works without it but layer 2 is weaker until Intent stabilizes.
+- MCP server uptime affects layer 3 in real time; outages fall through to (4)/(5).
 
-- Each layer is more current than the one below it. Intent skills version-lock to installed packages. MCP servers are vendor-maintained.
-- Layers degrade gracefully. If Intent has no skill for a package, agents fall through to MCPs; if no MCP, fall through to `llms.txt`; etc.
-- TanStack Intent is pre-1.0 (`0.0.x`). The protocol works without it; Intent makes layer 2 better but isn't load-bearing for the rule itself.
-- MCP server uptime affects layer 3 in real time. Falls through to (4)/(5) on outage.
+**Neutral / trade-off:**
 
-## References
-
-- [TanStack Intent](https://tanstack.com/intent)
-- [Cloudflare Docs MCP](https://docs.mcp.cloudflare.com/)
-- [Microsoft Learn MCP](https://learn.microsoft.com/en-us/training/support/mcp)
-- [Context7](https://context7.com/)
-- [llms.txt](https://llmstxt.org/)
-- [Model Context Protocol](https://modelcontextprotocol.io/)
+- Don't switch the protocol; add layers. Replacing the lookup-order is rarely the right move; adding a new layer (e.g., a `SKILL.md` package convention beyond TanStack) usually is.

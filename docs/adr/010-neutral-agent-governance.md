@@ -1,50 +1,41 @@
----
-title: "ADR-0008: Neutral agent governance (AGENTS.md + agent-rules/)"
-type: "Architecture Decision Record"
-status: Accepted
-date: 2026-05-09
-description: "Rules layer is harness-agnostic markdown; gate layer is per-harness configuration."
----
-
 # ADR-010: Neutral agent governance (AGENTS.md + agent-rules/)
 
-## Status
+![Status](https://img.shields.io/badge/status-Accepted-brightgreen) ![Date](https://img.shields.io/badge/date-2026--05--09-blue)
 
-Accepted (2026-05-09)
+## Context
 
-## What
+Multiple agent harnesses (Claude Code, Codex, Cursor, Aider, etc.) read different files for project context. Writing the same rules in `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, and Codex configs duplicates content and rots independently in each. Splitting the substance from the per-harness wiring keeps the rules portable across harnesses without N copies.
 
-Two-layer governance:
+## Decision
+
+Two layers:
 
 **Rules layer (harness-agnostic markdown):**
 
-- `AGENTS.md` at repo root: canonical entry for any agent harness
-- `agent-rules/` (no leading dot): individual rule files (`lookup-order.md`, `dependencies.md`, `spec-fidelity.md`, `architecture.md`, `api-contract.md`, `intent.md`, `conventions.md`, `codex-config.md`)
-- `CLAUDE.md`: thin shim pointing at `AGENTS.md`
-- `.cursorrules`: thin shim with the highest-priority rules inlined
+- [`AGENTS.md`](../../AGENTS.md) at repo root: canonical entry for any agent harness.
+- [`agent-rules/`](../../agent-rules/) (no leading dot): individual rule files (`lookup-order.md`, `dependencies.md`, `architecture.md`, `api-contract.md`, `intent.md`, `conventions.md`, `observability.md`, `preferences.md`).
+- `CLAUDE.md`: thin shim pointing at `AGENTS.md`.
+- `.cursorrules`: thin shim with the highest-priority rules inlined.
 
 **Gate layer (per-harness configuration):**
 
-- `.claude/settings.json`: Claude Code permission allow/deny lists and MCP server preconfig
-- Codex equivalents documented in `agent-rules/codex-config.md`
-- Other harnesses: same content, different config file syntax; add as needed
+- `.claude/settings.json`: Claude Code permission allow/deny lists and hook wiring.
+- `.mcp.json` at repo root: portable MCP server preconfig (Cloudflare Docs, Microsoft Learn, Context7) that any harness reading `.mcp.json` (Claude Code, Codex via the appropriate adapter) picks up.
+- Other harnesses: same content, different config file syntax; add as needed.
 
-## When this default is right
+The rules content is portable; only the gate-layer config syntax differs by harness. Adding a new harness is a thin shim plus a gate config, not a content rewrite.
 
-Always. This is template-mandatory.
+## Consequences
 
-## When to switch
+**Positive:**
 
-Don't. Rules and gates serve different purposes; don't conflate them. Adding a new harness is a thin shim plus a gate config, not a rewrite.
+- One source of truth for rules (the markdown in `agent-rules/`); per-harness adapters are mechanical.
+- AGENTS.md is the cross-harness convention: Codex reads it natively; Claude Code via the `CLAUDE.md` shim; Cursor via `.cursorrules` shim; Aider configurable.
 
-## Notable
+**Negative:**
 
-- `AGENTS.md` is the cross-harness convention: Codex reads it natively; Claude Code via `CLAUDE.md` shim; Cursor via `.cursorrules` shim; Aider configurable.
-- The rules content is portable. Only the gate-layer config syntax differs by harness.
-- Pre-configured MCP servers (Cloudflare Docs, Microsoft Learn, Context7) are wired in `.claude/settings.json` and documented for Codex in `agent-rules/codex-config.md`.
+- Per-harness gate config still has to be maintained per harness when permissions or hooks need wiring (e.g., Claude Code hooks live in `.claude/settings.json`). No way around this: each harness has its own gate model.
 
-## References
+**Neutral / trade-off:**
 
-- [AGENTS.md convention](https://agents.md/)
-- [Claude Code settings reference](https://docs.claude.com/en/docs/claude-code/settings)
-- [Cursor rules documentation](https://docs.cursor.com/context/rules-for-ai)
+- MCP servers moved out of `.claude/settings.json` into `.mcp.json` so they're portable. This trade is net-positive but means Claude-Code-specific MCP setup (per-tenant MCPs, etc.) is a separate consideration if it ever applies.

@@ -1,42 +1,27 @@
----
-title: "ADR-0002: TanStack Start as the framework"
-type: "Architecture Decision Record"
-status: Accepted
-date: 2026-05-09
-description: "TanStack Start handles SSR, file-based routing, and API routes in a single bundle."
----
-
 # ADR-002: TanStack Start as the framework
 
-## Status
+![Status](https://img.shields.io/badge/status-Accepted-brightgreen) ![Date](https://img.shields.io/badge/date-2026--05--09-blue)
 
-Accepted (2026-05-09)
+## Context
 
-## What
+The framework call locks routing convention, SSR strategy, the call-the-server-from-the-client pattern, the build/deploy chain, and the surface area agents pattern-match on for "how do you do X" in this codebase. Picking it after the runtime ([ADR-001](001-cloudflare-workers-runtime.md)) keeps the runtime + framework boundary clean: Workers handles deploy and bindings, the framework handles routing and SSR.
 
-TanStack Start is the framework. File-based routing via TanStack Router. SSR + API routes in one bundle. The Cloudflare Vite plugin handles the Workers deploy target.
+## Decision
 
-## When this default is right
+[TanStack Start](https://tanstack.com/start/latest) as the framework, with file-based routing via [TanStack Router](https://tanstack.com/router/latest), SSR + API routes in a single bundle, and Workers as the deploy target via the [Cloudflare Vite plugin](https://github.com/cloudflare/workers-sdk/tree/main/packages/vite-plugin). Server functions (`createServerFn`) collapse the call-server-from-client boundary into a typed import; HTTP API routes live alongside page routes in `src/routes/api/`.
 
-- TypeScript-first; full end-to-end type inference (routes, params, server function I/O)
-- Already using TanStack Query, Form, Table, or Virtual, or want clean integration with them
-- Want SSR + API in a single bundle without Next-style adapter layers
-- Building an interactive app (not a content-heavy site)
+## Consequences
 
-## When to switch
+**Positive:**
 
-- Need a much larger ecosystem of recipes, templates, or community examples (Next.js)
-- Need React Server Components patterns with mature ecosystem support today
-- Building a content-heavy site rather than an app (Astro)
+- TypeScript-first with full end-to-end type inference (routes, params, server function I/O).
+- Clean integration with the rest of the TanStack family (Query, Form, Table, Virtual).
+- SSR + API in a single bundle without Next-style adapter layers.
+- Built for interactive apps, not content-heavy sites.
 
-## Notable
+**Negative:**
 
-- TanStack Start is younger than Next; some patterns are still maturing. Pre-1.0 in places.
-- TanStack Intent ([ADR-011](011-skill-currency-protocol.md)) keeps agent guidance current with installed versions, mitigating the API-churn cost.
-- Server functions (`createServerFn`) collapse the call-server-from-client boundary into a typed import; HTTP API routes live alongside page routes in `src/routes/api/`.
-
-## References
-
-- [TanStack Start documentation](https://tanstack.com/start/latest)
-- [TanStack Router documentation](https://tanstack.com/router/latest)
-- [Cloudflare Vite plugin](https://github.com/cloudflare/workers-sdk/tree/main/packages/vite-plugin)
+- Younger than Next; some patterns are still maturing (pre-1.0 in places). Mitigated by [ADR-011](011-skill-currency-protocol.md) (Intent + MCP) keeping agent guidance current with installed versions.
+- Smaller ecosystem of recipes, templates, and community examples than Next.js.
+- React Server Components patterns are less mature here than in Next.
+- Not the right pick for content-heavy sites (Astro fits that shape better).

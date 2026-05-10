@@ -1,48 +1,35 @@
----
-title: "ADR-0005: Better Auth as the default auth recipe"
-type: "Architecture Decision Record"
-status: Accepted
-date: 2026-05-09
-description: "Better Auth is the default provider behind the getCurrentUser abstraction; the template ships the abstraction empty and an opt-in recipe wires Better Auth with email+password, email-OTP, social OAuth, and Microsoft Entra OIDC behind env-driven config."
----
-
 # ADR-006: Better Auth as the default auth recipe
 
-## Status
+![Status](https://img.shields.io/badge/status-Accepted-brightgreen) ![Date](https://img.shields.io/badge/date-2026--05--09-blue)
 
-Accepted (2026-05-09)
+## Context
 
-## What
+The auth abstraction ([ADR-005](005-auth-provider-abstraction.md)) is empty until a recipe wires a real provider. Apps installed without picking carefully end up with hand-rolled session handling or import a heavy framework. The default recipe sets the floor: full-shape auth (consumer + enterprise) without forcing a choice up front.
 
-The template ships an empty `getCurrentUser(request)` ([ADR-005](005-auth-provider-abstraction.md)) and no auth library. Better Auth is the default opt-in implementation, installed via the [`auth/better-auth`](https://github.com/mwheatfill/app-platform-recipes/tree/main/recipes/auth/better-auth) recipe. That recipe replaces `getCurrentUser` with a Better Auth-backed body and adds env-driven configuration for the providers below; each one activates only when its env vars are set:
+## Decision
 
-- **Email + password**: universal default
-- **Email-OTP**: passwordless via mailed code
-- **Social OAuth**: Google, Apple, GitHub (configure the ones you want)
-- **Entra OIDC**: Microsoft Entra ID for enterprise SSO
+The template ships an empty `getCurrentUser(request)` and no auth library. Better Auth is the default opt-in implementation, installed via the [`auth/better-auth`](https://github.com/mwheatfill/app-platform-recipes/tree/main/recipes/auth/better-auth) recipe. The recipe replaces `getCurrentUser` with a Better Auth-backed body and adds env-driven configuration for the providers below; each activates only when its env vars are set:
 
-App code reads identity through `getCurrentUser(request)` regardless of which recipe is installed, so swapping providers doesn't touch route guards or server functions.
+- **Email + password**: universal default.
+- **Email-OTP**: passwordless via mailed code.
+- **Social OAuth**: Google, Apple, GitHub.
+- **Entra OIDC**: Microsoft Entra ID for enterprise SSO.
 
-## When this default is right
+App code reads identity through `getCurrentUser(request)` regardless of which provider is active, so swapping providers doesn't touch route guards or server functions. The `User` shape is identity-only (`id`, `email`, `name?`, `image?`, `groups[]`); group claims from OIDC populate `User.groups` for RBAC.
 
-- Apps needing authentication of any shape: consumer (email + social), enterprise (OIDC), or mixed
-- Want session management, CSRF, RBAC hooks, and a Drizzle adapter out of the box
-- Want to add or remove providers without touching app code
+## Consequences
 
-## When to switch
+**Positive:**
 
-- Want Cloudflare Access fronting the app (uniform identity policy at the edge; loses per-app conditional-access targeting). Use the planned `auth/cloudflare-access` recipe.
-- Identity provider isn't OIDC-compatible and Better Auth has no plugin for it.
+- Covers any auth shape (consumer, enterprise, mixed) without picking a vendor up front.
+- Session management, CSRF, RBAC hooks, and a Drizzle adapter ship with the recipe.
+- Providers turn on/off via env vars; no app code change to swap them.
 
-## Notable
+**Negative:**
 
-- Better Auth is the implementation detail. App code imports `getCurrentUser` from `src/lib/auth/`, never `better-auth` directly. The abstraction is the boundary; see [ADR-005](005-auth-provider-abstraction.md).
-- The template's `src/lib/db/schema.ts` is empty by default; the `auth/better-auth` recipe adds the auth tables and ships the corresponding Drizzle migration.
-- `User` shape is identity-only (`id`, `email`, `name?`, `image?`, `groups[]`). Multi-tenant apps add a separate `getActiveTenant()` rather than extending `User`.
-- Group claims from OIDC (Entra groups, etc.) populate `User.groups`; app code does RBAC against those.
+- Apps that want Cloudflare Access fronting (uniform identity at the edge, loss of per-app conditional-access targeting) need to install the planned [`auth/cloudflare-access`](https://github.com/mwheatfill/app-platform-recipes#planned-recipes) recipe instead.
+- Identity providers that aren't OIDC-compatible and don't have a Better Auth plugin need a different recipe.
 
-## References
+**Neutral / trade-off:**
 
-- [Better Auth documentation](https://better-auth.com/)
-- [Better Auth providers](https://better-auth.com/docs/authentication)
-- [`auth/better-auth` recipe](https://github.com/mwheatfill/app-platform-recipes/tree/main/recipes/auth/better-auth)
+- The template's `src/lib/db/schema.ts` is empty by default; the recipe adds the auth tables and the corresponding Drizzle migration. Apps that don't install an auth recipe have an empty schema.

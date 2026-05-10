@@ -1,51 +1,29 @@
----
-title: "ADR-0011: Opinionated stack with mechanical pattern enforcement"
-type: "Architecture Decision Record"
-status: Accepted
-date: 2026-05-09
-description: "Single canonical choice per concern, listed in agent-rules/preferences.md, enforced by a pnpm audit:patterns CI gate."
----
-
 # ADR-009: Opinionated stack with mechanical pattern enforcement
 
-## Status
+![Status](https://img.shields.io/badge/status-Accepted-brightgreen) ![Date](https://img.shields.io/badge/date-2026--05--09-blue)
 
-Accepted (2026-05-09)
+## Context
 
-## What
+Two failure modes drove this. First, agents pattern-match on the codebase: if the template ships hand-rolled UI primitives, future agent sessions hand-roll more; if the template uses an idiosyncratic data-fetching pattern, future sessions duplicate it. The template is gravitational; whatever it teaches, agents repeat. Second, prose rules don't reliably constrain agents: a canonical-stack section in `AGENTS.md` gets ignored because the rendered code is louder. Drift compounds in both directions.
 
-For every architectural concern (routing, query/cache, tables, forms, UI primitives, validation, auth, AI, email, tests, etc.), the template declares a single canonical choice in [`agent-rules/preferences.md`](../../agent-rules/preferences.md). A `pnpm audit:patterns` CI gate enforces the list mechanically: forbidden imports fail the gate; hand-rolled primitives that have canonical equivalents fail the gate; pattern drift from canonical sources (the shadcn registry, version-locked TanStack Intent skills) fails the gate.
+## Decision
 
-Deviations require an ADR. The audit ships an allowlist for documented exceptions.
+For every architectural concern (routing, query/cache, tables, forms, UI primitives, validation, auth, AI, email, tests, etc.), the template declares a single canonical choice in [`agent-rules/preferences.md`](../../agent-rules/preferences.md). A `pnpm audit:patterns` CI gate enforces the list mechanically: forbidden imports fail the gate; hand-rolled primitives that have canonical equivalents fail the gate; pattern drift from the canonical sources (the shadcn registry, version-locked TanStack Intent skills) fails the gate. The audit reads canonical sources at run time (not snapshots in this repo), so when shadcn changes the canonical Button next year, the next audit run flags us as drifted automatically. Deviations require an ADR; the audit ships an allowlist for documented exceptions.
 
-## Why
+## Consequences
 
-Two failure modes drove this:
+**Positive:**
 
-1. **Agents pattern-match on the codebase.** If the template ships hand-rolled UI primitives, future agent sessions hand-roll more. If the template uses an idiosyncratic data-fetching pattern, future sessions duplicate it. The template is gravitational; whatever it teaches, agents repeat. Drift compounds.
+- Mechanical enforcement breaks the rules-vs-codebase drift cycle. Drift is visible at PR time, not when someone re-audits months later.
+- Adding a new concern is a `preferences.md` row + an audit check + ADR if needed, all in one PR.
+- Recipes inherit the preferences automatically; cross-recipe consistency is the default.
 
-2. **Prose rules don't reliably constrain agents.** Even with a canonical-stack section in `AGENTS.md`, an agent reading the codebase will trust what the codebase actually does over what the rules say to do. The stack section gets ignored because the rendered code is louder.
+**Negative:**
 
-Mechanical enforcement (CI gate) breaks both cycles: the audit reads the canonical sources at run time (shadcn registry, Intent skills locked to installed package versions), structural-diffs against the codebase, and fails the build on drift. That's the same mechanism a *good* agent should use; the gate just makes the verification non-optional.
+- The preferences list is a living document. Adding a new concern (e.g., "for charts use Recharts") means adding a row, adding a check to [`scripts/audit-patterns/preferences.ts`](../../scripts/audit-patterns/preferences.ts), and shipping both in the same PR.
+- shadcn upstream risk: if shadcn changes a primitive's canonical shape, the audit flags drift and we react. Acceptable given the early signal it provides.
 
-## When this default is right
+**Neutral / trade-off:**
 
-Always, for opinionated codebases that intend to compound pattern coherence over time. The audit makes the cost of drift visible at the PR level, not when someone re-audits months later.
-
-## When to switch
-
-Don't. If a particular preference becomes wrong (e.g., shadcn ships a breaking change to canonical Card and we want to stay on the old shape), update `preferences.md` and the audit allowlist; don't disable the audit.
-
-## Notable
-
-- **The preferences list is a living document.** Adding a new concern (e.g., "for charts use Recharts") means: add a row to `preferences.md`, add a check to `scripts/audit-patterns/preferences.ts`, ship both in the same PR.
-- **The audit grounds in current sources, not in our rules file.** Shadcn drift is detected by fetching the canonical Button source from `https://ui.shadcn.com/r/styles/base-vega/button.json` at run time, not by comparing to a snapshot in our repo. When shadcn changes the canonical Button next year, the next audit run flags us as drifted automatically.
-- **shadcn style is `base-vega`** — Base UI primitives (`@base-ui/react`) plus the "vega" celestial visual theme. This is the modern shadcn style system (the legacy `default` and `new-york` styles are Radix-only and being phased out). The 14 themes split as 7 visual themes (vega, nova, maia, lyra, mira, luma, sera) × 2 primitive layers (radix-, base-). We picked base-ui because: (a) it's React-19-native, smaller bundle (~6KB vs ~9KB for Dialog), and has 7 funded MUI staff vs Radix's smaller post-acquisition team; (b) the template's primary consumer is agent-driven app generation where third-party block ecosystem (Radix's strength) matters less than internal consistency; (c) base-ui is what the team is already using in HoopsLoop and other downstream projects.
-- **TanStack Query, Table, and Form belong in the template** (or are documented as canonical recipe choices), not as alternatives to evaluate. Once you've chosen TanStack as the framework family, the family ships together. Apps that don't need Tables/Forms simply don't import them.
-- **Recipes are bound by the same preferences.** A recipe that introduces a new concern (e.g., a "reports" recipe needing charts) updates `preferences.md` and the audit; it doesn't get to introduce its own competing choices.
-
-## References
-
-- [`agent-rules/preferences.md`](../../agent-rules/preferences.md): the list itself
-- [`scripts/audit-patterns/`](../../scripts/audit-patterns/): the enforcement scripts
-- [shadcn-ui registry](https://ui.shadcn.com/r/styles/new-york-v4/index.json): canonical source for primitive drift detection
+- shadcn style is `base-vega` (Base UI primitives + the "vega" celestial visual theme). The 14 themes split as 7 visual themes × 2 primitive layers; we picked base-ui because it's React-19-native, smaller bundle (~6KB vs ~9KB for Dialog), and has 7 funded MUI staff vs Radix's smaller post-acquisition team. The agent-driven generation context cares more about internal consistency than about Radix's third-party block ecosystem. ([ADR-008 Headless](008-ui-visual-layer.md) inherits this rationale.)
+- TanStack Query, Table, and Form belong in the template (or are documented as canonical recipe choices), not as alternatives to evaluate. Once you've chosen TanStack as the framework family, the family ships together.
