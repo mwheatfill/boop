@@ -7,7 +7,7 @@ description: "What's left to ship, in priority order, with enough context for a 
 
 # Roadmap
 
-The template is feature-complete for "what every Cloudflare Workers + TanStack Start app needs." Three milestones remain. Each is independent enough to start in isolation; the recommended order minimizes rework.
+The template is feature-complete for "what every Cloudflare Workers + TanStack Start app needs." Two milestones remain after the v0.0.1 production deploy was verified on 2026-05-10. Each is independent enough to start in isolation.
 
 ## Current state (May 2026)
 
@@ -16,24 +16,11 @@ The template is feature-complete for "what every Cloudflare Workers + TanStack S
 - **Wired in `src/lib/`:** `auth/get-current-user`, `db/client`, `db/schema` (empty), `query-client`, `log` (structured `console.*` wrapper), `format` (Intl-based `formatMoney`/`formatNumber`/`formatPercent`), `utils` (`cn`).
 - **Wired in `src/components/`:** Button + Card from canonical shadcn `base-vega` (Base UI primitives), Sonner Toaster mounted in `__root.tsx`, ThemeProvider + ThemeToggle, DefaultCatchBoundary + NotFound.
 - **CI:** `main.yml` (check + dev deploy on push to `main`), `deploy-production.yml` (prod deploy on `v*.*.*` tags), composite `setup` action shared between them, audit-patterns posts a PR comment with findings.
-- **Unverified:** production deploy has never run end-to-end. Dev deploy is verified; prod is not.
+- **Verified:** dev deploy at `https://template-cf-fullstack-dev.stelcollective.workers.dev`, prod deploy at `https://template-cf-fullstack-prod.stelcollective.workers.dev` (v0.0.1, 2026-05-10).
 
 ## Milestones
 
-### 1. Production deploy verification
-
-**Smallest item; do this first.** It de-risks the wrangler.jsonc env.production block, the deploy-production.yml workflow, and the `--env production` migration apply. None of these have been exercised end-to-end against Cloudflare; a tag cut now will surface any gap before later work depends on it.
-
-Steps:
-1. Bump `package.json` `version` to `0.0.1`.
-2. Tag: `git tag v0.0.1 && git push origin v0.0.1`.
-3. Watch `deploy-production.yml` in GitHub Actions. Quality gates run on the tagged SHA, then build with `CLOUDFLARE_ENV=production`, then `wrangler d1 migrations apply DB --env production --remote` (no-op for the empty schema), then `wrangler deploy`.
-4. Confirm `template-cf-fullstack-prod` worker is up at `https://template-cf-fullstack-prod.<account-subdomain>.workers.dev`. Hit `/` and verify the home page renders with `PUBLIC_ENV=production` shown in the footer.
-5. If the worker fails to start, the most likely culprits in order: missing `CLOUDFLARE_ENV=production` env at job level, missing GitHub environment secrets (`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` not configured for the `production` environment), the env.production D1 binding pointing at an ID that doesn't exist on the account.
-
-Scope: one commit (version bump + tag); execution is automated by `deploy-production.yml`. Failure surface is bounded to the three culprits above, each with a known fix.
-
-### 2. M7 wave two — build the planned recipes
+### 1. M7 wave two — build the planned recipes
 
 The [`app-platform-recipes` repo's `README.md` "Planned recipes" section](https://github.com/mwheatfill/app-platform-recipes#planned-recipes) lists ~25 planned recipes. Six exist today (`auth/better-auth`, `ai/chat-route`, `ai/chat-ui`, `email/send-pipeline`, `email/welcome-template`, `email/graph-shared-mailbox`, `microsoft-foundry/chat-completion`, `mcp/expose-app-as-mcp-server`, plus the Azure-template recipes).
 
@@ -58,7 +45,7 @@ Suggested priority (highest-leverage first):
 
 Scope: ~25 small recipes (one README + one `files/` tree + optional `install.sh` + `compatibility.json` per recipe). Independent of each other — high parallelization potential, easy to delegate one recipe per agent session.
 
-### 3. M8 composer surface
+### 2. M8 composer surface
 
 Interactive recipe selection during bootstrap, plus an agent-callable scaffold skill. **Depends on M7** — most recipes need to exist before the composer has anything to offer.
 
@@ -77,9 +64,17 @@ Scope: two surfaces (TUI + agent skill). The TUI shell is a wrapper around the e
 
 ## How the milestones interact
 
-- **(1) is independent** — do it first to surface any production-deploy gaps while the recent CI changes are still fresh in your head.
-- **(2) is the bulk of the remaining work** — each recipe is a small focused task, easy to delegate to agent sessions.
-- **(3) depends on (2)** — the composer needs recipes to compose. Could start the composer's TUI / agent-skill scaffolding in parallel with late-stage M7 work.
+- **(1) is the bulk of the remaining work** — each recipe is a small focused task, easy to delegate to agent sessions.
+- **(2) depends on (1)** — the composer needs recipes to compose. Could start the composer's TUI / agent-skill scaffolding in parallel with late-stage M7 work.
+
+## What v0.0.1 surfaced (2026-05-10)
+
+The first production tag exposed two latent CI bugs that had never been exercised:
+
+1. **Local composite action referenced before checkout.** [`.github/actions/setup/action.yml`](../.github/actions/setup/action.yml) had its own `actions/checkout@v4` step, but a local `uses: ./.github/actions/setup` cannot resolve until the repo is on disk — so the runner couldn't even read the action file. Hoisted checkout out of the composite action into each workflow.
+2. **`wrangler deploy` read the raw `wrangler.jsonc`.** Wrangler tripped on the unresolved `@tanstack/react-start/server-entry` main entry. Both deploy steps now pass `--config dist/server/wrangler.json --env=""` to point at the Cloudflare Vite plugin's emitted config; `--env=""` disambiguates top-level in multi-env configs.
+
+These were latent because the dev deploy claim in earlier project notes had been a manual `wrangler deploy` from a built tree, never via CI. Tagging forced the first end-to-end CI run.
 
 ## Things explicitly NOT on the roadmap
 
