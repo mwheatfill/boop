@@ -1,7 +1,37 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
+// Canonical createServerFn pattern (from the version-locked TanStack
+// Intent skill in node_modules/@tanstack/react-start/skills/react-start/SKILL.md).
+// Server functions are RPC-style: defined here, callable from anywhere
+// (route loaders, components via `useServerFn`, mutations). They run
+// only on the server, so it's safe to import bindings from
+// `cloudflare:workers` and read env vars / D1 / R2 / etc.
+//
+// Pattern to copy when adding a new server fn:
+//   const myFn = createServerFn({ method: 'POST' })
+//     .inputValidator((data) => MySchema.parse(data))
+//     .handler(async ({ data }) => { /* server-only logic */ })
+//
+// Then wire it into a route via `loader: () => myFn(...)` (eager, runs
+// during navigation) or call from a component via `useServerFn(myFn)`.
+const getHealth = createServerFn({ method: 'GET' }).handler(async () => {
+  const { env } = await import('cloudflare:workers')
+  return {
+    ok: true,
+    env: env.PUBLIC_ENV,
+    appName: env.PUBLIC_APP_NAME,
+    timestamp: new Date().toISOString(),
+  }
+})
+
 export const Route = createFileRoute('/')({
+  // Route loader runs the server fn during navigation; the result is
+  // available via `Route.useLoaderData()` in the component. Loaders are
+  // isomorphic (server during SSR, client on subsequent navigations);
+  // the server fn enforces the server-only boundary inside.
+  loader: () => getHealth(),
   component: HomePage,
 })
 
@@ -29,11 +59,13 @@ const docLinks = [
 ] as const
 
 function HomePage() {
+  const health = Route.useLoaderData()
+
   return (
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-2">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          template-cf-fullstack
+          {health.appName}
         </p>
         <h1 className="text-3xl font-semibold tracking-tight">
           Build modern, secure, production-ready apps on Cloudflare.
@@ -65,8 +97,8 @@ function HomePage() {
             rel="noreferrer"
             className="block transition-colors hover:bg-muted"
           >
-            <Card className="h-full p-4">
-              <CardHeader className="p-0">
+            <Card className="h-full">
+              <CardHeader>
                 <CardTitle className="text-sm">{link.title}</CardTitle>
                 <CardDescription>{link.description}</CardDescription>
               </CardHeader>
@@ -74,6 +106,13 @@ function HomePage() {
           </a>
         ))}
       </section>
+
+      <footer className="text-xs text-muted-foreground">
+        <code className="font-mono">getHealth()</code> from the server fn returned{' '}
+        <code className="font-mono">env={health.env}</code> at{' '}
+        <time dateTime={health.timestamp}>{health.timestamp}</time>. This line proves the server-fn
+        pattern is wired; delete it once you have your own routes.
+      </footer>
     </div>
   )
 }
