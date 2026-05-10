@@ -1,18 +1,6 @@
----
-title: "ADR-0012: UI / visual layer"
-type: "Architecture Decision Record"
-status: Accepted
-date: 2026-05-10
-author: "Michael Wheatfill, Cloud & Collaboration Architect"
-description: "shadcn/ui (base-vega style) is the center of the visual layer; charts, toasts, icons, animation, dashboard, theme, and class merging all follow from it."
----
-
 # ADR-0012: UI / visual layer
 
 ![Status](https://img.shields.io/badge/status-Accepted-brightgreen) ![Date](https://img.shields.io/badge/date-2026--05--10-blue)
-
-> [!NOTE]
-> **Accepted** · 2026-05-10
 
 ## Context
 
