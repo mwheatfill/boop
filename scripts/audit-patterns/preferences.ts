@@ -281,6 +281,123 @@ const rules: Rule[] = [
       "Don't import better-auth directly outside src/lib/auth/. App code reads identity via `getCurrentUser(request)`. See agent-rules/architecture.md.",
     allowedPaths: ['src/lib/auth/'],
   },
+  // Postgres driver alternatives. Default for the Neon recipe is
+  // @neondatabase/serverless; pg works only via Hyperdrive.
+  {
+    id: 'no-pg-without-hyperdrive',
+    pattern: /from\s+['"]pg['"]/,
+    message:
+      'pg (node-postgres) only works on Workers via Hyperdrive (no raw TCP). Use @neondatabase/serverless for the Neon HTTP path, or postgres-js + Hyperdrive for the scale-up path. preferences.md → "Postgres swap".',
+    allowedPaths: ['src/lib/db/'],
+  },
+  // Email transport SDK direct imports outside the dispatcher.
+  {
+    id: 'no-nodemailer',
+    pattern: /from\s+['"]nodemailer(\/[\w-]+)?['"]/,
+    message:
+      'Nodemailer is Node-only and bypasses the email/send-pipeline dispatcher. Use the dispatcher + a transport recipe. preferences.md → "Email".',
+    allowedPaths: ['src/lib/email/'],
+  },
+  {
+    id: 'no-postmark',
+    pattern: /from\s+['"]postmark['"]/,
+    message:
+      'Use the email/send-pipeline dispatcher + a transport recipe (graph-shared-mailbox / resend / cloudflare-email-service). preferences.md → "Email".',
+    allowedPaths: ['src/lib/email/'],
+  },
+  {
+    id: 'no-sendgrid',
+    pattern: /from\s+['"]@sendgrid\//,
+    message:
+      'Use the email/send-pipeline dispatcher + a transport recipe. preferences.md → "Email".',
+    allowedPaths: ['src/lib/email/'],
+  },
+  // Rich-text editor alternatives.
+  {
+    id: 'no-lexical',
+    pattern: /from\s+['"]lexical(\/[\w-]+)?['"]/,
+    message: 'Use TipTap via the editor/tiptap recipe. preferences.md → "Rich-text editor".',
+  },
+  {
+    id: 'no-slate',
+    pattern: /from\s+['"]slate(-react)?['"]/,
+    message: 'Use TipTap via the editor/tiptap recipe. preferences.md → "Rich-text editor".',
+  },
+  {
+    id: 'no-draft-js',
+    pattern: /from\s+['"]draft-js['"]/,
+    message:
+      'Draft.js is unmaintained. Use TipTap via the editor/tiptap recipe. preferences.md → "Rich-text editor".',
+  },
+  // Background job library alternatives. Cloudflare-native primitives only.
+  {
+    id: 'no-bullmq',
+    pattern: /from\s+['"]bullmq?['"]/,
+    message:
+      'Bull/BullMQ is Node-only (Redis-backed). On Workers use Cloudflare Queues + a consumer Worker. preferences.md → "Background jobs / scheduled / workflows".',
+  },
+  {
+    id: 'no-agenda',
+    pattern: /from\s+['"]agenda['"]/,
+    message:
+      'Agenda is Node-only. Use Cloudflare Cron Triggers for scheduled work or Queues for async. preferences.md → "Background jobs / scheduled / workflows".',
+  },
+  {
+    id: 'no-node-cron',
+    pattern: /from\s+['"]node-cron['"]/,
+    message:
+      'Use Cloudflare Cron Triggers (declared in wrangler.jsonc), not node-cron. preferences.md → "Background jobs / scheduled / workflows".',
+  },
+  // WebSocket / real-time alternatives.
+  {
+    id: 'no-ws',
+    pattern: /from\s+['"]ws['"]/,
+    message:
+      'Use Durable Objects + WebSocketPair for real-time on Workers. preferences.md → "Real-time / WebSocket".',
+  },
+  {
+    id: 'no-socket-io',
+    pattern: /from\s+['"]socket\.io(-client)?['"]/,
+    message:
+      'Use Durable Objects + WebSocketPair for real-time on Workers. preferences.md → "Real-time / WebSocket".',
+  },
+  // Search SaaS alternatives.
+  {
+    id: 'no-algolia',
+    pattern: /from\s+['"]algoliasearch['"]/,
+    message:
+      'Use Cloudflare AI Search (managed hybrid BM25+vector, free during open beta) instead of Algolia. preferences.md → "Search".',
+  },
+  {
+    id: 'no-typesense',
+    pattern: /from\s+['"]typesense['"]/,
+    message: 'Use Cloudflare AI Search instead of Typesense. preferences.md → "Search".',
+  },
+  {
+    id: 'no-meilisearch',
+    pattern: /from\s+['"]meilisearch['"]/,
+    message: 'Use Cloudflare AI Search instead of Meilisearch. preferences.md → "Search".',
+  },
+  // Env var loading alternatives. Workers uses `env` binding from
+  // `cloudflare:workers`; .dev.vars + wrangler secret cover everything.
+  {
+    id: 'no-dotenv',
+    pattern: /from\s+['"]dotenv(\/[\w-]+)?['"]/,
+    message:
+      'Use .dev.vars (local) + `wrangler secret put` (prod) + `vars` block in wrangler.jsonc. Read via `import { env } from "cloudflare:workers"`. preferences.md → "Env var policy".',
+  },
+  {
+    id: 'no-env-cmd',
+    pattern: /from\s+['"]env-cmd['"]/,
+    message:
+      'Use .dev.vars / wrangler secret / cloudflare:workers env binding instead. preferences.md → "Env var policy".',
+  },
+  {
+    id: 'no-cross-env',
+    pattern: /from\s+['"]cross-env['"]/,
+    message:
+      'Use .dev.vars / wrangler secret / cloudflare:workers env binding instead. preferences.md → "Env var policy".',
+  },
   // Cloudflare API direct calls.
   {
     id: 'no-curl-cloudflare-api',
