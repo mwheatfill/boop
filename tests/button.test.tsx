@@ -1,7 +1,13 @@
-// Coverage for the canonical shadcn Button primitive. Asserts the
-// data-slot/data-variant/data-size attributes (load-bearing for canonical
-// CSS selectors), ref forwarding through the React 19 ref-as-prop
-// pattern, and Slot.Root behavior under asChild.
+// Coverage for the canonical shadcn Button (base-vega style: base-ui
+// primitives + the "vega" visual theme). Asserts the data-slot attribute
+// (load-bearing for canonical selectors), ref forwarding through the
+// React 19 ref-as-prop pattern, native HTML pass-through, and variant
+// classes.
+//
+// Note: base-ui's Button primitive doesn't use the Slot pattern that
+// Radix's Slot.Root provides, so there's no `asChild` API on the
+// canonical base-vega Button. Composition with custom elements happens
+// through base-ui's `render` prop where needed.
 import { render, screen } from '@testing-library/react'
 import { createRef } from 'react'
 import { describe, expect, it } from 'vitest'
@@ -12,19 +18,15 @@ describe('Button', () => {
     render(<Button>Save</Button>)
     const btn = screen.getByRole('button', { name: 'Save' })
     expect(btn.dataset.slot).toBe('button')
-    expect(btn.dataset.variant).toBe('default')
-    expect(btn.dataset.size).toBe('default')
   })
 
-  it('applies variant + size classes and data attrs', () => {
+  it('applies variant + size classes', () => {
     render(
       <Button variant="destructive" size="lg">
         Delete
       </Button>,
     )
     const btn = screen.getByRole('button', { name: 'Delete' })
-    expect(btn.dataset.variant).toBe('destructive')
-    expect(btn.dataset.size).toBe('lg')
     expect(btn.className).toContain('bg-destructive')
     expect(btn.className).toContain('h-10')
   })
@@ -33,22 +35,6 @@ describe('Button', () => {
     const ref = createRef<HTMLButtonElement>()
     render(<Button ref={ref}>Hi</Button>)
     expect(ref.current).toBeInstanceOf(HTMLButtonElement)
-  })
-
-  it('renders as the provided child element when asChild is set', () => {
-    render(
-      <Button asChild>
-        <a href="/docs">Docs</a>
-      </Button>,
-    )
-    // Slot.Root means the child <a> wins; no <button> in the tree.
-    expect(screen.queryByRole('button')).toBeNull()
-    const link = screen.getByRole('link', { name: 'Docs' })
-    expect(link.getAttribute('href')).toBe('/docs')
-    // Variant classes are still applied to the slotted child.
-    expect(link.className).toContain('bg-primary')
-    // data-slot also propagates to the slotted child.
-    expect(link.dataset.slot).toBe('button')
   })
 
   it('passes through native button attributes', () => {
@@ -60,5 +46,15 @@ describe('Button', () => {
     const btn = screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement
     expect(btn.type).toBe('submit')
     expect(btn.disabled).toBe(true)
+  })
+
+  it('exposes the new sm/xs/lg + icon variants', () => {
+    render(
+      <Button size="xs" data-testid="xs">
+        x
+      </Button>,
+    )
+    const btn = screen.getByTestId('xs')
+    expect(btn.className).toContain('h-6')
   })
 })

@@ -16,8 +16,11 @@ The `pnpm audit:patterns` CI job enforces this list mechanically: forbidden impo
 | Forms (rich) | TanStack Form | React Hook Form, Formik |
 | Forms (simple) | React 19 `<form action={fn}>` + `useActionState` | controlled-component `onSubmit` chains |
 | Validation | Zod 4 via `@/shared/schemas/openapi` | Yup, Joi, Valibot, Superstruct |
-| UI primitives | shadcn/ui via `npx shadcn@latest add <name>` | hand-rolling, Material UI, Chakra, Mantine |
-| Headless primitives | Radix (under shadcn) | Headless UI, Reach UI |
+| UI primitives | shadcn/ui via `npx shadcn@latest add <name>` (style: `base-vega`) | hand-rolling, Material UI, Chakra, Mantine |
+| Headless primitives | Base UI (`@base-ui/react`) under shadcn | Radix, Headless UI, Reach UI |
+| Charts | shadcn/ui Chart via `charts/setup` recipe (Recharts v3 underneath) | Chart.js, Victory, Plotly, Nivo, ECharts (without ADR) |
+| Animation | `motion` (formerly Framer Motion) via `motion/setup` recipe; CSS / Tailwind utilities for simple transitions | react-spring, @react-spring/*, GSAP (without ADR) |
+| Dashboard composition | `dashboard/scaffold` recipe (runs `npx shadcn@latest add dashboard-01` + adapts to template conventions) | hand-rolled sidebar+chart layout |
 | Icons | `lucide-react` | Heroicons, react-icons, Tabler |
 | Styling | Tailwind v4 with CSS-first `@theme` config | tailwind.config.{js,ts}, CSS-in-JS, CSS modules |
 | Theme | `next-themes` | hand-rolled context |
@@ -50,7 +53,9 @@ The "what to use" table is half the story. The "how to use it" patterns matter m
 ### shadcn
 
 - **Always install via the CLI**: `npx shadcn@latest add <component>`. Never copy from training memory or another project.
-- **Don't hand-roll a primitive that shadcn ships.** If you need a Combobox, run the CLI; don't compose one out of Radix Popover + List manually.
+- **The style is `base-vega`** (see `components.json`). That's Base UI primitives + the "vega" celestial visual theme (clean default, `rounded-md`, sm font, ring-3). Don't change the style after init; per shadcn docs, this is sticky.
+- **Composition uses Base UI's `render` prop, not Radix's `asChild`/`Slot`.** To make a Button render as a custom router Link: `<Button render={<Link to="/x" />}>Label</Button>`. The Link must forward refs and spread props.
+- **Don't hand-roll a primitive that shadcn ships.** If you need a Combobox, run the CLI; don't compose one out of base-ui parts manually.
 - **`data-slot` attributes are load-bearing.** Don't strip them; canonical CSS selectors depend on them.
 - **Sub-components like `<CardTitle>` are `<div>` by default**, not `<h3>`. The data-slot carries the role.
 - **Use `cn()` from `@/lib/utils`** to merge classes. Never concatenate with template literals.

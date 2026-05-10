@@ -28,7 +28,7 @@ You're an AI coding agent (Claude Code, Codex, Cursor, Aider, or similar) workin
 | Auth | `getCurrentUser(request)` abstraction in `src/lib/auth/`; returns `null` until an auth recipe is installed (e.g. `auth/better-auth`, `auth/cloudflare-access`) |
 | AI | Recipe-only. Install `ai/chat-route` + a provider recipe (e.g. `microsoft-foundry/chat-completion`); template ships nothing AI-related |
 | Email | Recipe-only. Install `email/send-pipeline` + a transport recipe (e.g. `email/graph-shared-mailbox`); template ships nothing email-related |
-| UI | shadcn/ui new-york style on Radix primitives (`@radix-ui/react-slot`), Tailwind v4, `next-themes` for theme provider |
+| UI | shadcn/ui style `base-vega` (Base UI primitives via `@base-ui/react` + the "vega" visual theme), Tailwind v4, `next-themes` for theme provider |
 | Validation | Zod + zod-openapi → generated `openapi.json` contract (CI-enforced) |
 | Testing | Vitest + Testing Library |
 | Tooling | Biome, Husky, lint-staged, Renovate, TanStack Intent |
@@ -94,6 +94,7 @@ These have ADRs in `docs/adr/`. If you're tempted to deviate, read the ADR first
 - **Don't add dependencies without proposing.** See `agent-rules/dependencies.md`. The harness will prompt the user on `pnpm add`; this is intentional.
 - **Don't write code that the OpenAPI contract doesn't describe.** Server functions take Zod-validated inputs that flow into `public/openapi.json`. The CI guard (`scripts/check-openapi-contract.ts`, run via `pnpm openapi:check`) blocks deploys when this drifts.
 - **Don't bypass the auth abstraction.** All identity reads go through `getCurrentUser(request)`. Don't import Better Auth directly from route guards or server functions.
+- **Don't import from `radix-ui` or `@radix-ui/*`.** The template uses Base UI primitives via `@base-ui/react` (style `base-vega`). For composition (the equivalent of Radix's `asChild` / `Slot`), use Base UI's `render` prop: `<Button render={<Link to="/x" />}>Label</Button>`. The audit (`pnpm audit:patterns`) blocks Radix imports.
 - **Don't trust training data over current docs.** When library guidance from training conflicts with what `intent load`, an MCP server, or `llms.txt` says, the live source wins. Verify before writing.
 - **Don't tack on rules; revise them.** When an existing rule almost-but-not-quite covered a case you hit, revise that rule. Don't add a near-duplicate elsewhere or append a caveat. The bar to add a *new* rule is "no existing rule, slightly tightened, would have prevented this." Apply the same principle to ADRs and to the spec.
 - **Don't add comments that explain "what."** Code says what; comments say why, only when non-obvious.

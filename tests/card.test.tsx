@@ -1,7 +1,10 @@
-// Coverage for the canonical shadcn Card primitive family. Title and
-// description render as `<div>` (not h3/p) per the canonical shadcn-ui
-// new-york-v4 source; the data-slot attributes are load-bearing for
-// the canonical CSS selectors (e.g. has-data-[slot=card-action]).
+// Coverage for the canonical shadcn Card primitive family (base-vega).
+// Title and description render as `<div>` (not h3/p) per the canonical
+// base-vega source; data-slot attributes are load-bearing for the
+// canonical selectors (e.g. has-data-[slot=card-action]).
+//
+// Card now also has a `size` prop ("default" | "sm") that drives a
+// data-size attribute used by sub-components via group selectors.
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import {
@@ -28,6 +31,7 @@ describe('Card', () => {
 
     const card = screen.getByTestId('card')
     expect(card.dataset.slot).toBe('card')
+    expect(card.dataset.size).toBe('default')
     expect(card.className).toContain('rounded-xl')
     expect(card.className).toContain('flex')
     expect(card.className).toContain('flex-col')
@@ -55,5 +59,14 @@ describe('Card', () => {
     const card = screen.getByTestId('card')
     expect(card.className).toContain('custom-extra')
     expect(card.className).toContain('bg-card')
+  })
+
+  it('honors the size prop via data-size', () => {
+    render(
+      <Card size="sm" data-testid="card">
+        small
+      </Card>,
+    )
+    expect(screen.getByTestId('card').dataset.size).toBe('sm')
   })
 })

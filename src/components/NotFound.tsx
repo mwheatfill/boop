@@ -13,9 +13,7 @@ export function NotFound({ children }: { children?: ReactNode }) {
         <Button variant="outline" onClick={() => window.history.back()}>
           Go back
         </Button>
-        <Button asChild>
-          <Link to="/">Home</Link>
-        </Button>
+        <Button render={<Link to="/" />}>Home</Button>
       </div>
     </div>
   )

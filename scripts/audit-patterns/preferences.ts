@@ -129,6 +129,62 @@ const rules: Rule[] = [
     pattern: /from\s+['"]react-router(-dom)?['"]/,
     message: 'Use @tanstack/react-router (the template router); preferences.md → "Routing".',
   },
+  // Headless primitive alternatives. The template uses Base UI (style:
+  // base-vega in components.json). Direct radix-ui imports indicate a
+  // hand-rolled primitive that should have come from `npx shadcn add`.
+  {
+    id: 'no-radix-ui',
+    pattern: /from\s+['"]radix-ui['"]/,
+    message:
+      'The template uses Base UI primitives (style: base-vega), not Radix. If you need a primitive, run `npx shadcn@latest add <name>`. preferences.md → "Headless primitives".',
+  },
+  {
+    id: 'no-radix-ui-scoped',
+    pattern: /from\s+['"]@radix-ui\//,
+    message:
+      'The template uses Base UI primitives (style: base-vega), not Radix. preferences.md → "Headless primitives".',
+  },
+  // Chart alternatives.
+  {
+    id: 'no-chartjs',
+    pattern: /from\s+['"]chart\.js['"]|from\s+['"]react-chartjs-2['"]/,
+    message:
+      'Use shadcn Chart (Recharts under the hood) via the `charts/setup` recipe. preferences.md → "Charts".',
+  },
+  {
+    id: 'no-victory',
+    pattern: /from\s+['"]victory(-[\w-]+)?['"]/,
+    message: 'Use shadcn Chart via the `charts/setup` recipe. preferences.md → "Charts".',
+  },
+  {
+    id: 'no-plotly',
+    pattern: /from\s+['"]plotly\.js|react-plotly['"]/,
+    message: 'Use shadcn Chart via the `charts/setup` recipe. preferences.md → "Charts".',
+  },
+  {
+    id: 'no-nivo',
+    pattern: /from\s+['"]@nivo\//,
+    message: 'Use shadcn Chart via the `charts/setup` recipe. preferences.md → "Charts".',
+  },
+  // Motion alternatives.
+  {
+    id: 'no-react-spring',
+    pattern: /from\s+['"](react-spring|@react-spring\/[\w-]+)['"]/,
+    message:
+      'Use `motion` (formerly Framer Motion) via the `motion/setup` recipe. preferences.md → "Animation".',
+  },
+  {
+    id: 'no-framer-motion',
+    pattern: /from\s+['"]framer-motion['"]/,
+    message:
+      'The package was renamed to `motion` in 2024. Install `motion` and import from `motion/react`. preferences.md → "Animation".',
+  },
+  {
+    id: 'no-gsap',
+    pattern: /from\s+['"]gsap(\/[\w-]+)?['"]/,
+    message:
+      'Use `motion` for layout/gesture/scroll animations; use Tailwind/CSS for simple transitions. preferences.md → "Animation".',
+  },
   // Auth provider direct imports outside the abstraction.
   {
     id: 'auth-provider-direct-import',

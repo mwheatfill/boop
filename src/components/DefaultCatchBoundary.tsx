@@ -29,20 +29,23 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
       )}
       <div className="flex flex-wrap items-center justify-center gap-2">
         <Button onClick={() => router.invalidate()}>Try again</Button>
-        <Button variant="outline" asChild>
-          <Link
-            to="/"
-            onClick={
-              isRoot
-                ? undefined
-                : (event) => {
-                    event.preventDefault()
-                    window.history.back()
-                  }
-            }
-          >
-            {isRoot ? 'Home' : 'Go back'}
-          </Link>
+        <Button
+          variant="outline"
+          render={
+            <Link
+              to="/"
+              onClick={
+                isRoot
+                  ? undefined
+                  : (event) => {
+                      event.preventDefault()
+                      window.history.back()
+                    }
+              }
+            />
+          }
+        >
+          {isRoot ? 'Home' : 'Go back'}
         </Button>
       </div>
     </div>

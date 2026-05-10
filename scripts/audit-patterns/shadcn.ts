@@ -55,11 +55,23 @@ function getStyle(): string {
   return componentsJson.style ?? 'new-york'
 }
 
+// Resolve the registry URL for a (style, component) pair. The registry
+// has two coexisting URL conventions:
+//   - Legacy "v4-suffixed" styles ("default", "new-york") live at
+//     /r/styles/<style>-v4/<name>.json.
+//   - The newer celestial themes (radix-vega, base-vega, etc.) live at
+//     /r/styles/<style>/<name>.json with no suffix.
+// We try the unsuffixed URL first (the modern path) and fall back.
 async function fetchCanonical(name: string, style: string): Promise<RegistryEntry | null> {
-  const url = `https://ui.shadcn.com/r/styles/${style}-v4/${name}.json`
-  const res = await fetch(url)
-  if (!res.ok) return null
-  return (await res.json()) as RegistryEntry
+  const candidates = [
+    `https://ui.shadcn.com/r/styles/${style}/${name}.json`,
+    `https://ui.shadcn.com/r/styles/${style}-v4/${name}.json`,
+  ]
+  for (const url of candidates) {
+    const res = await fetch(url)
+    if (res.ok) return (await res.json()) as RegistryEntry
+  }
+  return null
 }
 
 // Extract the structural signals that matter (not whitespace, not exact
@@ -120,9 +132,14 @@ function diffSignals(
   const issues: Array<{ signal: string; message: string }> = []
 
   // Each canonical import source should be present in ours (we may
-  // import more, but we can't drop a canonical one).
+  // import more, but we can't drop a canonical one). Skip imports from
+  // the registry's own internal monorepo paths (e.g.
+  // `@/registry/base-vega/lib/utils`); the shadcn CLI rewrites those
+  // to the consumer's alias paths from components.json on install, so
+  // a 1:1 source-string match would fail by design.
   const ourSources = new Set(ours.imports.map((i) => i.source))
   for (const imp of theirs.imports) {
+    if (imp.source.startsWith('@/registry/')) continue
     const sig = `import:${imp.source}`
     if (!ourSources.has(imp.source) && !allowlist.includes(sig)) {
       issues.push({
@@ -232,7 +249,7 @@ export async function runShadcnAudit(): Promise<AuditResult> {
         severity: 'error',
         file: relative(REPO_ROOT, ourPath),
         message: issue.message,
-        source: `https://ui.shadcn.com/r/styles/${style}-v4/${componentName}.json`,
+        source: `https://ui.shadcn.com/r/styles/${style}/${componentName}.json`,
       })
     }
   }
