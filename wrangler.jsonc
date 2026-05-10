@@ -1,6 +1,14 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "template-cf-fullstack",
+  // Default config used by `pnpm dev`, `pnpm bootstrap`, and CI deploy-dev.
+  // Production deploys use wrangler.production.jsonc instead, selected via
+  // the Vite plugin's configPath option (set WRANGLER_CONFIG=wrangler.production.jsonc
+  // before `pnpm build`).
+  //
+  // The TanStack Start Vite plugin flattens wrangler config into
+  // dist/server/wrangler.json and drops nested `env:` blocks; that's why
+  // we ship per-env files instead of a single multi-env config.
+  "name": "template-cf-fullstack-dev",
   "compatibility_date": "2026-05-09",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
@@ -8,18 +16,9 @@
     "enabled": true
   },
   "vars": {
-    "PUBLIC_APP_NAME": "template-cf-fullstack"
+    "PUBLIC_APP_NAME": "template-cf-fullstack-dev",
+    "PUBLIC_ENV": "dev"
   },
-  // KNOWN LIMITATION: the TSS Vite plugin flattens wrangler.jsonc into
-  // dist/server/wrangler.json and drops the `env:` block entirely. So
-  // `wrangler deploy --env dev` reads only this top-level config, not the
-  // env.dev override below. The env.dev / env.production blocks are
-  // currently informational; until per-env config files land, the
-  // top-level d1 binding is what actually deploys.
-  //
-  // Top-level points at the dev DB so `pnpm build && wrangler deploy`
-  // (no --env) targets dev. Production needs its own config file or a
-  // build-time substitution; that's a future M5.x task.
   "d1_databases": [
     {
       "binding": "DB",
@@ -27,37 +26,5 @@
       "database_id": "18db1684-4240-4fa5-a185-d54d58fac67b",
       "migrations_dir": "drizzle"
     }
-  ],
-  "env": {
-    "dev": {
-      "name": "template-cf-fullstack-dev",
-      "vars": {
-        "PUBLIC_APP_NAME": "template-cf-fullstack-dev",
-        "PUBLIC_ENV": "dev"
-      },
-      "d1_databases": [
-        {
-          "binding": "DB",
-          "database_name": "template-cf-fullstack-dev",
-          "database_id": "18db1684-4240-4fa5-a185-d54d58fac67b",
-          "migrations_dir": "drizzle"
-        }
-      ]
-    },
-    "production": {
-      "name": "template-cf-fullstack-prod",
-      "vars": {
-        "PUBLIC_APP_NAME": "template-cf-fullstack-prod",
-        "PUBLIC_ENV": "production"
-      },
-      "d1_databases": [
-        {
-          "binding": "DB",
-          "database_name": "template-cf-fullstack-prod",
-          "database_id": "8e91e4d7-25a1-43a7-aa2a-68dc36d4b21c",
-          "migrations_dir": "drizzle"
-        }
-      ]
-    }
-  }
+  ]
 }

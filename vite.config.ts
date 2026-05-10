@@ -13,7 +13,13 @@ export default defineConfig({
   },
   plugins: [
     tailwindcss(),
-    cloudflare({ viteEnvironment: { name: 'ssr' } }),
+    cloudflare({
+      viteEnvironment: { name: 'ssr' },
+      // Per-env wrangler configs. Default is wrangler.jsonc (dev). Set
+      // WRANGLER_CONFIG=wrangler.production.jsonc before `pnpm build` to
+      // produce a production-flavored bundle.
+      configPath: process.env.WRANGLER_CONFIG ?? 'wrangler.jsonc',
+    }),
     tanstackStart(),
     viteReact(),
   ],

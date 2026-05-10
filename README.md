@@ -73,6 +73,25 @@ Configure under **Settings → Secrets and variables → Actions** before the fi
 
 Both are referenced as job-level `env:` so wrangler picks them up automatically. Configure GitHub Environments named `dev` and `production` if you want per-environment review gates or distinct secrets.
 
+### Per-environment wrangler configs
+
+The TanStack Start Vite plugin flattens `wrangler.jsonc` into `dist/server/wrangler.json` and drops nested `env:` blocks, so the multi-env-in-one-file pattern doesn't work. Instead the template ships:
+
+- **`wrangler.jsonc`** — dev defaults. Used by `pnpm dev`, `pnpm bootstrap`, the dev deploy workflow, and any `pnpm exec wrangler …` you run locally.
+- **`wrangler.production.jsonc`** — production overrides (worker name, D1 binding, vars). Used only by `deploy-production.yml`.
+
+Selection happens via the `WRANGLER_CONFIG` env var, picked up by the Cloudflare Vite plugin at build time:
+
+```bash
+# Dev (default)
+pnpm build                                                   # uses wrangler.jsonc
+
+# Production
+WRANGLER_CONFIG=wrangler.production.jsonc pnpm build         # uses wrangler.production.jsonc
+```
+
+The deploy step then runs `pnpm exec wrangler deploy` with no `--config` flag — wrangler reads `dist/server/wrangler.json` which the plugin wrote with the right values. Migrations apply commands need `--config` explicitly (they read `wrangler.jsonc` directly, not the dist version).
+
 ## Recipes
 
 Capabilities install via the recipes repo. Once an interactive composer ships you'll be able to walk through recipe selection from `pnpm bootstrap`. Until then:

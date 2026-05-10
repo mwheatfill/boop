@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Production overrides. Used only for production deploys via the
+  // deploy-production.yml workflow. Build with:
+  //   WRANGLER_CONFIG=wrangler.production.jsonc pnpm build
+  // and deploy with:
+  //   pnpm exec wrangler deploy
+  // (wrangler reads dist/server/wrangler.json which the plugin built from this).
+  "name": "template-cf-fullstack-prod",
+  "compatibility_date": "2026-05-09",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "PUBLIC_APP_NAME": "template-cf-fullstack-prod",
+    "PUBLIC_ENV": "production"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "template-cf-fullstack-prod",
+      "database_id": "8e91e4d7-25a1-43a7-aa2a-68dc36d4b21c",
+      "migrations_dir": "drizzle"
+    }
+  ]
+}
