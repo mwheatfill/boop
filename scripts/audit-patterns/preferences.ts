@@ -160,6 +160,15 @@ const rules: Rule[] = [
     pattern: /from\s+['"]@nivo\//,
     message: 'Use shadcn Chart via the `charts/setup` recipe. preferences.md → "Charts".',
   },
+  // Component-dev environment. Skip entirely; the shadcn vendor-into-repo
+  // pattern + a src/routes/_dev/ route covers what stories would. Ladle
+  // is the documented per-app escape hatch (not banned).
+  {
+    id: 'no-storybook',
+    pattern: /from\s+['"]@storybook\/[\w-]+['"]/,
+    message:
+      'No Storybook in the template. shadcn primitives are vendored into the repo; the component IS the source code. For ad-hoc previews, add a route under `src/routes/_dev/` guarded by `import.meta.env.DEV`. preferences.md → "Component dev environment".',
+  },
   // Currency lib alternatives. Canonical is Intl.NumberFormat via
   // @/lib/format. dinero.js is the documented ADR escape hatch (not
   // banned). currency.js / accounting.js add bundle weight for what
