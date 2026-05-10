@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Starter sitemap for template-cf-fullstack.
+
+  Per the sitemaps.org spec, every <loc> must be an absolute URL. The
+  template ships with example.com URLs so the file is spec-conforming
+  out of the box; replace example.com with your deployed origin (and
+  add real URLs) before going live.
+
+  For dynamic generation from the TanStack Router route tree, add a
+  build-time step that walks routeTree.gen.ts and writes this file.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://example.com/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

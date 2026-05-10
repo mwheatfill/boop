@@ -1,0 +1,8 @@
+# Cloudflare Pages-style headers for static assets.
+# https://developers.cloudflare.com/workers/static-assets/headers/
+
+/.well-known/api-catalog
+  Content-Type: application/linkset+json
+
+/.well-known/mcp-server-card
+  Content-Type: application/json

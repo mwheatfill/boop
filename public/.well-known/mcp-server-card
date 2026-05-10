@@ -1,0 +1,4 @@
+{
+  "status": "not-installed",
+  "message": "This app does not currently expose an MCP server. Install the mcp/expose-app-as-mcp-server recipe to wire one (the recipe overwrites this file with a real card)."
+}

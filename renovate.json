@@ -1,0 +1,51 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommitTypeAll(chore)",
+    ":timezone(America/Phoenix)"
+  ],
+  "schedule": ["before 6am on monday"],
+  "labels": ["dependencies"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "rangeStrategy": "bump",
+  "packageRules": [
+    {
+      "matchPackageNames": ["@tanstack/**"],
+      "groupName": "TanStack",
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "matchPackageNames": ["@ai-sdk/**", "ai"],
+      "groupName": "Vercel AI SDK"
+    },
+    {
+      "matchPackageNames": ["biomejs/biome", "typescript", "vite", "wrangler", "vitest"],
+      "groupName": "build tooling",
+      "rangeStrategy": "pin"
+    },
+    {
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "groupName": "React"
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "addLabels": ["major-update"],
+      "schedule": ["before 6am on first day of month"]
+    },
+    {
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "branch"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "template-cf-fullstack",
+  "version": "0.0.0",
+  "links": [
+    {
+      "rel": "service-desc",
+      "href": "/openapi.json",
+      "type": "application/openapi+json;version=3.1"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+# robots.txt for template-cf-fullstack
+#
+# Default policy: allow web crawlers, allow well-behaved AI bots.
+# Tighten or loosen per app. See https://www.robotstxt.org/
+
+User-agent: *
+Allow: /
+
+# Common AI bots — explicit allow signals intent. Adjust per app policy.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+# Auth-gated routes — example, uncomment and adjust as your app grows.
+# Disallow: /app/
+
+# Sitemap directive must be an absolute URL per the spec. Add your own
+# once your app is deployed:
+# Sitemap: https://your-app.example.com/sitemap.xml

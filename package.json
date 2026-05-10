@@ -21,6 +21,9 @@
     "db:studio": "drizzle-kit studio",
     "openapi:generate": "tsx scripts/generate-openapi.ts",
     "openapi:check": "tsx scripts/check-openapi-contract.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
     "intent:list": "intent list",
     "intent:list:json": "intent list --json",
     "intent:stale": "intent stale",
@@ -28,9 +31,11 @@
     "postinstall": "wrangler types || true"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.2.4",
     "@tanstack/react-router": "^1.169.2",
     "@tanstack/react-router-devtools": "^1.166.13",
     "@tanstack/react-start": "^1.167.65",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.8.0",
@@ -46,6 +51,7 @@
     "@cloudflare/vite-plugin": "^1.36.3",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/intent": "^0.0.41",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^25.6.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -54,9 +60,11 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.3",
     "tailwindcss": "^4.3.0",
+    "happy-dom": "^20.9.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.11",
+    "vitest": "^4.1.5",
     "wrangler": "^4.90.0"
   },
   "lint-staged": {

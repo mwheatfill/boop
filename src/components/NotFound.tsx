@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
+import { Button } from '@/components/ui/button'
 
 export function NotFound({ children }: { children?: ReactNode }) {
   return (
@@ -9,19 +10,12 @@ export function NotFound({ children }: { children?: ReactNode }) {
         {children ?? "The page you're looking for doesn't exist."}
       </p>
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <button
-          type="button"
-          onClick={() => window.history.back()}
-          className="inline-flex h-9 items-center rounded-md border border-border px-4 text-sm font-medium hover:bg-muted"
-        >
+        <Button variant="outline" onClick={() => window.history.back()}>
           Go back
-        </button>
-        <Link
-          to="/"
-          className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
-        >
-          Home
-        </Link>
+        </Button>
+        <Button asChild>
+          <Link to="/">Home</Link>
+        </Button>
       </div>
     </div>
   )

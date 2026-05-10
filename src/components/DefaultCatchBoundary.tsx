@@ -6,6 +6,7 @@ import {
   useMatch,
   useRouter,
 } from '@tanstack/react-router'
+import { Button } from '@/components/ui/button'
 
 export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
   const router = useRouter()
@@ -27,27 +28,22 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
         </div>
       )}
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <button
-          type="button"
-          onClick={() => router.invalidate()}
-          className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
-        >
-          Try again
-        </button>
-        <Link
-          to="/"
-          className="inline-flex h-9 items-center rounded-md border border-border px-4 text-sm font-medium hover:bg-muted"
-          onClick={
-            isRoot
-              ? undefined
-              : (event) => {
-                  event.preventDefault()
-                  window.history.back()
-                }
-          }
-        >
-          {isRoot ? 'Home' : 'Go back'}
-        </Link>
+        <Button onClick={() => router.invalidate()}>Try again</Button>
+        <Button variant="outline" asChild>
+          <Link
+            to="/"
+            onClick={
+              isRoot
+                ? undefined
+                : (event) => {
+                    event.preventDefault()
+                    window.history.back()
+                  }
+            }
+          >
+            {isRoot ? 'Home' : 'Go back'}
+          </Link>
+        </Button>
       </div>
     </div>
   )

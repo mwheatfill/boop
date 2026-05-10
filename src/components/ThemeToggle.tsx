@@ -1,3 +1,8 @@
+// Raw <button> on purpose. Button (src/components/ui/button.tsx) doesn't
+// expose an aria-pressed/active variant, and its sizes don't include the
+// 7x7 icon shape this toolbar needs. Don't migrate to <Button>; if the
+// design changes, fix it here.
+
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'

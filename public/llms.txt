@@ -1,0 +1,20 @@
+# template-cf-fullstack
+
+> A Cloudflare Workers + TanStack Start application built from template-cf-fullstack.
+> Replace this content with a brief description of your app for AI agents.
+
+This file follows the [llms.txt convention](https://llmstxt.org/) — a short, plaintext index of the most important pages and resources for AI agents that visit this site. Edit it as your app grows.
+
+## API
+
+- [/openapi.json](/openapi.json): Machine-readable API contract (OpenAPI 3.1)
+- [/.well-known/api-catalog](/.well-known/api-catalog): Pointer to the API contract per the API Catalog spec
+
+## Discovery
+
+- [/robots.txt](/robots.txt): Crawler and bot directives
+- [/sitemap.xml](/sitemap.xml): URL inventory
+
+## Optional capabilities
+
+- [/.well-known/mcp-server-card](/.well-known/mcp-server-card): MCP server descriptor (returns 404 unless the mcp/expose-app-as-mcp-server recipe is installed)
