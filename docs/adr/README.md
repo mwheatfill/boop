@@ -27,6 +27,7 @@ Format follows Michael Nygard's pattern: status, context, decision, consequences
 | [0008](0008-neutral-agent-governance.md) | Accepted | Neutral agent governance (AGENTS.md + agent-rules/) |
 | [0009](0009-discoverability-in-template.md) | Accepted | Discoverability surface in the template |
 | [0010](0010-skill-currency-protocol.md) | Accepted | Skill currency protocol (Intent + MCP servers) |
+| [0011](0011-opinionated-stack-and-pattern-enforcement.md) | Accepted | Opinionated stack with mechanical pattern enforcement |
 
 ## How to add an ADR
 

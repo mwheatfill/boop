@@ -43,6 +43,7 @@ The full rule set lives in `agent-rules/`. Each rule is a short, harness-agnosti
 | Concern | Rule file | When to read |
 |---|---|---|
 | Doc resolution (current docs over training data) | `agent-rules/lookup-order.md` | Every session, before researching libraries |
+| Opinionated stack: one canonical choice per concern | `agent-rules/preferences.md` | Before reaching for any library, primitive, or pattern |
 | Adding / removing / pinning dependencies | `agent-rules/dependencies.md` | Before any `pnpm add`, `pnpm remove`, `pnpm update` |
 | Re-anchoring on the spec | `agent-rules/spec-fidelity.md` | Session start, before architectural moves |
 | Auth boundaries, data flow, validation | `agent-rules/architecture.md` | When touching server functions, auth, DB |
@@ -86,6 +87,7 @@ These have ADRs in `docs/adr/`. If you're tempted to deviate, read the ADR first
 - Neutral agent governance (this file + `agent-rules/`) ([ADR-0008](docs/adr/0008-neutral-agent-governance.md))
 - Discoverability surface in template (`.well-known/`, robots, sitemap, llms.txt) ([ADR-0009](docs/adr/0009-discoverability-in-template.md))
 - TanStack Intent + MCP servers for documentation currency ([ADR-0010](docs/adr/0010-skill-currency-protocol.md))
+- Opinionated stack with mechanical pattern enforcement ([ADR-0011](docs/adr/0011-opinionated-stack-and-pattern-enforcement.md))
 
 ## Things to avoid
 
