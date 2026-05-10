@@ -1,13 +1,27 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // Default config used by `pnpm dev`, `pnpm bootstrap`, and CI deploy-dev.
-  // Production deploys use wrangler.production.jsonc instead, selected via
-  // the Vite plugin's configPath option (set WRANGLER_CONFIG=wrangler.production.jsonc
-  // before `pnpm build`).
+  // Canonical Cloudflare multi-env pattern: a single wrangler config with
+  // an `env:` block per non-default environment. Top-level values double
+  // as the dev defaults, so `pnpm dev` and `pnpm bootstrap` "just work"
+  // with no env var to remember.
   //
-  // The TanStack Start Vite plugin flattens wrangler config into
-  // dist/server/wrangler.json and drops nested `env:` blocks; that's why
-  // we ship per-env files instead of a single multi-env config.
+  // For production builds, set CLOUDFLARE_ENV=production. The Cloudflare
+  // Vite plugin reads it at build time and flattens the env.production
+  // overrides into dist/server/wrangler.json (this is intentional, not a
+  // bug; an earlier iteration of this template misdiagnosed the
+  // flattening and shipped two separate config files).
+  //
+  // Important: bindings (`vars`, `d1_databases`, etc.) are
+  // **non-inheritable**. The env.production block must redefine them
+  // explicitly, even if the values mostly match the top-level. Compat
+  // date, compat flags, `main`, and `observability` *are* inheritable
+  // and only need to live at the top level.
+  //
+  // Worker names: top-level `name` applies to dev. The env.production
+  // block sets its own explicit `name` (rather than relying on the
+  // `<top>-<env>` auto-suffix) so the production worker is clearly
+  // `-prod`, not `-production`. The auto-suffix would also collide
+  // awkwardly with the top-level `-dev` suffix.
   "name": "template-cf-fullstack-dev",
   "compatibility_date": "2026-05-09",
   "compatibility_flags": ["nodejs_compat"],
@@ -26,5 +40,22 @@
       "database_id": "18db1684-4240-4fa5-a185-d54d58fac67b",
       "migrations_dir": "drizzle"
     }
-  ]
+  ],
+  "env": {
+    "production": {
+      "name": "template-cf-fullstack-prod",
+      "vars": {
+        "PUBLIC_APP_NAME": "template-cf-fullstack-prod",
+        "PUBLIC_ENV": "production"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "template-cf-fullstack-prod",
+          "database_id": "8e91e4d7-25a1-43a7-aa2a-68dc36d4b21c",
+          "migrations_dir": "drizzle"
+        }
+      ]
+    }
+  }
 }

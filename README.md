@@ -78,24 +78,27 @@ Configure under **Settings → Secrets and variables → Actions** before the fi
 
 Both are referenced as job-level `env:` so wrangler picks them up automatically. Configure GitHub Environments named `dev` and `production` if you want per-environment review gates or distinct secrets.
 
-### Per-environment wrangler configs
+### Per-environment wrangler config
 
-The TanStack Start Vite plugin flattens `wrangler.jsonc` into `dist/server/wrangler.json` and drops nested `env:` blocks, so the multi-env-in-one-file pattern doesn't work. Instead the template ships:
-
-- **`wrangler.jsonc`**: dev defaults. Used by `pnpm dev`, `pnpm bootstrap`, the dev deploy workflow, and any `pnpm exec wrangler …` you run locally.
-- **`wrangler.production.jsonc`**: production overrides (worker name, D1 binding, vars). Used only by `deploy-production.yml`.
-
-Selection happens via the `WRANGLER_CONFIG` env var, picked up by the Cloudflare Vite plugin at build time:
+The template uses the canonical Cloudflare multi-env pattern: one `wrangler.jsonc` with the dev settings at the top level and a single `env.production` block for prod overrides. The Cloudflare Vite plugin reads `wrangler.jsonc` and selects which environment to flatten into `dist/server/wrangler.json` based on the `CLOUDFLARE_ENV` environment variable.
 
 ```bash
-# Dev (default)
-pnpm build                                                   # uses wrangler.jsonc
+# Dev (default; no env var needed)
+pnpm build                              # top-level config wins
+pnpm dev                                # ditto
 
 # Production
-WRANGLER_CONFIG=wrangler.production.jsonc pnpm build         # uses wrangler.production.jsonc
+CLOUDFLARE_ENV=production pnpm build    # env.production block wins
 ```
 
-The deploy step then runs `pnpm exec wrangler deploy` with no `--config` flag, because wrangler reads `dist/server/wrangler.json` which the plugin wrote with the right values. Migrations apply commands need `--config wrangler.production.jsonc` for production because `wrangler d1` reads a wrangler config file directly (not the dist version) and defaults to `wrangler.jsonc`.
+Why this works (and an earlier iteration of this template got it wrong): the Cloudflare Vite plugin **does** flatten the wrangler config into `dist/server/wrangler.json`, but that's intentional, not a bug. It uses `CLOUDFLARE_ENV` to choose which env to flatten. The first cut of this template misread the flattening as "env: blocks aren't supported" and shipped two separate wrangler files; the canonical pattern is one file plus the env var.
+
+Some non-obvious bits:
+
+- **Bindings (`vars`, `d1_databases`, etc.) are non-inheritable.** The `env.production` block must redefine them in full, even when the values mostly match the top level. Compatibility date, compatibility flags, `main`, and `observability` *are* inheritable.
+- **Worker names:** the env.production block sets its own explicit `name` (`template-cf-fullstack-prod`) instead of relying on the `<top>-<env>` auto-suffix. That keeps the prod worker named `-prod` rather than the awkward `template-cf-fullstack-dev-production` that auto-suffixing would produce on top of an already-suffixed top-level name.
+- **`wrangler deploy`** reads `dist/server/wrangler.json` directly. No flag needed because the plugin already wrote the right env into the dist config at build time.
+- **`wrangler d1 migrations apply`** reads `wrangler.jsonc` directly, not the dist version, so it needs `--env production` when applying to prod. Dev is the top-level config and needs no flag.
 
 ## Recipes
 

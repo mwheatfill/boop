@@ -14,7 +14,7 @@ Accepted (2026-05-09)
 
 ## What
 
-Cloudflare Workers is the runtime. Wrangler manages per-environment deploys via two config files: `wrangler.jsonc` (dev defaults) and `wrangler.production.jsonc` (production overrides), selected through the `WRANGLER_CONFIG` environment variable. (Single-file `env:` blocks were tried first but the TanStack Start Vite plugin flattens them; per-env files are the working pattern.)
+Cloudflare Workers is the runtime. A single `wrangler.jsonc` holds the dev settings at the top level plus an `env.production` block for production overrides; the Cloudflare Vite plugin selects the active environment at build time via the `CLOUDFLARE_ENV` env var (`unset` = dev, `production` = prod). This is the canonical multi-env pattern from the [Cloudflare docs](https://developers.cloudflare.com/workers/wrangler/environments/). The README's "Per-environment wrangler config" section explains the gotchas (non-inheritable bindings, why worker names are explicit, when to pass `--env production` to `wrangler d1`). An earlier iteration of this template shipped two separate wrangler files plus a `WRANGLER_CONFIG` env var to swap between them; that worked, but it misread the plugin's intentional flattening behavior as a bug. The canonical pattern is simpler and is what we ship.
 
 ## When this default is right
 

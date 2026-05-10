@@ -26,9 +26,10 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      # Tells the Cloudflare Vite plugin to use the production wrangler config
-      # so dist/server/wrangler.json gets the production worker name + D1.
-      WRANGLER_CONFIG: wrangler.production.jsonc
+      # Tells the Cloudflare Vite plugin to merge the env.production block
+      # from wrangler.jsonc into dist/server/wrangler.json. Without this,
+      # the build would default to the top-level (dev) config.
+      CLOUDFLARE_ENV: production
     steps:
       - uses: ./.github/actions/setup
 
@@ -44,14 +45,17 @@ jobs:
           pnpm openapi:check
 
       - name: Apply D1 migrations to production
+        # `wrangler d1` reads wrangler.jsonc directly (not the dist
+        # version), so it needs --env production to pick the prod D1
+        # binding from the env.production block.
         run: |
           if compgen -G "drizzle/*.sql" > /dev/null; then
-            pnpm exec wrangler d1 migrations apply DB --config wrangler.production.jsonc --remote
+            pnpm exec wrangler d1 migrations apply DB --env production --remote
           else
             echo "No migrations to apply (empty schema)."
           fi
 
       - name: Deploy to production
-        # wrangler reads dist/server/wrangler.json (built from
-        # wrangler.production.jsonc above); no --config needed here.
+        # wrangler reads dist/server/wrangler.json (built with
+        # CLOUDFLARE_ENV=production above), so no flag is needed here.
         run: pnpm exec wrangler deploy

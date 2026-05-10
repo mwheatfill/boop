@@ -78,9 +78,9 @@ jobs:
           path: dist/
 
       - name: Apply D1 migrations to dev
-        # No --config flag: wrangler d1 defaults to wrangler.jsonc, which
-        # holds the dev D1 binding. Production has its own --config flag
-        # in deploy-production.yml pointing at wrangler.production.jsonc.
+        # The dev D1 binding lives at the top level of wrangler.jsonc, so
+        # no --env flag is needed. Production deploys pass --env production
+        # in deploy-production.yml to select the env.production block.
         run: |
           if compgen -G "drizzle/*.sql" > /dev/null; then
             pnpm exec wrangler d1 migrations apply DB --remote
@@ -89,7 +89,8 @@ jobs:
           fi
 
       - name: Deploy to dev
-        # No --env flag: TSS Vite plugin flattens wrangler.jsonc and
-        # drops env: blocks; top-level config is what actually deploys.
-        # Top-level wrangler.jsonc currently points at the dev D1.
+        # wrangler reads dist/server/wrangler.json that the Cloudflare
+        # Vite plugin wrote during the check job's build. Without
+        # CLOUDFLARE_ENV set, the plugin used the top-level (dev) config,
+        # so the dist worker name and bindings already point at dev.
         run: pnpm exec wrangler deploy

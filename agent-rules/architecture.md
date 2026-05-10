@@ -81,7 +81,7 @@ import { env } from 'cloudflare:workers'
 const db = createDb(env.DB)
 ```
 
-Schema lives in `src/lib/db/schema.ts` (empty stub by default; recipes such as `auth/better-auth` extend it). Migrations are SQL files in `drizzle/`, generated via `pnpm db:generate` (which calls `drizzle-kit generate`) and applied to the runtime via `pnpm exec wrangler d1 migrations apply DB --remote` (or the `--local` variant in dev). CI runs the wrangler command on deploy; `drizzle-kit migrate` is not used here because D1 needs migrations applied through wrangler.
+Schema lives in `src/lib/db/schema.ts` (empty stub by default; recipes such as `auth/better-auth` extend it). Migrations are SQL files in `drizzle/`, generated via `pnpm db:generate` (which calls `drizzle-kit generate`) and applied to the runtime via `pnpm exec wrangler d1 migrations apply DB --remote` for dev, or `... --env production --remote` for production (the `--env` flag picks the env.production block from `wrangler.jsonc`). CI runs the wrangler command on deploy; `drizzle-kit migrate` is not used here because D1 needs migrations applied through wrangler.
 
 For Postgres / Neon, see the planned [`data-layer/switch-to-neon-postgres`](https://github.com/mwheatfill/app-platform-recipes#planned-recipes) recipe. The swap is mechanical because the rest of the app talks to Drizzle, not the underlying driver.
 

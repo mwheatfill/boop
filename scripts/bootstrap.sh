@@ -44,7 +44,6 @@ if [[ "$app_name" != "$DEFAULT_NAME" ]]; then
 
   files_to_rename=(
     "wrangler.jsonc"
-    "wrangler.production.jsonc"
     "package.json"
     "README.md"
     "AGENTS.md"
@@ -99,9 +98,10 @@ pnpm openapi:check || {
 
 # 5. Optional: create your own Cloudflare D1 databases
 echo ""
-echo "▶ wrangler.jsonc and wrangler.production.jsonc currently point at the"
-echo "  D1 databases on the template author's Cloudflare account. To use your"
-echo "  own (typical for a fresh fork), create them now."
+echo "▶ wrangler.jsonc currently points at the D1 databases on the template"
+echo "  author's Cloudflare account (one for dev at the top level, one for"
+echo "  production under env.production). To use your own (typical for a"
+echo "  fresh fork), create them now."
 echo "  (You'll need 'wrangler login' completed first.)"
 echo ""
 read -r -p "  Create your own D1 databases? [y/N] " create_d1
@@ -130,9 +130,10 @@ case "${create_d1:-N}" in
     fi
 
     echo ""
-    echo "  ⚠ Patch the database_id field in each config with the IDs printed above:"
-    echo "    - wrangler.jsonc                (dev DB) -> d1_databases[0].database_id"
-    echo "    - wrangler.production.jsonc     (prod DB) -> d1_databases[0].database_id"
+    echo "  ⚠ Patch the two database_id fields in wrangler.jsonc with the IDs"
+    echo "    printed above:"
+    echo "    - top-level d1_databases[0].database_id          (dev DB)"
+    echo "    - env.production.d1_databases[0].database_id     (prod DB)"
     ;;
   *)
     echo ""
@@ -140,8 +141,7 @@ case "${create_d1:-N}" in
     echo "  your own later:"
     echo "    pnpm exec wrangler d1 create ${app_name}-dev"
     echo "    pnpm exec wrangler d1 create ${app_name}-prod"
-    echo "  Then update database_id in wrangler.jsonc (dev) and"
-    echo "  wrangler.production.jsonc (prod)."
+    echo "  Then update both database_id fields in wrangler.jsonc."
     ;;
 esac
 

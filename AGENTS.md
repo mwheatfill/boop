@@ -22,7 +22,7 @@ You're an AI coding agent (Claude Code, Codex, Cursor, Aider, or similar) workin
 
 | Layer | Choice |
 |---|---|
-| Runtime | Cloudflare Workers (Wrangler 4, per-env config files: `wrangler.jsonc` for dev, `wrangler.production.jsonc` for prod, selected via `WRANGLER_CONFIG`) |
+| Runtime | Cloudflare Workers (Wrangler 4, single `wrangler.jsonc` with `env.production` block; production builds set `CLOUDFLARE_ENV=production`) |
 | Framework | TanStack Start (SSR + file-based routing + API routes) |
 | Database | Cloudflare D1 + Drizzle ORM (empty schema by default; Neon Postgres available via recipe) |
 | Auth | `getCurrentUser(request)` abstraction in `src/lib/auth/`; returns `null` until an auth recipe is installed (e.g. `auth/better-auth`, `auth/cloudflare-access`) |
