@@ -4,8 +4,8 @@
 
 import { readFileSync } from 'node:fs'
 import { relative } from 'node:path'
-import { REPO_ROOT, repoPath, walkTs } from './_fs.ts'
-import type { AuditResult, Finding } from './types.ts'
+import { REPO_ROOT, repoPath, walkTs } from './_fs'
+import type { AuditResult, Finding } from './types'
 
 const AUDIT = 'preferences' as const
 

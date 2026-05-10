@@ -2,10 +2,10 @@
 // Audit-patterns runner. See ADR-0011 for the rationale.
 
 import { writeFileSync } from 'node:fs'
-import { runPreferencesAudit } from './preferences.ts'
-import { runShadcnAudit } from './shadcn.ts'
-import { runTanstackAudit } from './tanstack.ts'
-import type { AuditResult, Finding } from './types.ts'
+import { runPreferencesAudit } from './preferences'
+import { runShadcnAudit } from './shadcn'
+import { runTanstackAudit } from './tanstack'
+import type { AuditResult, Finding } from './types'
 
 const args = new Set(process.argv.slice(2))
 const quiet = args.has('--quiet')
