@@ -1,15 +1,5 @@
 #!/usr/bin/env tsx
-// Audit-patterns runner. Aggregates the three audits, prints a single
-// human-readable report, writes audit-report.md (consumed by the CI
-// PR-comment step), and exits non-zero if any audit produced an
-// `error`-severity finding.
-//
-// Usage:
-//   pnpm audit:patterns           # human-readable + writes report
-//   pnpm audit:patterns --quiet   # just exit code, for CI without report
-//
-// New audits: add a new file under scripts/audit-patterns/, export a
-// `run<Name>Audit(): Promise<AuditResult>`, import + invoke here.
+// Audit-patterns runner. See ADR-0011 for the rationale.
 
 import { writeFileSync } from 'node:fs'
 import { runPreferencesAudit } from './preferences.ts'
@@ -98,11 +88,9 @@ function formatReport(results: AuditResult[]): { md: string; text: string; faile
 }
 
 async function main() {
-  const results = await Promise.all([
-    runShadcnAudit(),
-    runTanstackAudit(),
-    Promise.resolve(runPreferencesAudit()),
-  ])
+  // shadcn is async (network); tanstack + preferences are sync.
+  // Promise.all with a mixed list resolves the sync values inline.
+  const results = await Promise.all([runShadcnAudit(), runTanstackAudit(), runPreferencesAudit()])
 
   const { md, text, failed } = formatReport(results)
   if (!quiet) {

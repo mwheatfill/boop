@@ -1,19 +1,13 @@
-// Preferences audit. Greps src/ for forbidden imports and patterns
-// declared as "don't reach for" in agent-rules/preferences.md. Each
-// rule is a (regex, message, allowlist-paths) tuple. Add a row when
-// you add a row to preferences.md.
-//
-// The audit is grep-based on purpose: it has to run fast on every PR,
-// and the rules are about presence/absence of a thing, not subtle
-// structural questions. For deeper structural checks (e.g. "is this
-// the canonical TanStack pattern?"), see tanstack.ts.
+// Preferences audit. Greps src/ + scripts/ for forbidden imports
+// declared as "don't reach for" in agent-rules/preferences.md. Add a
+// row here when you add a row to preferences.md.
 
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { relative } from 'node:path'
+import { repoPath, walkTs } from './_fs.ts'
 import type { AuditResult, Finding } from './types.ts'
 
-const REPO_ROOT = process.cwd()
-const SRC_DIR = join(REPO_ROOT, 'src')
+const AUDIT = 'preferences' as const
 
 interface Rule {
   /** Stable id for whitelisting. */
@@ -211,42 +205,22 @@ const rules: Rule[] = [
   },
 ]
 
-function walk(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const p = join(dir, name)
-    if (statSync(p).isDirectory()) return walk(p)
-    if (/\.(ts|tsx|mts|cts)$/.test(name)) return [p]
-    return []
-  })
-}
-
 export function runPreferencesAudit(): AuditResult {
   const findings: Finding[] = []
-
-  let files: string[] = []
-  try {
-    files = walk(SRC_DIR)
-    // Also walk scripts/ so audit catches forbidden patterns there too.
-    const scriptsDir = join(REPO_ROOT, 'scripts')
-    files.push(...walk(scriptsDir))
-  } catch {
-    return { audit: 'preferences', findings: [], ok: true }
-  }
+  const files = [...walkTs(repoPath('src')), ...walkTs(repoPath('scripts'))]
 
   for (const file of files) {
-    const rel = relative(REPO_ROOT, file)
+    const rel = relative(repoPath(''), file)
+    // The file declaring a rule's pattern matches its own regex.
+    if (rel === 'scripts/audit-patterns/preferences.ts') continue
     const lines = readFileSync(file, 'utf8').split('\n')
 
     for (const rule of rules) {
-      // Skip rule if file is in its allowlist.
       if (rule.allowedPaths?.some((p) => rel.startsWith(p))) continue
-      // Skip the audit script that defines the rule itself (it'll match its own regex).
-      if (rel === 'scripts/audit-patterns/preferences.ts') continue
-
       lines.forEach((line, idx) => {
         if (rule.pattern.test(line)) {
           findings.push({
-            audit: 'preferences',
+            audit: AUDIT,
             severity: 'error',
             file: rel,
             line: idx + 1,
@@ -257,5 +231,5 @@ export function runPreferencesAudit(): AuditResult {
     }
   }
 
-  return { audit: 'preferences', findings, ok: true }
+  return { audit: AUDIT, findings, ok: true }
 }
