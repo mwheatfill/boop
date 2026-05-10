@@ -139,8 +139,10 @@ jobs:
           fi
 
       - name: Deploy to dev
-        # wrangler reads dist/server/wrangler.json that the Cloudflare
-        # Vite plugin wrote during the check job's build. Without
-        # CLOUDFLARE_ENV set, the plugin used the top-level (dev) config,
-        # so the dist worker name and bindings already point at dev.
-        run: pnpm exec wrangler deploy
+        # Point wrangler at the built config the Cloudflare Vite plugin
+        # emitted (resolved entry, dev bindings baked in). --env="" tells
+        # wrangler to use the top-level config explicitly — without this,
+        # multi-env wrangler.jsonc files emit a warning + nondeterministic
+        # behavior. The check job built without CLOUDFLARE_ENV, so the
+        # dist file's top-level already points at dev.
+        run: pnpm exec wrangler deploy --config dist/server/wrangler.json --env=""

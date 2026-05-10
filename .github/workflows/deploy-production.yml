@@ -57,6 +57,8 @@ jobs:
           fi
 
       - name: Deploy to production
-        # wrangler reads dist/server/wrangler.json (built with
-        # CLOUDFLARE_ENV=production above), so no flag is needed here.
-        run: pnpm exec wrangler deploy
+        # Point wrangler at the built config the Cloudflare Vite plugin
+        # emitted. CLOUDFLARE_ENV=production at job level made the plugin
+        # merge the env.production block into the dist file's top level,
+        # so --env="" (top-level) deploys the prod worker.
+        run: pnpm exec wrangler deploy --config dist/server/wrangler.json --env=""
