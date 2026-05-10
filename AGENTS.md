@@ -14,9 +14,10 @@ You're an AI coding agent (Claude Code, Codex, Cursor, Aider, or similar) workin
 
 1. **This file (`AGENTS.md`)**
 2. **The canonical spec** if one exists. Look for `SPEC.md`, `PRD.md`, or `docs/spec/*` in the repo root or `docs/`. If multiple candidates exist, ask which is canonical.
-3. **`docs/adr/README.md`**: index of Architecture Decision Records. Skim titles to know what decisions exist. Read individual ADRs before contemplating overrides.
-4. **`agent-rules/lookup-order.md`**: the doc-resolution protocol for everything else.
-5. **Recent commits**: run `git log --oneline -20` for context on what's in flight.
+3. **[`docs/roadmap.md`](docs/roadmap.md)**: open milestones with priority order and entry points. Read this when picking up after a gap.
+4. **`docs/adr/README.md`**: index of Architecture Decision Records. Skim titles to know what decisions exist. Read individual ADRs before contemplating overrides.
+5. **`agent-rules/lookup-order.md`**: the doc-resolution protocol for everything else.
+6. **Recent commits**: run `git log --oneline -20` for context on what's in flight.
 
 ## Stack snapshot
 
