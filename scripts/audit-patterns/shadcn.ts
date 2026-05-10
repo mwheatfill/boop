@@ -35,11 +35,13 @@ function getStyle(): string {
   return componentsJson.style ?? 'new-york'
 }
 
+const FETCH_TIMEOUT_MS = 10_000
+
 // Two coexisting URL conventions in the registry:
 //   - Legacy "v4-suffixed" styles ("default", "new-york") at /r/styles/<style>-v4/<name>.json
 //   - Newer celestial themes (radix-vega, base-vega, etc.) at /r/styles/<style>/<name>.json (no suffix)
-// Try unsuffixed first; fall back. Per-URL try/catch so a transient
-// network error on one URL doesn't skip the fallback.
+// Try unsuffixed first; fall back. Per-URL try/catch + timeout so a
+// transient network error or hung registry doesn't stall the audit.
 async function fetchCanonical(name: string, style: string): Promise<RegistryEntry | null> {
   const candidates = [
     `https://ui.shadcn.com/r/styles/${style}/${name}.json`,
@@ -47,7 +49,7 @@ async function fetchCanonical(name: string, style: string): Promise<RegistryEntr
   ]
   for (const url of candidates) {
     try {
-      const res = await fetch(url)
+      const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
       if (res.ok) return (await res.json()) as RegistryEntry
     } catch {
       // try next candidate
