@@ -1,30 +1,49 @@
-// Coverage for the Card primitive family. Verifies the semantic HTML choices
-// (h3 for CardTitle, p for CardDescription) hold across the React 19
-// ref-as-prop migration.
+// Coverage for the canonical shadcn Card primitive family. Title and
+// description render as `<div>` (not h3/p) per the canonical shadcn-ui
+// new-york-v4 source; the data-slot attributes are load-bearing for
+// the canonical CSS selectors (e.g. has-data-[slot=card-action]).
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 describe('Card', () => {
-  it('composes a card with semantic title + description', () => {
+  it('composes a card with title, description, action, and content', () => {
     render(
       <Card data-testid="card">
         <CardHeader>
           <CardTitle>Hello</CardTitle>
           <CardDescription>World</CardDescription>
+          <CardAction>Act</CardAction>
         </CardHeader>
         <CardContent>Body</CardContent>
       </Card>,
     )
 
     const card = screen.getByTestId('card')
-    expect(card.className).toContain('rounded-lg')
+    expect(card.dataset.slot).toBe('card')
+    expect(card.className).toContain('rounded-xl')
+    expect(card.className).toContain('flex')
+    expect(card.className).toContain('flex-col')
 
-    const heading = screen.getByRole('heading', { name: 'Hello', level: 3 })
-    expect(heading.tagName).toBe('H3')
+    const title = screen.getByText('Hello')
+    expect(title.tagName).toBe('DIV')
+    expect(title.dataset.slot).toBe('card-title')
 
-    expect(screen.getByText('World').tagName).toBe('P')
-    expect(screen.getByText('Body')).toBeDefined()
+    const description = screen.getByText('World')
+    expect(description.tagName).toBe('DIV')
+    expect(description.dataset.slot).toBe('card-description')
+
+    const action = screen.getByText('Act')
+    expect(action.dataset.slot).toBe('card-action')
+
+    expect(screen.getByText('Body').dataset.slot).toBe('card-content')
   })
 
   it('forwards className alongside built-in styles', () => {
