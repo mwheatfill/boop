@@ -16,7 +16,7 @@ The template is feature-complete for "what every Cloudflare Workers + TanStack S
 - **Wired in `src/lib/`:** `auth/get-current-user`, `db/client`, `db/schema` (empty), `query-client`, `log` (structured `console.*` wrapper), `format` (Intl-based `formatMoney`/`formatNumber`/`formatPercent`), `utils` (`cn`).
 - **Wired in `src/components/`:** Button + Card from canonical shadcn `base-vega` (Base UI primitives), Sonner Toaster mounted in `__root.tsx`, ThemeProvider + ThemeToggle, DefaultCatchBoundary + NotFound.
 - **CI:** `main.yml` (check + dev deploy on push to `main`), `deploy-production.yml` (prod deploy on `v*.*.*` tags), composite `setup` action shared between them, audit-patterns posts a PR comment with findings.
-- **Verified:** dev deploy at `https://template-cf-fullstack-dev.stelcollective.workers.dev`, prod deploy at `https://template-cf-fullstack-prod.stelcollective.workers.dev` (v0.0.1, 2026-05-10).
+- **Verified:** dev deploy at `https://template-cf-fullstack-dev.stelcollective.workers.dev`, prod deploy at `https://template-cf-fullstack-prod.stelcollective.workers.dev` (v0.0.2, 2026-05-10). CI uses [`cloudflare/wrangler-action@v3`](https://github.com/cloudflare/wrangler-action) per Cloudflare's GitHub Actions guide.
 
 ## Milestones
 
@@ -67,14 +67,16 @@ Scope: two surfaces (TUI + agent skill). The TUI shell is a wrapper around the e
 - **(1) is the bulk of the remaining work** — each recipe is a small focused task, easy to delegate to agent sessions.
 - **(2) depends on (1)** — the composer needs recipes to compose. Could start the composer's TUI / agent-skill scaffolding in parallel with late-stage M7 work.
 
-## What v0.0.1 surfaced (2026-05-10)
+## v0.0.x deploy verification (2026-05-10)
 
-The first production tag exposed two latent CI bugs that had never been exercised:
+`v0.0.1` was the first end-to-end CI run; it surfaced two real bugs and exposed one self-inflicted complexity. After three rounds of fixes (`v0.0.1` → `v0.0.2`), the workflows now match the canonical Cloudflare patterns documented at [developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/) and [.../framework-guides/web-apps/tanstack/](https://developers.cloudflare.com/workers/framework-guides/web-apps/tanstack/).
 
-1. **Local composite action referenced before checkout.** [`.github/actions/setup/action.yml`](../.github/actions/setup/action.yml) had its own `actions/checkout@v4` step, but a local `uses: ./.github/actions/setup` cannot resolve until the repo is on disk — so the runner couldn't even read the action file. Hoisted checkout out of the composite action into each workflow.
-2. **`wrangler deploy` read the raw `wrangler.jsonc`.** Wrangler tripped on the unresolved `@tanstack/react-start/server-entry` main entry. Root cause: the Cloudflare Vite plugin writes `.wrangler/deploy/config.json` during build — a redirect file pointing wrangler at `dist/server/wrangler.json` (resolved entry, baked-in env). The artifact upload only included `dist/`, so on the deploy runner the redirect file was missing and wrangler fell back to the raw config. Fix: include `.wrangler/deploy/config.json` in the artifact upload alongside `dist/`. Both deploy steps now run plain `wrangler deploy` per the [Cloudflare Vite plugin docs](https://developers.cloudflare.com/workers/framework-guides/web-apps/tanstack/).
+1. **Bug fixed: composite action referenced before checkout.** [`.github/actions/setup/action.yml`](../.github/actions/setup/action.yml) had its own `actions/checkout@v4`, but a local `uses: ./.github/actions/setup` can't be resolved until the repo is on disk — so the runner couldn't read the action file. Checkout now lives at the workflow level.
+2. **Bug fixed: `wrangler deploy` read the raw `wrangler.jsonc`.** The Cloudflare Vite plugin writes `.wrangler/deploy/config.json` during build, a redirect file pointing wrangler at `dist/server/wrangler.json` (resolved entry, env merged in). The original CI passed `dist/` between jobs as an artifact but didn't include the redirect file, so wrangler fell back to the raw config and tripped on the virtual `@tanstack/react-start/server-entry` main.
+3. **Complexity removed: cross-job artifact passing.** Including the redirect file in the artifact would have worked, but the simpler fix was to drop the artifact pass entirely. `deploy-dev` now does its own `pnpm build` (~3s) and the redirect file is naturally local. Matches the single-job build+deploy pattern Cloudflare's docs show.
+4. **Aligned: `cloudflare/wrangler-action@v3`.** Both deploy steps now use Cloudflare's recommended action instead of raw `pnpm exec wrangler deploy`. It picks up the pnpm-installed wrangler and handles auth via inputs.
 
-These were latent because the dev deploy claim in earlier project notes had been a manual `wrangler deploy` from a built tree, never via CI. Tagging forced the first end-to-end CI run.
+The original CI deviated from canonical because the dev deploy claim in earlier notes had been a manual `wrangler deploy` from a built tree, never via CI. Tagging forced a full end-to-end CI run for the first time.
 
 ## Things explicitly NOT on the roadmap
 
