@@ -3,8 +3,9 @@
 // whenever an agent is caught producing a canonical-deviation pattern;
 // each finding cites the source SKILL so a reviewer can dig in.
 
+import { readFileSync } from 'node:fs'
 import { relative } from 'node:path'
-import { readRepoFile, repoPath, walkTs } from './_fs.ts'
+import { REPO_ROOT, readRepoFile, repoPath, walkTs } from './_fs.ts'
 import type { AuditResult, Finding } from './types.ts'
 
 const AUDIT = 'tanstack' as const
@@ -147,11 +148,9 @@ function runCheck(c: Check): Finding[] {
   }
   const findings: Finding[] = []
   for (const abs of walkTs(repoPath(c.dir))) {
-    const src = readRepoFile(relative(repoPath(''), abs))
-    if (src == null) continue
-    const result = c.check(src)
+    const result = c.check(readFileSync(abs, 'utf8'))
     if (result) {
-      findings.push({ audit: AUDIT, file: relative(repoPath(''), abs), ...result })
+      findings.push({ audit: AUDIT, file: relative(REPO_ROOT, abs), ...result })
     }
   }
   return findings

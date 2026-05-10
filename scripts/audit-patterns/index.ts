@@ -14,6 +14,10 @@ function severityIcon(s: Finding['severity']): string {
   return s === 'error' ? '✗' : '⚠'
 }
 
+function pluralize(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? '' : 's'}`
+}
+
 function formatFinding(f: Finding): string {
   const loc = f.line ? `${f.file}:${f.line}` : f.file
   const src = f.source ? `\n     source: ${f.source}` : ''
@@ -80,8 +84,8 @@ function formatReport(results: AuditResult[]): { md: string; text: string; faile
   textLines.push('')
   textLines.push(
     failed
-      ? `✗ audit:patterns FAILED (${errors.length} error${errors.length === 1 ? '' : 's'}, ${warns.length} warning${warns.length === 1 ? '' : 's'})`
-      : `✓ audit:patterns clean (${warns.length} warning${warns.length === 1 ? '' : 's'})`,
+      ? `✗ audit:patterns FAILED (${pluralize(errors.length, 'error')}, ${pluralize(warns.length, 'warning')})`
+      : `✓ audit:patterns clean (${pluralize(warns.length, 'warning')})`,
   )
 
   return { md: mdLines.join('\n'), text: textLines.join('\n'), failed }

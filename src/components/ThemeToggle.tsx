@@ -1,7 +1,4 @@
-// Raw <button> on purpose. Button (src/components/ui/button.tsx) doesn't
-// expose an aria-pressed / active variant, and its sizes don't include
-// the 7x7 icon shape this toolbar needs. Don't migrate to <Button>; if
-// the design changes, fix it here.
+// Raw <button> by design: shadcn Button has no aria-pressed variant.
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
@@ -13,15 +10,10 @@ const themes = [
 ] as const
 
 export function ThemeToggle() {
-  // No useState/useEffect mount-gate. The React-18-era pattern of
-  // returning a placeholder until `mounted` was a workaround for noisy
-  // hydration warnings; React 19 + next-themes (with `<html
-  // suppressHydrationWarning>` in __root.tsx, which next-themes itself
-  // requires) handle the discrepancy correctly. The first render uses
-  // `theme === undefined`, so no button is marked active until
-  // next-themes resolves the stored preference. That's fine: it
-  // accurately represents server-rendered UI before the client knows
-  // the user's choice, and avoids ~1 frame of placeholder flash.
+  // No mount-gate: React 19 + next-themes handle hydration via the
+  // `suppressHydrationWarning` on <html> in __root.tsx. Adding a
+  // `useState(false)` + `useEffect(() => setMounted(true))` is the
+  // React 18-era reflex; it just adds a frame of placeholder flash.
   const { theme, setTheme } = useTheme()
 
   return (

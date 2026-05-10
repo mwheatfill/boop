@@ -6,7 +6,6 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 const getHealth = createServerFn({ method: 'GET' }).handler(async () => {
   const { env } = await import('cloudflare:workers')
   return {
-    ok: true,
     env: env.PUBLIC_ENV,
     appName: env.PUBLIC_APP_NAME,
     timestamp: new Date().toISOString(),

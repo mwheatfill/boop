@@ -5,7 +5,7 @@
 
 import { readdirSync } from 'node:fs'
 import { relative } from 'node:path'
-import { readJson, readRepoFile, repoPath } from './_fs.ts'
+import { REPO_ROOT, readJson, readRepoFile, repoPath } from './_fs.ts'
 import type { AuditResult, Finding } from './types.ts'
 
 const AUDIT = 'shadcn' as const
@@ -155,7 +155,7 @@ async function auditComponent(
   allowlist: Allowlist,
 ): Promise<Finding[]> {
   const componentName = file.replace(/\.tsx$/, '')
-  const ourRel = relative(repoPath(''), `${UI_DIR}/${file}`)
+  const ourRel = relative(REPO_ROOT, `${UI_DIR}/${file}`)
   const ourSource = readRepoFile(`src/components/ui/${file}`)
   if (ourSource == null) return []
 

@@ -4,7 +4,7 @@
 
 import { readFileSync } from 'node:fs'
 import { relative } from 'node:path'
-import { repoPath, walkTs } from './_fs.ts'
+import { REPO_ROOT, repoPath, walkTs } from './_fs.ts'
 import type { AuditResult, Finding } from './types.ts'
 
 const AUDIT = 'preferences' as const
@@ -210,7 +210,7 @@ export function runPreferencesAudit(): AuditResult {
   const files = [...walkTs(repoPath('src')), ...walkTs(repoPath('scripts'))]
 
   for (const file of files) {
-    const rel = relative(repoPath(''), file)
+    const rel = relative(REPO_ROOT, file)
     // The file declaring a rule's pattern matches its own regex.
     if (rel === 'scripts/audit-patterns/preferences.ts') continue
     const lines = readFileSync(file, 'utf8').split('\n')
