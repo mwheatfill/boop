@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { serialized as expected } from './openapi-document'
 
-const specPath = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'openapi.json')
+const specPath = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'openapi.json')
 
 let committed: string
 try {
