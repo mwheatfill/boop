@@ -1,8 +1,32 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const Route = createFileRoute('/')({
   component: HomePage,
 })
+
+const docLinks = [
+  {
+    title: 'AGENTS.md',
+    description: 'Canonical entry for AI coding agents working in this repo.',
+    href: 'https://github.com/mwheatfill/template-cf-fullstack/blob/main/AGENTS.md',
+  },
+  {
+    title: 'Architecture Decision Records',
+    description: 'Why each platform, framework, and library choice was made.',
+    href: 'https://github.com/mwheatfill/template-cf-fullstack/tree/main/docs/adr',
+  },
+  {
+    title: 'Agent rules',
+    description: 'Cross-harness governance: lookup order, dependencies, conventions.',
+    href: 'https://github.com/mwheatfill/template-cf-fullstack/tree/main/agent-rules',
+  },
+  {
+    title: 'Recipes',
+    description: 'Optional capabilities: Better Auth, AI chat, email pipelines, MCP, more.',
+    href: 'https://github.com/mwheatfill/app-platform-recipes',
+  },
+] as const
 
 function HomePage() {
   return (
@@ -30,6 +54,25 @@ function HomePage() {
           </code>{' '}
           to start.
         </p>
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2">
+        {docLinks.map((link) => (
+          <a
+            key={link.href}
+            href={link.href}
+            target="_blank"
+            rel="noreferrer"
+            className="block transition-colors hover:bg-muted"
+          >
+            <Card className="h-full p-4">
+              <CardHeader className="p-0">
+                <CardTitle className="text-sm">{link.title}</CardTitle>
+                <CardDescription>{link.description}</CardDescription>
+              </CardHeader>
+            </Card>
+          </a>
+        ))}
       </section>
     </div>
   )
