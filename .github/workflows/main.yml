@@ -75,10 +75,13 @@ jobs:
       - name: Apply D1 migrations to dev
         run: |
           if compgen -G "drizzle/*.sql" > /dev/null; then
-            pnpm exec wrangler d1 migrations apply DB --env dev --remote
+            pnpm exec wrangler d1 migrations apply DB --remote
           else
             echo "No migrations to apply (empty schema)."
           fi
 
       - name: Deploy to dev
-        run: pnpm exec wrangler deploy --env dev
+        # No --env flag: TSS Vite plugin flattens wrangler.jsonc and
+        # drops env: blocks; top-level config is what actually deploys.
+        # Top-level wrangler.jsonc currently points at the dev D1.
+        run: pnpm exec wrangler deploy

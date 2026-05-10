@@ -10,11 +10,21 @@
   "vars": {
     "PUBLIC_APP_NAME": "template-cf-fullstack"
   },
+  // KNOWN LIMITATION: the TSS Vite plugin flattens wrangler.jsonc into
+  // dist/server/wrangler.json and drops the `env:` block entirely. So
+  // `wrangler deploy --env dev` reads only this top-level config, not the
+  // env.dev override below. The env.dev / env.production blocks are
+  // currently informational; until per-env config files land, the
+  // top-level d1 binding is what actually deploys.
+  //
+  // Top-level points at the dev DB so `pnpm build && wrangler deploy`
+  // (no --env) targets dev. Production needs its own config file or a
+  // build-time substitution; that's a future M5.x task.
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "template-cf-fullstack-local",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_name": "template-cf-fullstack-dev",
+      "database_id": "18db1684-4240-4fa5-a185-d54d58fac67b",
       "migrations_dir": "drizzle"
     }
   ],
