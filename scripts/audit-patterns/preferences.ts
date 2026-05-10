@@ -220,6 +220,60 @@ const rules: Rule[] = [
     message:
       'WRANGLER_CONFIG-based env selection is the old pattern. Use a single wrangler.jsonc with env.production block + CLOUDFLARE_ENV. See ADR-0001.',
   },
+  // Logging library alternatives. Workers Logs auto-indexes structured
+  // console JSON; these libraries either don't run on workerd or don't
+  // earn their bundle weight against the native platform.
+  {
+    id: 'no-pino',
+    pattern: /from\s+['"]pino(\/[\w-]+)?['"]/,
+    message:
+      "Pino's Node build relies on streams workerd doesn't provide; the browser build is just a console adapter and loses Pino's perf story. Use logInfo/logWarn/logError from @/lib/log. preferences.md → \"Logging\".",
+  },
+  {
+    id: 'no-winston',
+    pattern: /from\s+['"]winston(\/[\w-]+)?['"]/,
+    message:
+      'Winston is Node-only. Use logInfo/logWarn/logError from @/lib/log. preferences.md → "Logging".',
+  },
+  {
+    id: 'no-bunyan',
+    pattern: /from\s+['"]bunyan(\/[\w-]+)?['"]/,
+    message:
+      'Bunyan is Node-only. Use logInfo/logWarn/logError from @/lib/log. preferences.md → "Logging".',
+  },
+  // Direct console.* in src/. The wrapper in @/lib/log enforces the
+  // event-name + structured-fields convention and gives monitoring
+  // recipes a single seam to overlay (Sentry, App Insights, OTel).
+  // Allowed in scripts/ and tests/ where console output is the point.
+  {
+    id: 'no-direct-console',
+    pattern: /\bconsole\.(error|warn|info|log|debug)\(/,
+    message:
+      'Use logInfo/logWarn/logError from @/lib/log instead of console.* directly. Workers Logs picks up the wrapper output identically, and monitoring recipes overlay the wrapper to add Sentry/App Insights/OTel without touching call sites. agent-rules/observability.md.',
+    allowedPaths: ['src/lib/log.ts', 'scripts/'],
+  },
+  // Direct error-monitoring SDK imports outside the abstraction.
+  {
+    id: 'no-sentry-direct',
+    pattern: /from\s+['"]@sentry\//,
+    message:
+      'Don\'t import @sentry/* directly outside src/lib/monitoring/. The monitoring/sentry recipe overlays @/lib/log; app code calls logError. preferences.md → "Error monitoring".',
+    allowedPaths: ['src/lib/monitoring/'],
+  },
+  {
+    id: 'no-app-insights-direct',
+    pattern: /from\s+['"]applicationinsights['"]/,
+    message:
+      'Don\'t import applicationinsights directly outside src/lib/monitoring/. The monitoring/azure-app-insights recipe overlays @/lib/log. preferences.md → "Error monitoring".',
+    allowedPaths: ['src/lib/monitoring/'],
+  },
+  {
+    id: 'no-posthog-direct',
+    pattern: /from\s+['"]posthog-(js|node)['"]/,
+    message:
+      'Don\'t import posthog-* directly outside src/lib/analytics/. The monitoring/posthog recipe wraps it. preferences.md → "Analytics + feature flags".',
+    allowedPaths: ['src/lib/analytics/'],
+  },
 ]
 
 export function runPreferencesAudit(): AuditResult {

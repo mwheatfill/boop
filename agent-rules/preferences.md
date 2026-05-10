@@ -32,6 +32,9 @@ The `pnpm audit:patterns` CI job enforces this list mechanically: forbidden impo
 | AI | Vercel AI SDK | LangChain, raw provider SDKs (without ADR) |
 | AI provider routing | Cloudflare AI Gateway → provider | Direct provider URLs |
 | Email | React Email templates + `email/send-pipeline` recipe | nodemailer, raw transport SDKs |
+| Logging | Structured `console.*` via `@/lib/log` (`logInfo` / `logWarn` / `logError`); Workers Logs auto-indexes the JSON fields. See [`agent-rules/observability.md`](observability.md). | Pino, Winston, Bunyan (Node-only; `pino/browser` is just a `console.log` adapter); raw `console.*` in `src/` |
+| Error monitoring | Workers Logs by default; Sentry via `monitoring/sentry` recipe for consumer-facing apps; Application Insights via `monitoring/azure-app-insights` for Azure-fronted apps; OTel export via `monitoring/otel-export` for cross-vendor pipelines | Direct `@sentry/*` / `applicationinsights` imports outside `src/lib/monitoring/` |
+| Analytics + feature flags | Cloudflare Web Analytics (page views, free, no SDK); PostHog via `monitoring/posthog` recipe (analytics + flags + session replay) when budget allows | Mixpanel, Amplitude, Segment (without ADR) |
 | Tests | Vitest + Testing Library | Jest, Mocha |
 | E2E tests | Playwright (via recipe) | Cypress, Puppeteer |
 | Lint + format | Biome | ESLint + Prettier |

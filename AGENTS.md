@@ -30,6 +30,7 @@ You're an AI coding agent (Claude Code, Codex, Cursor, Aider, or similar) workin
 | Email | Recipe-only. Install `email/send-pipeline` + a transport recipe (e.g. `email/graph-shared-mailbox`); template ships nothing email-related |
 | UI | shadcn/ui style `base-vega` (Base UI primitives via `@base-ui/react` + the "vega" visual theme), Tailwind v4, `next-themes` for theme provider |
 | Validation | Zod + zod-openapi → generated `openapi.json` contract (CI-enforced) |
+| Logging | Structured `console.*` via `@/lib/log` (Workers Logs auto-indexes JSON fields). Recipes overlay Sentry / App Insights / OTel. See [`agent-rules/observability.md`](agent-rules/observability.md) |
 | Testing | Vitest + Testing Library |
 | Tooling | Biome, Husky, lint-staged, Renovate, TanStack Intent |
 | Node | ≥24.0.0, pnpm ≥11 |
@@ -50,6 +51,7 @@ The full rule set lives in `agent-rules/`. Each rule is a short, harness-agnosti
 | OpenAPI contract discipline | `agent-rules/api-contract.md` | When adding or changing server functions |
 | TanStack Intent cadence | `agent-rules/intent.md` | After dep changes, per-task on TanStack-area work |
 | Naming, formatting, comments, voice | `agent-rules/conventions.md` | Always |
+| Logging + error/analytics layering | `agent-rules/observability.md` | Before reaching for `console.*` or any monitoring SDK |
 | Codex-specific harness setup | `agent-rules/codex-config.md` | Codex sessions only |
 
 ## Session protocol
