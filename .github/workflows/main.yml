@@ -92,13 +92,19 @@ jobs:
 
       - name: Upload build artifact
         # deploy-dev consumes this so it doesn't have to re-run pnpm build
-        # on a fresh runner. dist/ holds both the worker bundle and the
-        # client assets that wrangler deploy uploads.
+        # on a fresh runner. dist/ holds the worker bundle + client assets
+        # that wrangler deploy uploads. .wrangler/deploy/config.json is the
+        # redirect file the Cloudflare Vite plugin writes during build —
+        # wrangler follows it to read dist/server/wrangler.json (resolved
+        # entry, baked-in env). Without this file, wrangler falls back to
+        # the raw wrangler.jsonc and trips on the virtual main entry.
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: dist
-          path: dist/
+          path: |
+            dist/
+            .wrangler/deploy/config.json
           retention-days: 1
           if-no-files-found: error
 
@@ -121,11 +127,12 @@ jobs:
       - name: Download build artifact
         # Skips the rebuild on the deploy runner. Build was already proven
         # green by the check job; reusing the same dist/ guarantees we deploy
-        # exactly what passed the gates.
+        # exactly what passed the gates. Default path restores both dist/
+        # and .wrangler/deploy/config.json at workspace root so the plugin's
+        # deploy redirect points wrangler at the dist config.
         uses: actions/download-artifact@v4
         with:
           name: dist
-          path: dist/
 
       - name: Apply D1 migrations to dev
         # The dev D1 binding lives at the top level of wrangler.jsonc, so
@@ -139,10 +146,8 @@ jobs:
           fi
 
       - name: Deploy to dev
-        # Point wrangler at the built config the Cloudflare Vite plugin
-        # emitted (resolved entry, dev bindings baked in). --env="" tells
-        # wrangler to use the top-level config explicitly — without this,
-        # multi-env wrangler.jsonc files emit a warning + nondeterministic
-        # behavior. The check job built without CLOUDFLARE_ENV, so the
-        # dist file's top-level already points at dev.
-        run: pnpm exec wrangler deploy --config dist/server/wrangler.json --env=""
+        # The Cloudflare Vite plugin's .wrangler/deploy/config.json (restored
+        # from the artifact) redirects wrangler to dist/server/wrangler.json,
+        # which has the resolved entry and dev bindings baked in. The check
+        # job built without CLOUDFLARE_ENV, so the dist top-level is dev.
+        run: pnpm exec wrangler deploy

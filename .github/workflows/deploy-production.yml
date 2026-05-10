@@ -57,8 +57,8 @@ jobs:
           fi
 
       - name: Deploy to production
-        # Point wrangler at the built config the Cloudflare Vite plugin
-        # emitted. CLOUDFLARE_ENV=production at job level made the plugin
-        # merge the env.production block into the dist file's top level,
-        # so --env="" (top-level) deploys the prod worker.
-        run: pnpm exec wrangler deploy --config dist/server/wrangler.json --env=""
+        # The Cloudflare Vite plugin wrote .wrangler/deploy/config.json
+        # during `pnpm build` above; wrangler follows that redirect to
+        # dist/server/wrangler.json, where CLOUDFLARE_ENV=production has
+        # already merged the env.production block into the top level.
+        run: pnpm exec wrangler deploy
