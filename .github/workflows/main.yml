@@ -9,6 +9,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  # Opt into Node.js 24 for the v4 actions; removes the deprecation warning
+  # and matches the worker runtime.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -65,7 +70,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Apply D1 migrations to dev
-        run: pnpm exec wrangler d1 migrations apply DB --env dev --remote
+        run: |
+          if compgen -G "drizzle/*.sql" > /dev/null; then
+            pnpm exec wrangler d1 migrations apply DB --env dev --remote
+          else
+            echo "No migrations to apply (empty schema)."
+          fi
 
       - name: Deploy to dev
         run: pnpm exec wrangler deploy --env dev
