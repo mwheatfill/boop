@@ -29,7 +29,7 @@
         {
           "binding": "DB",
           "database_name": "template-cf-fullstack-dev",
-          "database_id": "REPLACE_WITH_DEV_D1_ID",
+          "database_id": "18db1684-4240-4fa5-a185-d54d58fac67b",
           "migrations_dir": "drizzle"
         }
       ]
@@ -44,7 +44,7 @@
         {
           "binding": "DB",
           "database_name": "template-cf-fullstack-prod",
-          "database_id": "REPLACE_WITH_PROD_D1_ID",
+          "database_id": "8e91e4d7-25a1-43a7-aa2a-68dc36d4b21c",
           "migrations_dir": "drizzle"
         }
       ]
