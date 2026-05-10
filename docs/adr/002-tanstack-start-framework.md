@@ -6,7 +6,7 @@ date: 2026-05-09
 description: "TanStack Start handles SSR, file-based routing, and API routes in a single bundle."
 ---
 
-# ADR-0002: TanStack Start as the framework
+# ADR-002: TanStack Start as the framework
 
 ## Status
 
@@ -32,7 +32,7 @@ TanStack Start is the framework. File-based routing via TanStack Router. SSR + A
 ## Notable
 
 - TanStack Start is younger than Next; some patterns are still maturing. Pre-1.0 in places.
-- TanStack Intent ([ADR-0010](0010-skill-currency-protocol.md)) keeps agent guidance current with installed versions, mitigating the API-churn cost.
+- TanStack Intent ([ADR-011](011-skill-currency-protocol.md)) keeps agent guidance current with installed versions, mitigating the API-churn cost.
 - Server functions (`createServerFn`) collapse the call-server-from-client boundary into a typed import; HTTP API routes live alongside page routes in `src/routes/api/`.
 
 ## References

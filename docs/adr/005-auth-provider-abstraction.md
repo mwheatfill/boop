@@ -6,7 +6,7 @@ date: 2026-05-09
 description: "All identity reads go through getCurrentUser(request) in src/lib/auth/. Providers conform to one interface."
 ---
 
-# ADR-0007: Auth provider abstraction (getCurrentUser)
+# ADR-005: Auth provider abstraction (getCurrentUser)
 
 ## Status
 

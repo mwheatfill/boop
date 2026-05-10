@@ -6,7 +6,7 @@ date: 2026-05-09
 description: "Single canonical choice per concern, listed in agent-rules/preferences.md, enforced by a pnpm audit:patterns CI gate."
 ---
 
-# ADR-0011: Opinionated stack with mechanical pattern enforcement
+# ADR-009: Opinionated stack with mechanical pattern enforcement
 
 ## Status
 

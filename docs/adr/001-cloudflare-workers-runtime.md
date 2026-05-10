@@ -6,7 +6,7 @@ date: 2026-05-09
 description: "Cloudflare Workers is the runtime; Wrangler manages multi-environment deploys."
 ---
 
-# ADR-0001: Cloudflare Workers as the runtime
+# ADR-001: Cloudflare Workers as the runtime
 
 ## Status
 

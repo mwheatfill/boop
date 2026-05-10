@@ -79,17 +79,18 @@ The full rule set lives in `agent-rules/`. Each rule is a short, harness-agnosti
 
 These have ADRs in `docs/adr/`. If you're tempted to deviate, read the ADR first, then propose a spec edit.
 
-- Cloudflare Workers as the runtime ([ADR-0001](docs/adr/0001-cloudflare-workers-runtime.md))
-- TanStack Start as the framework ([ADR-0002](docs/adr/0002-tanstack-start-framework.md))
-- D1 default for the data layer; Neon via recipe ([ADR-0003](docs/adr/0003-d1-default-data-layer.md))
-- Drizzle as the ORM ([ADR-0004](docs/adr/0004-drizzle-orm.md))
-- Better Auth as the auth library, providers via env; Cloudflare Access via recipe ([ADR-0005](docs/adr/0005-better-auth-with-entra-default.md))
-- AI SDK + AI Elements; AI provider via env, AI Gateway recommended for production ([ADR-0006](docs/adr/0006-foundry-via-ai-gateway.md))
-- Auth provider abstraction (`getCurrentUser`) ([ADR-0007](docs/adr/0007-auth-provider-abstraction.md))
-- Neutral agent governance (this file + `agent-rules/`) ([ADR-0008](docs/adr/0008-neutral-agent-governance.md))
-- Discoverability surface in template (`.well-known/`, robots, sitemap, llms.txt) ([ADR-0009](docs/adr/0009-discoverability-in-template.md))
-- TanStack Intent + MCP servers for documentation currency ([ADR-0010](docs/adr/0010-skill-currency-protocol.md))
-- Opinionated stack with mechanical pattern enforcement ([ADR-0011](docs/adr/0011-opinionated-stack-and-pattern-enforcement.md))
+- Cloudflare Workers as the runtime ([ADR-001](docs/adr/001-cloudflare-workers-runtime.md))
+- TanStack Start as the framework ([ADR-002](docs/adr/002-tanstack-start-framework.md))
+- D1 default for the data layer; Neon via recipe ([ADR-003](docs/adr/003-d1-default-data-layer.md))
+- Drizzle as the ORM ([ADR-004](docs/adr/004-drizzle-orm.md))
+- Auth provider abstraction (`getCurrentUser`) ([ADR-005](docs/adr/005-auth-provider-abstraction.md))
+- Better Auth as the auth library, providers via env; Cloudflare Access via recipe ([ADR-006](docs/adr/006-better-auth-with-entra-default.md))
+- AI SDK + AI Elements; AI provider via env, AI Gateway recommended for production ([ADR-007](docs/adr/007-foundry-via-ai-gateway.md))
+- UI / visual layer (shadcn-base-vega centered; charts, toasts, icons, motion, theme, dashboard) ([ADR-008](docs/adr/008-ui-visual-layer.md))
+- Opinionated stack with mechanical pattern enforcement ([ADR-009](docs/adr/009-opinionated-stack-and-pattern-enforcement.md))
+- Neutral agent governance (this file + `agent-rules/`) ([ADR-010](docs/adr/010-neutral-agent-governance.md))
+- TanStack Intent + MCP servers for documentation currency ([ADR-011](docs/adr/011-skill-currency-protocol.md))
+- Discoverability surface in template (`.well-known/`, robots, sitemap, llms.txt) ([ADR-012](docs/adr/012-discoverability-in-template.md))
 
 ## Things to avoid
 

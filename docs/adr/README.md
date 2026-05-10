@@ -10,32 +10,41 @@ description: "Index of architecture decisions for template-cf-fullstack."
 
 These ADRs capture the rationale behind the major platform, framework, and library choices in this template. Read one when you're asking "why was X chosen?" or contemplating an override.
 
-Format follows Michael Nygard's pattern: status, context, decision, consequences, alternatives.
+Each ADR has three sections: Context, Decision, Consequences. Status and date are pills at the top of the file. See [`000-template.md`](000-template.md) for the canonical shape; [`008-ui-visual-layer.md`](008-ui-visual-layer.md) is the marquee example.
 
 ## Index
 
+Ordered foundation → data → auth → AI → product surface → meta.
+
 | ADR | Status | Topic |
 |---|---|---|
-| [0000](0000-template.md) | Reference | ADR template (copy this for new ADRs) |
-| [0001](0001-cloudflare-workers-runtime.md) | Accepted | Cloudflare Workers as the runtime |
-| [0002](0002-tanstack-start-framework.md) | Accepted | TanStack Start as the framework |
-| [0003](0003-d1-default-data-layer.md) | Accepted | Cloudflare D1 default; Neon Postgres via recipe |
-| [0004](0004-drizzle-orm.md) | Accepted | Drizzle as the ORM |
-| [0005](0005-better-auth-with-entra-default.md) | Accepted | Better Auth + Entra OIDC default; Cloudflare Access via recipe |
-| [0006](0006-foundry-via-ai-gateway.md) | Accepted | Microsoft Foundry via Cloudflare AI Gateway |
-| [0007](0007-auth-provider-abstraction.md) | Accepted | Auth provider abstraction (`getCurrentUser`) |
-| [0008](0008-neutral-agent-governance.md) | Accepted | Neutral agent governance (AGENTS.md + agent-rules/) |
-| [0009](0009-discoverability-in-template.md) | Accepted | Discoverability surface in the template |
-| [0010](0010-skill-currency-protocol.md) | Accepted | Skill currency protocol (Intent + MCP servers) |
-| [0011](0011-opinionated-stack-and-pattern-enforcement.md) | Accepted | Opinionated stack with mechanical pattern enforcement |
-| [0012](0012-ui-visual-layer.md) | Accepted | UI / visual layer (shadcn-base-vega centered; charts, toasts, icons, motion, theme, dashboard) |
+| [000](000-template.md) | Reference | ADR template (copy this for new ADRs) |
+| [001](001-cloudflare-workers-runtime.md) | Accepted | Cloudflare Workers as the runtime |
+| [002](002-tanstack-start-framework.md) | Accepted | TanStack Start as the framework |
+| [003](003-d1-default-data-layer.md) | Accepted | Cloudflare D1 default; Neon Postgres via recipe |
+| [004](004-drizzle-orm.md) | Accepted | Drizzle as the ORM |
+| [005](005-auth-provider-abstraction.md) | Accepted | Auth provider abstraction (`getCurrentUser`) |
+| [006](006-better-auth-with-entra-default.md) | Accepted | Better Auth + Entra OIDC default; Cloudflare Access via recipe |
+| [007](007-foundry-via-ai-gateway.md) | Accepted | Microsoft Foundry via Cloudflare AI Gateway |
+| [008](008-ui-visual-layer.md) | Accepted | UI / visual layer (shadcn-base-vega centered; charts, toasts, icons, motion, theme, dashboard) |
+| [009](009-opinionated-stack-and-pattern-enforcement.md) | Accepted | Opinionated stack with mechanical pattern enforcement |
+| [010](010-neutral-agent-governance.md) | Accepted | Neutral agent governance (AGENTS.md + agent-rules/) |
+| [011](011-skill-currency-protocol.md) | Accepted | Skill currency protocol (Intent + MCP servers) |
+| [012](012-discoverability-in-template.md) | Accepted | Discoverability surface in the template |
 
 ## How to add an ADR
 
-1. Copy [`0000-template.md`](0000-template.md) to `NNNN-short-slug.md` with the next number.
-2. Fill in status, context, decision, consequences, alternatives.
-3. Link from this index.
-4. If the new ADR supersedes an existing one, update the old ADR's status to `Superseded by ADR-NNNN`.
+1. Copy [`000-template.md`](000-template.md) to `NNN-short-slug.md` with the next 3-digit number.
+2. Replace the status + date pills (status colors below). Fill in Context, Decision, Consequences.
+3. Add a row to the index above.
+4. If the new ADR supersedes an existing one, update the old ADR's status pill to `Superseded` (lightgrey) with the date and a link to the new one.
+
+Status pill colors:
+
+- **Proposed**: `yellow`
+- **Accepted**: `brightgreen`
+- **Deprecated**: `red`
+- **Superseded**: `lightgrey`
 
 ## When to read an ADR
 

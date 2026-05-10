@@ -6,7 +6,7 @@ date: 2026-05-09
 description: "Seven-step doc-resolution protocol so AI agents reference current sources over training data."
 ---
 
-# ADR-0010: Skill currency protocol (Intent + MCP)
+# ADR-011: Skill currency protocol (Intent + MCP)
 
 ## Status
 

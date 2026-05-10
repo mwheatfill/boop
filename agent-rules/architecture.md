@@ -24,7 +24,7 @@ The default implementation returns `null`. An auth recipe (e.g. `auth/better-aut
 
 **Tenant context is separate.** Multi-tenant apps add a `getActiveTenant()` (or equivalent) call alongside `getCurrentUser()`. Tenant scope is not part of the `User` shape; that's identity-only.
 
-See [ADR-0007](../docs/adr/0007-auth-provider-abstraction.md).
+See [ADR-005](../docs/adr/005-auth-provider-abstraction.md).
 
 ## Data flow
 
@@ -64,7 +64,7 @@ The `public/openapi.json` file generated from Zod schemas is the load-bearing AP
 
 When you add or change a server function, the input schema must be a Zod schema with zod-openapi 5.x `.meta(...)` decorations. Run `pnpm openapi:generate` to refresh the spec; the CI check fails if the spec drifts from the code.
 
-See [`agent-rules/api-contract.md`](api-contract.md) for the full contract discipline. See [ADR-0009](../docs/adr/0009-discoverability-in-template.md) for why the contract surface is in the template.
+See [`agent-rules/api-contract.md`](api-contract.md) for the full contract discipline. See [ADR-012](../docs/adr/012-discoverability-in-template.md) for why the contract surface is in the template.
 
 ## Database
 
@@ -85,7 +85,7 @@ Schema lives in `src/lib/db/schema.ts` (empty stub by default; recipes such as `
 
 For Postgres / Neon, see the planned [`data-layer/switch-to-neon-postgres`](https://github.com/mwheatfill/app-platform-recipes#planned-recipes) recipe. The swap is mechanical because the rest of the app talks to Drizzle, not the underlying driver.
 
-See [ADR-0003](../docs/adr/0003-d1-default-data-layer.md) and [ADR-0004](../docs/adr/0004-drizzle-orm.md).
+See [ADR-003](../docs/adr/003-d1-default-data-layer.md) and [ADR-004](../docs/adr/004-drizzle-orm.md).
 
 ## Routing
 
@@ -113,13 +113,13 @@ The template ships static discovery files in `public/`:
 - `public/.well-known/mcp-server-card` (placeholder; the `mcp/expose-app-as-mcp-server` recipe populates it)
 - `public/_headers` sets `Content-Type` for the extensionless `.well-known/*` files (Cloudflare Workers Static Assets serves them as `application/octet-stream` otherwise)
 
-See [ADR-0009](../docs/adr/0009-discoverability-in-template.md).
+See [ADR-012](../docs/adr/012-discoverability-in-template.md).
 
 ## AI
 
 **Recipe-only.** The template ships nothing AI-related. Install `ai/chat-route` for the streaming endpoint, `ai/chat-ui` for the surface, and a provider recipe (e.g. `microsoft-foundry/chat-completion`). The `ai/chat-route` recipe is the source of truth for the `Content-Encoding: identity` SSE workaround that Cloudflare Workers needs; don't reinvent the streaming wiring outside that recipe.
 
-See [ADR-0006](../docs/adr/0006-foundry-via-ai-gateway.md) for the AI Gateway rationale.
+See [ADR-007](../docs/adr/007-foundry-via-ai-gateway.md) for the AI Gateway rationale.
 
 ## Email
 

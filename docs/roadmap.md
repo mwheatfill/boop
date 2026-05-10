@@ -12,7 +12,7 @@ The template is feature-complete for "what every Cloudflare Workers + TanStack S
 ## Current state (May 2026)
 
 - **Stack pinned and audit-enforced.** [`agent-rules/preferences.md`](../agent-rules/preferences.md) is the canonical-choice list (~22 rows covering routing, query, forms, validation, UI primitives, headless, charts, animation, dashboard, toasts, dates, fonts, currency, markdown, logging, error monitoring, analytics, client state, component dev env, postgres swap, chat UI, email transport, rich-text, billing, background jobs, real-time, search, image optimization, env var policy). [`scripts/audit-patterns/preferences.ts`](../scripts/audit-patterns/preferences.ts) blocks every "don't reach for" entry mechanically.
-- **Three audits run on every PR.** Shadcn structural-diff against the live registry, TanStack pattern assertions against version-locked Intent skills, and the preferences grep. See [ADR-0011](adr/0011-opinionated-stack-and-pattern-enforcement.md) for the rationale.
+- **Three audits run on every PR.** Shadcn structural-diff against the live registry, TanStack pattern assertions against version-locked Intent skills, and the preferences grep. See [ADR-009](adr/009-opinionated-stack-and-pattern-enforcement.md) for the rationale.
 - **Wired in `src/lib/`:** `auth/get-current-user`, `db/client`, `db/schema` (empty), `query-client`, `log` (structured `console.*` wrapper), `format` (Intl-based `formatMoney`/`formatNumber`/`formatPercent`), `utils` (`cn`).
 - **Wired in `src/components/`:** Button + Card from canonical shadcn `base-vega` (Base UI primitives), Sonner Toaster mounted in `__root.tsx`, ThemeProvider + ThemeToggle, DefaultCatchBoundary + NotFound.
 - **CI:** `main.yml` (check + dev deploy on push to `main`), `deploy-production.yml` (prod deploy on `v*.*.*` tags), composite `setup` action shared between them, audit-patterns posts a PR comment with findings.
@@ -82,5 +82,5 @@ The original CI deviated from canonical because the dev deploy claim in earlier 
 
 - Switching templates (cf-fullstack stays on TanStack Start + Cloudflare Workers; the Azure templates are separate).
 - Adding more frameworks to the same template (no Hono variant, no Next.js variant — those would be separate templates).
-- Building a recipe registry website / catalog UI (the `README.md` table is the catalog; see ADR-0009 for the discoverability stance).
+- Building a recipe registry website / catalog UI (the `README.md` table is the catalog; see ADR-012 for the discoverability stance).
 - Pinning a font, charts library, motion library, or dashboard layout in the template itself (per-app design decisions; see preferences.md).

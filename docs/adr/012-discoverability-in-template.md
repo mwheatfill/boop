@@ -6,7 +6,7 @@ date: 2026-05-09
 description: "robots.txt, sitemap, llms.txt, openapi.json, and two .well-known files ship in the template as static assets; the MCP server itself is a recipe."
 ---
 
-# ADR-0009: Agent-ready discoverability surface
+# ADR-012: Agent-ready discoverability surface
 
 ## Status
 

@@ -6,7 +6,7 @@ date: 2026-05-09
 description: "Drizzle ORM speaks both D1 and Postgres dialects, keeping the data-layer swap mechanical."
 ---
 
-# ADR-0004: Drizzle as the ORM
+# ADR-004: Drizzle as the ORM
 
 ## Status
 

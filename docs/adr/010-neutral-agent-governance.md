@@ -6,7 +6,7 @@ date: 2026-05-09
 description: "Rules layer is harness-agnostic markdown; gate layer is per-harness configuration."
 ---
 
-# ADR-0008: Neutral agent governance (AGENTS.md + agent-rules/)
+# ADR-010: Neutral agent governance (AGENTS.md + agent-rules/)
 
 ## Status
 

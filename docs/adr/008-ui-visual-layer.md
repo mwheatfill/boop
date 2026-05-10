@@ -1,4 +1,4 @@
-# ADR-0012: UI / visual layer
+# ADR-008: UI / visual layer
 
 ![Status](https://img.shields.io/badge/status-Accepted-brightgreen) ![Date](https://img.shields.io/badge/date-2026--05--10-blue)
 
@@ -8,7 +8,7 @@ The visual layer spans every UI surface in the template (primitives, headless, c
 
 ## Decision
 
-[shadcn/ui](https://ui.shadcn.com/docs) (style `base-vega`) is the center. Every other UI choice is either shipped by shadcn, used by shadcn examples, or the React-ecosystem default that integrates with shadcn's CSS-variable theming. Tailwind v4 is the substrate this layer renders into; its choice belongs to a future "Styling" ADR. Detailed base-vega vs radix-* rationale: [ADR-0011 Notable §3](0011-opinionated-stack-and-pattern-enforcement.md#notable).
+[shadcn/ui](https://ui.shadcn.com/docs) (style `base-vega`) is the center. Every other UI choice is either shipped by shadcn, used by shadcn examples, or the React-ecosystem default that integrates with shadcn's CSS-variable theming. Tailwind v4 is the substrate this layer renders into; its choice belongs to a future "Styling" ADR. Detailed base-vega vs radix-* rationale: [ADR-009 Notable §3](009-opinionated-stack-and-pattern-enforcement.md#notable).
 
 | Concern | Choice | Over |
 |---|---|---|

@@ -6,7 +6,7 @@ date: 2026-05-09
 description: "The template ships nothing AI-related. AI capabilities are recipes: a chat-route recipe owns the streaming endpoint, a chat-ui recipe owns the surface, and a provider recipe owns the model wiring. Microsoft Foundry via Cloudflare AI Gateway is the default provider recipe."
 ---
 
-# ADR-0006: AI is recipe-only; Vercel AI SDK + AI Gateway is the recommended pattern
+# ADR-007: AI is recipe-only; Vercel AI SDK + AI Gateway is the recommended pattern
 
 ## Status
 
