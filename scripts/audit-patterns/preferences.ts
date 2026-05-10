@@ -1,6 +1,6 @@
-// Preferences audit. Greps src/ + scripts/ for forbidden imports
-// declared as "don't reach for" in agent-rules/preferences.md. Add a
-// row here when you add a row to preferences.md.
+// Preferences audit. Greps src/ + scripts/ for forbidden imports.
+// This file is the source of truth for the canonical-choice list; ADRs
+// document the rationale per concern. See ADR-009.
 
 import { readFileSync } from 'node:fs'
 import { relative } from 'node:path'
@@ -25,103 +25,96 @@ const rules: Rule[] = [
   {
     id: 'no-swr',
     pattern: /from\s+['"]swr['"]/,
-    message:
-      'Use `@tanstack/react-query` instead of swr (preferences.md → "Client query / cache").',
+    message: 'Use `@tanstack/react-query` instead of swr.',
   },
   {
     id: 'no-apollo-client',
     pattern: /from\s+['"]@apollo\/client['"]/,
-    message:
-      'Use `@tanstack/react-query` instead of Apollo (preferences.md → "Client query / cache").',
+    message: 'Use `@tanstack/react-query` instead of Apollo.',
   },
   {
     id: 'no-urql',
     pattern: /from\s+['"]urql['"]/,
-    message:
-      'Use `@tanstack/react-query` instead of urql (preferences.md → "Client query / cache").',
+    message: 'Use `@tanstack/react-query` instead of urql.',
   },
   // Validation alternatives.
   {
     id: 'no-yup',
     pattern: /from\s+['"]yup['"]/,
-    message:
-      'Use Zod (via @/shared/schemas/openapi) instead of yup (preferences.md → "Validation").',
+    message: 'Use Zod (via @/shared/schemas/openapi) instead of yup.',
   },
   {
     id: 'no-joi',
     pattern: /from\s+['"]joi['"]/,
-    message:
-      'Use Zod (via @/shared/schemas/openapi) instead of joi (preferences.md → "Validation").',
+    message: 'Use Zod (via @/shared/schemas/openapi) instead of joi.',
   },
   // Form alternatives.
   {
     id: 'no-react-hook-form',
     pattern: /from\s+['"]react-hook-form['"]/,
     message:
-      'Use TanStack Form for rich forms or React 19 `<form action={fn}>` + `useActionState` for simple ones. Don\'t reach for react-hook-form (preferences.md → "Forms").',
+      "Use TanStack Form for rich forms or React 19 `<form action={fn}>` + `useActionState` for simple ones. Don't reach for react-hook-form.",
   },
   {
     id: 'no-formik',
     pattern: /from\s+['"]formik['"]/,
-    message: 'Use TanStack Form or React 19 Actions instead of Formik (preferences.md → "Forms").',
+    message: 'Use TanStack Form or React 19 Actions instead of Formik.',
   },
   // Style alternatives.
   {
     id: 'no-styled-components',
     pattern: /from\s+['"]styled-components['"]/,
-    message: 'Use Tailwind v4 instead of styled-components (preferences.md → "Styling").',
+    message: 'Use Tailwind v4 instead of styled-components.',
   },
   {
     id: 'no-emotion',
     pattern: /from\s+['"]@emotion\/(react|styled)['"]/,
-    message: 'Use Tailwind v4 instead of @emotion (preferences.md → "Styling").',
+    message: 'Use Tailwind v4 instead of @emotion.',
   },
   // UI library alternatives.
   {
     id: 'no-mui',
     pattern: /from\s+['"]@mui\//,
-    message:
-      'Use shadcn/ui (`npx shadcn@latest add <name>`) instead of MUI (preferences.md → "UI primitives").',
+    message: 'Use shadcn/ui (`npx shadcn@latest add <name>`) instead of MUI.',
   },
   {
     id: 'no-chakra',
     pattern: /from\s+['"]@chakra-ui\//,
-    message: 'Use shadcn/ui instead of Chakra (preferences.md → "UI primitives").',
+    message: 'Use shadcn/ui instead of Chakra.',
   },
   {
     id: 'no-mantine',
     pattern: /from\s+['"]@mantine\//,
-    message: 'Use shadcn/ui instead of Mantine (preferences.md → "UI primitives").',
+    message: 'Use shadcn/ui instead of Mantine.',
   },
   {
     id: 'no-headlessui',
     pattern: /from\s+['"]@headlessui\/react['"]/,
-    message:
-      'Use shadcn/ui (which wraps Radix) instead of Headless UI (preferences.md → "Headless primitives").',
+    message: 'Use shadcn/ui (which wraps Radix) instead of Headless UI.',
   },
   // Icon alternatives.
   {
     id: 'no-heroicons',
     pattern: /from\s+['"]@heroicons\/react/,
-    message: 'Use lucide-react instead of Heroicons (preferences.md → "Icons").',
+    message: 'Use lucide-react instead of Heroicons.',
   },
   {
     id: 'no-react-icons',
     pattern: /from\s+['"]react-icons\//,
-    message: 'Use lucide-react instead of react-icons (preferences.md → "Icons").',
+    message: 'Use lucide-react instead of react-icons.',
   },
   // HTTP/data fetching.
   {
     id: 'no-axios',
     pattern: /from\s+['"]axios['"]/,
     message:
-      'Use the platform `fetch` (or a TanStack Query queryFn around it) instead of axios. Bundles smaller; preferences.md does not list axios as canonical.',
+      'Use the platform `fetch` (or a TanStack Query queryFn around it) instead of axios. Smaller bundle, one less dep.',
   },
   // Routing alternatives (template uses TanStack Router).
   {
     id: 'no-react-router',
     pattern: /from\s+['"]react-router(-dom)?['"]/,
-    message: 'Use @tanstack/react-router (the template router); preferences.md → "Routing".',
+    message: 'Use @tanstack/react-router (the template router).',
   },
   // Headless primitive alternatives. The template uses Base UI (style:
   // base-vega in components.json). Direct radix-ui imports indicate a
@@ -130,35 +123,33 @@ const rules: Rule[] = [
     id: 'no-radix-ui',
     pattern: /from\s+['"]radix-ui['"]/,
     message:
-      'The template uses Base UI primitives (style: base-vega), not Radix. If you need a primitive, run `npx shadcn@latest add <name>`. preferences.md → "Headless primitives".',
+      'The template uses Base UI primitives (style: base-vega), not Radix. If you need a primitive, run `npx shadcn@latest add <name>`.',
   },
   {
     id: 'no-radix-ui-scoped',
     pattern: /from\s+['"]@radix-ui\//,
-    message:
-      'The template uses Base UI primitives (style: base-vega), not Radix. preferences.md → "Headless primitives".',
+    message: 'The template uses Base UI primitives (style: base-vega), not Radix.',
   },
   // Chart alternatives.
   {
     id: 'no-chartjs',
     pattern: /from\s+['"]chart\.js['"]|from\s+['"]react-chartjs-2['"]/,
-    message:
-      'Use shadcn Chart (Recharts under the hood) via the `charts/setup` recipe. preferences.md → "Charts".',
+    message: 'Use shadcn Chart (Recharts under the hood) via the `charts/setup` recipe.',
   },
   {
     id: 'no-victory',
     pattern: /from\s+['"]victory(-[\w-]+)?['"]/,
-    message: 'Use shadcn Chart via the `charts/setup` recipe. preferences.md → "Charts".',
+    message: 'Use shadcn Chart via the `charts/setup` recipe.',
   },
   {
     id: 'no-plotly',
     pattern: /from\s+['"]plotly\.js|react-plotly['"]/,
-    message: 'Use shadcn Chart via the `charts/setup` recipe. preferences.md → "Charts".',
+    message: 'Use shadcn Chart via the `charts/setup` recipe.',
   },
   {
     id: 'no-nivo',
     pattern: /from\s+['"]@nivo\//,
-    message: 'Use shadcn Chart via the `charts/setup` recipe. preferences.md → "Charts".',
+    message: 'Use shadcn Chart via the `charts/setup` recipe.',
   },
   // Component-dev environment. Skip entirely; the shadcn vendor-into-repo
   // pattern + a src/routes/_dev/ route covers what stories would. Ladle
@@ -167,7 +158,7 @@ const rules: Rule[] = [
     id: 'no-storybook',
     pattern: /from\s+['"]@storybook\/[\w-]+['"]/,
     message:
-      'No Storybook in the template. shadcn primitives are vendored into the repo; the component IS the source code. For ad-hoc previews, add a route under `src/routes/_dev/` guarded by `import.meta.env.DEV`. preferences.md → "Component dev environment".',
+      'No Storybook in the template. shadcn primitives are vendored into the repo; the component IS the source code. For ad-hoc previews, add a route under `src/routes/_dev/` guarded by `import.meta.env.DEV`.',
   },
   // Currency lib alternatives. Canonical is Intl.NumberFormat via
   // @/lib/format. dinero.js is the documented ADR escape hatch (not
@@ -177,13 +168,12 @@ const rules: Rule[] = [
     id: 'no-currency-js',
     pattern: /from\s+['"]currency\.js['"]/,
     message:
-      'Use Intl.NumberFormat via formatMoney from @/lib/format. Store money as integer minor units. preferences.md → "Currency / numbers".',
+      'Use Intl.NumberFormat via formatMoney from @/lib/format. Store money as integer minor units.',
   },
   {
     id: 'no-accounting-js',
     pattern: /from\s+['"]accounting(\.js)?['"]/,
-    message:
-      'Use Intl.NumberFormat via formatMoney from @/lib/format. preferences.md → "Currency / numbers".',
+    message: 'Use Intl.NumberFormat via formatMoney from @/lib/format.',
   },
   // Date library alternatives. Canonical is date-fns v4 + @date-fns/tz.
   // Native Temporal isn't on workerd yet (see workerd #5630); polyfills
@@ -191,32 +181,29 @@ const rules: Rule[] = [
   {
     id: 'no-moment',
     pattern: /from\s+['"]moment(\/[\w-]+)?['"]/,
-    message:
-      'Moment is deprecated and Node-only. Use `date-fns` v4 + `@date-fns/tz`. preferences.md → "Dates / time zones".',
+    message: 'Moment is deprecated and Node-only. Use `date-fns` v4 + `@date-fns/tz`.',
   },
   {
     id: 'no-dayjs',
     pattern: /from\s+['"]dayjs(\/[\w-]+)?['"]/,
     message:
-      'Use `date-fns` v4 + `@date-fns/tz` (tree-shakable, smaller for typical usage than dayjs + plugins). preferences.md → "Dates / time zones".',
+      'Use `date-fns` v4 + `@date-fns/tz` (tree-shakable, smaller for typical usage than dayjs + plugins).',
   },
   {
     id: 'no-luxon',
     pattern: /from\s+['"]luxon['"]/,
-    message:
-      'Use `date-fns` v4 + `@date-fns/tz` (smaller bundle, tree-shakable). preferences.md → "Dates / time zones".',
+    message: 'Use `date-fns` v4 + `@date-fns/tz` (smaller bundle, tree-shakable).',
   },
   {
     id: 'no-date-fns-tz-legacy',
     pattern: /from\s+['"]date-fns-tz(\/[\w-]+)?['"]/,
-    message:
-      'Use `@date-fns/tz` (the v4-native package), not the legacy `date-fns-tz`. preferences.md → "Dates / time zones".',
+    message: 'Use `@date-fns/tz` (the v4-native package), not the legacy `date-fns-tz`.',
   },
   {
     id: 'no-temporal-polyfill',
     pattern: /from\s+['"](@js-temporal\/polyfill|temporal-polyfill)['"]/,
     message:
-      'Temporal is Stage 4 but not on workerd yet (see workerd #5630). Polyfills are 20-56 KB; not worth it for the template. Use `date-fns` v4 + `@date-fns/tz` until Cloudflare ships a `temporal_api` compat flag. preferences.md → "Dates / time zones".',
+      'Temporal is Stage 4 but not on workerd yet (see workerd #5630). Polyfills are 20-56 KB; not worth it for the template. Use `date-fns` v4 + `@date-fns/tz` until Cloudflare ships a `temporal_api` compat flag.',
   },
   // Font alternatives. Template ships system stack; pin via fontsource
   // when an app needs a custom font (per-app design decision).
@@ -224,61 +211,59 @@ const rules: Rule[] = [
     id: 'no-next-font',
     pattern: /from\s+['"]next\/font(\/[\w-]+)?['"]/,
     message:
-      'next/font is Next.js-only. Use @fontsource-variable/<name> + a `--font-sans` override in app.css. preferences.md → "Fonts".',
+      'next/font is Next.js-only. Use @fontsource-variable/<name> + a `--font-sans` override in app.css.',
   },
   {
     id: 'no-vercel-fonts',
     pattern: /from\s+['"]@vercel\/fonts(\/[\w-]+)?['"]/,
-    message: 'Use @fontsource-variable/<name> for self-hosted fonts. preferences.md → "Fonts".',
+    message: 'Use @fontsource-variable/<name> for self-hosted fonts.',
   },
   {
     id: 'no-google-fonts-cdn',
     pattern: /["'`]https:\/\/fonts\.googleapis\.com\//,
     message:
-      'Don\'t use the Google Fonts CDN (privacy leak + cross-origin latency). Self-host via @fontsource-variable/<name>. preferences.md → "Fonts".',
+      "Don't use the Google Fonts CDN (privacy leak + cross-origin latency). Self-host via @fontsource-variable/<name>.",
   },
   // Toast alternatives. Template ships shadcn Sonner.
   {
     id: 'no-react-toastify',
     pattern: /from\s+['"]react-toastify['"]/,
-    message:
-      'Use `sonner` via the shadcn Toaster (`<Toaster />` is mounted in __root.tsx). preferences.md → "Toasts".',
+    message: 'Use `sonner` via the shadcn Toaster (`<Toaster />` is mounted in __root.tsx).',
   },
   {
     id: 'no-react-hot-toast',
     pattern: /from\s+['"]react-hot-toast['"]/,
-    message: 'Use `sonner` via the shadcn Toaster. preferences.md → "Toasts".',
+    message: 'Use `sonner` via the shadcn Toaster.',
   },
   {
     id: 'no-notistack',
     pattern: /from\s+['"]notistack['"]/,
-    message: 'Use `sonner` via the shadcn Toaster. preferences.md → "Toasts".',
+    message: 'Use `sonner` via the shadcn Toaster.',
   },
   // Motion alternatives.
   {
     id: 'no-react-spring',
     pattern: /from\s+['"](react-spring|@react-spring\/[\w-]+)['"]/,
-    message:
-      'Use `motion` (formerly Framer Motion) via the `motion/setup` recipe. preferences.md → "Animation".',
+    message: 'Use `motion` (formerly Framer Motion) via the `motion/setup` recipe.',
   },
   {
     id: 'no-framer-motion',
     pattern: /from\s+['"]framer-motion['"]/,
     message:
-      'The package was renamed to `motion` in 2024. Install `motion` and import from `motion/react`. preferences.md → "Animation".',
+      'The package was renamed to `motion` in 2024. Install `motion` and import from `motion/react`.',
   },
   {
     id: 'no-gsap',
     pattern: /from\s+['"]gsap(\/[\w-]+)?['"]/,
     message:
-      'Use `motion` for layout/gesture/scroll animations; use Tailwind/CSS for simple transitions. preferences.md → "Animation".',
+      'Use `motion` for layout/gesture/scroll animations; use Tailwind/CSS for simple transitions.',
   },
   // Auth provider direct imports outside the abstraction.
   {
     id: 'auth-provider-direct-import',
     pattern: /from\s+['"]better-auth['"]/,
     message:
-      "Don't import better-auth directly outside src/lib/auth/. App code reads identity via `getCurrentUser(request)`. See agent-rules/architecture.md.",
+      "Don't import better-auth directly outside src/lib/auth/. App code reads identity via `getCurrentUser(request)`. See ADR-005.",
     allowedPaths: ['src/lib/auth/'],
   },
   // Postgres driver alternatives. Default for the Neon recipe is
@@ -287,7 +272,7 @@ const rules: Rule[] = [
     id: 'no-pg-without-hyperdrive',
     pattern: /from\s+['"]pg['"]/,
     message:
-      'pg (node-postgres) only works on Workers via Hyperdrive (no raw TCP). Use @neondatabase/serverless for the Neon HTTP path, or postgres-js + Hyperdrive for the scale-up path. preferences.md → "Postgres swap".',
+      'pg (node-postgres) only works on Workers via Hyperdrive (no raw TCP). Use @neondatabase/serverless for the Neon HTTP path, or postgres-js + Hyperdrive for the scale-up path.',
     allowedPaths: ['src/lib/db/'],
   },
   // Email transport SDK direct imports outside the dispatcher.
@@ -295,88 +280,83 @@ const rules: Rule[] = [
     id: 'no-nodemailer',
     pattern: /from\s+['"]nodemailer(\/[\w-]+)?['"]/,
     message:
-      'Nodemailer is Node-only and bypasses the email/send-pipeline dispatcher. Use the dispatcher + a transport recipe. preferences.md → "Email".',
+      'Nodemailer is Node-only and bypasses the email/send-pipeline dispatcher. Use the dispatcher + a transport recipe.',
     allowedPaths: ['src/lib/email/'],
   },
   {
     id: 'no-postmark',
     pattern: /from\s+['"]postmark['"]/,
     message:
-      'Use the email/send-pipeline dispatcher + a transport recipe (graph-shared-mailbox / resend / cloudflare-email-service). preferences.md → "Email".',
+      'Use the email/send-pipeline dispatcher + a transport recipe (graph-shared-mailbox / resend / cloudflare-email-service).',
     allowedPaths: ['src/lib/email/'],
   },
   {
     id: 'no-sendgrid',
     pattern: /from\s+['"]@sendgrid\//,
-    message:
-      'Use the email/send-pipeline dispatcher + a transport recipe. preferences.md → "Email".',
+    message: 'Use the email/send-pipeline dispatcher + a transport recipe.',
     allowedPaths: ['src/lib/email/'],
   },
   // Rich-text editor alternatives.
   {
     id: 'no-lexical',
     pattern: /from\s+['"]lexical(\/[\w-]+)?['"]/,
-    message: 'Use TipTap via the editor/tiptap recipe. preferences.md → "Rich-text editor".',
+    message: 'Use TipTap via the editor/tiptap recipe.',
   },
   {
     id: 'no-slate',
     pattern: /from\s+['"]slate(-react)?['"]/,
-    message: 'Use TipTap via the editor/tiptap recipe. preferences.md → "Rich-text editor".',
+    message: 'Use TipTap via the editor/tiptap recipe.',
   },
   {
     id: 'no-draft-js',
     pattern: /from\s+['"]draft-js['"]/,
-    message:
-      'Draft.js is unmaintained. Use TipTap via the editor/tiptap recipe. preferences.md → "Rich-text editor".',
+    message: 'Draft.js is unmaintained. Use TipTap via the editor/tiptap recipe.',
   },
   // Background job library alternatives. Cloudflare-native primitives only.
   {
     id: 'no-bullmq',
     pattern: /from\s+['"]bullmq?['"]/,
     message:
-      'Bull/BullMQ is Node-only (Redis-backed). On Workers use Cloudflare Queues + a consumer Worker. preferences.md → "Background jobs / scheduled / workflows".',
+      'Bull/BullMQ is Node-only (Redis-backed). On Workers use Cloudflare Queues + a consumer Worker.',
   },
   {
     id: 'no-agenda',
     pattern: /from\s+['"]agenda['"]/,
     message:
-      'Agenda is Node-only. Use Cloudflare Cron Triggers for scheduled work or Queues for async. preferences.md → "Background jobs / scheduled / workflows".',
+      'Agenda is Node-only. Use Cloudflare Cron Triggers for scheduled work or Queues for async.',
   },
   {
     id: 'no-node-cron',
     pattern: /from\s+['"]node-cron['"]/,
-    message:
-      'Use Cloudflare Cron Triggers (declared in wrangler.jsonc), not node-cron. preferences.md → "Background jobs / scheduled / workflows".',
+    message: 'Use Cloudflare Cron Triggers (declared in wrangler.jsonc), not node-cron.',
   },
   // WebSocket / real-time alternatives.
   {
     id: 'no-ws',
     pattern: /from\s+['"]ws['"]/,
-    message:
-      'Use Durable Objects + WebSocketPair for real-time on Workers. preferences.md → "Real-time / WebSocket".',
+    message: 'Use Durable Objects + WebSocketPair for real-time on Workers.',
   },
   {
     id: 'no-socket-io',
     pattern: /from\s+['"]socket\.io(-client)?['"]/,
-    message:
-      'Use Durable Objects + WebSocketPair for real-time on Workers. preferences.md → "Real-time / WebSocket".',
+    message: 'Use Durable Objects + WebSocketPair for real-time on Workers.',
   },
   // Search SaaS alternatives.
   {
     id: 'no-algolia',
     pattern: /from\s+['"]algoliasearch['"]/,
     message:
-      'Use Cloudflare AI Search (managed hybrid BM25+vector, free during open beta) instead of Algolia. preferences.md → "Search".',
+      'Use Cloudflare AI Search (managed hybrid BM25+vector, free during open beta) instead of Algolia.',
   },
   {
     id: 'no-typesense',
     pattern: /from\s+['"]typesense['"]/,
-    message: 'Use Cloudflare AI Search instead of Typesense. preferences.md → "Search".',
+    message: 'Use Cloudflare AI Search instead of Typesense.',
   },
   {
     id: 'no-meilisearch',
     pattern: /from\s+['"]meilisearch['"]/,
-    message: 'Use Cloudflare AI Search instead of Meilisearch. preferences.md → "Search".',
+    message: 'Use Cloudflare AI Search instead of Meilisearch.',
   },
   // Env var loading alternatives. Workers uses `env` binding from
   // `cloudflare:workers`; .dev.vars + wrangler secret cover everything.
@@ -384,26 +364,24 @@ const rules: Rule[] = [
     id: 'no-dotenv',
     pattern: /from\s+['"]dotenv(\/[\w-]+)?['"]/,
     message:
-      'Use .dev.vars (local) + `wrangler secret put` (prod) + `vars` block in wrangler.jsonc. Read via `import { env } from "cloudflare:workers"`. preferences.md → "Env var policy".',
+      'Use .dev.vars (local) + `wrangler secret put` (prod) + `vars` block in wrangler.jsonc. Read via `import { env } from "cloudflare:workers"`.',
   },
   {
     id: 'no-env-cmd',
     pattern: /from\s+['"]env-cmd['"]/,
-    message:
-      'Use .dev.vars / wrangler secret / cloudflare:workers env binding instead. preferences.md → "Env var policy".',
+    message: 'Use .dev.vars / wrangler secret / cloudflare:workers env binding instead.',
   },
   {
     id: 'no-cross-env',
     pattern: /from\s+['"]cross-env['"]/,
-    message:
-      'Use .dev.vars / wrangler secret / cloudflare:workers env binding instead. preferences.md → "Env var policy".',
+    message: 'Use .dev.vars / wrangler secret / cloudflare:workers env binding instead.',
   },
   // Cloudflare API direct calls.
   {
     id: 'no-curl-cloudflare-api',
     pattern: /["'`](?:https:\/\/)?api\.cloudflare\.com\//,
     message:
-      'Direct calls to api.cloudflare.com bypass the Cloudflare MCP. Use mcp__5aa20009-…__execute (cloudflare:execute) instead. preferences.md → "Cloudflare".',
+      'Direct calls to api.cloudflare.com bypass the Cloudflare MCP. Use mcp__5aa20009-…__execute (cloudflare:execute) instead.',
     // Allow in audit/docs only (strings in markdown explaining the rule).
     allowedPaths: ['scripts/audit-patterns/'],
   },
@@ -421,19 +399,17 @@ const rules: Rule[] = [
     id: 'no-pino',
     pattern: /from\s+['"]pino(\/[\w-]+)?['"]/,
     message:
-      "Pino's Node build relies on streams workerd doesn't provide; the browser build is just a console adapter and loses Pino's perf story. Use logInfo/logWarn/logError from @/lib/log. preferences.md → \"Logging\".",
+      "Pino's Node build relies on streams workerd doesn't provide; the browser build is just a console adapter and loses Pino's perf story. Use logInfo/logWarn/logError from @/lib/log.",
   },
   {
     id: 'no-winston',
     pattern: /from\s+['"]winston(\/[\w-]+)?['"]/,
-    message:
-      'Winston is Node-only. Use logInfo/logWarn/logError from @/lib/log. preferences.md → "Logging".',
+    message: 'Winston is Node-only. Use logInfo/logWarn/logError from @/lib/log.',
   },
   {
     id: 'no-bunyan',
     pattern: /from\s+['"]bunyan(\/[\w-]+)?['"]/,
-    message:
-      'Bunyan is Node-only. Use logInfo/logWarn/logError from @/lib/log. preferences.md → "Logging".',
+    message: 'Bunyan is Node-only. Use logInfo/logWarn/logError from @/lib/log.',
   },
   // Direct console.* in src/. The wrapper in @/lib/log enforces the
   // event-name + structured-fields convention and gives monitoring
@@ -443,7 +419,7 @@ const rules: Rule[] = [
     id: 'no-direct-console',
     pattern: /\bconsole\.(error|warn|info|log|debug)\(/,
     message:
-      'Use logInfo/logWarn/logError from @/lib/log instead of console.* directly. Workers Logs picks up the wrapper output identically, and monitoring recipes overlay the wrapper to add Sentry/App Insights/OTel without touching call sites. agent-rules/observability.md.',
+      'Use logInfo/logWarn/logError from @/lib/log instead of console.* directly. Workers Logs picks up the wrapper output identically, and monitoring recipes overlay the wrapper to add Sentry/App Insights/OTel without touching call sites.',
     allowedPaths: ['src/lib/log.ts', 'scripts/'],
   },
   // Direct error-monitoring SDK imports outside the abstraction.
@@ -451,21 +427,21 @@ const rules: Rule[] = [
     id: 'no-sentry-direct',
     pattern: /from\s+['"]@sentry\//,
     message:
-      'Don\'t import @sentry/* directly outside src/lib/monitoring/. The monitoring/sentry recipe overlays @/lib/log; app code calls logError. preferences.md → "Error monitoring".',
+      "Don't import @sentry/* directly outside src/lib/monitoring/. The monitoring/sentry recipe overlays @/lib/log; app code calls logError.",
     allowedPaths: ['src/lib/monitoring/'],
   },
   {
     id: 'no-app-insights-direct',
     pattern: /from\s+['"]applicationinsights['"]/,
     message:
-      'Don\'t import applicationinsights directly outside src/lib/monitoring/. The monitoring/azure-app-insights recipe overlays @/lib/log. preferences.md → "Error monitoring".',
+      "Don't import applicationinsights directly outside src/lib/monitoring/. The monitoring/azure-app-insights recipe overlays @/lib/log.",
     allowedPaths: ['src/lib/monitoring/'],
   },
   {
     id: 'no-posthog-direct',
     pattern: /from\s+['"]posthog-(js|node)['"]/,
     message:
-      'Don\'t import posthog-* directly outside src/lib/analytics/. The monitoring/posthog recipe wraps it. preferences.md → "Analytics + feature flags".',
+      "Don't import posthog-* directly outside src/lib/analytics/. The monitoring/posthog recipe wraps it.",
     allowedPaths: ['src/lib/analytics/'],
   },
 ]

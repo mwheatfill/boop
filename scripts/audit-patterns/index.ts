@@ -60,7 +60,7 @@ function renderMarkdown(results: AuditResult[], summary: Summary): string {
   lines.push(
     '---',
     '',
-    'Audit-patterns is the mechanical enforcement of `agent-rules/preferences.md`. See ADR-0011 for the rationale.',
+    'Audit-patterns is the mechanical enforcement of the canonical-choice list defined in `scripts/audit-patterns/preferences.ts`. See ADR-009 for the rationale.',
   )
   return lines.join('\n')
 }

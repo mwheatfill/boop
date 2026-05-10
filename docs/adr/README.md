@@ -28,7 +28,7 @@ Ordered foundation → data → auth → AI → product surface → meta.
 | [007](007-foundry-via-ai-gateway.md) | Accepted | Microsoft Foundry via Cloudflare AI Gateway |
 | [008](008-ui-visual-layer.md) | Accepted | UI / visual layer (shadcn-base-vega centered; charts, toasts, icons, motion, theme, dashboard) |
 | [009](009-opinionated-stack-and-pattern-enforcement.md) | Accepted | Opinionated stack with mechanical pattern enforcement |
-| [010](010-neutral-agent-governance.md) | Accepted | Neutral agent governance (AGENTS.md + agent-rules/) |
+| [010](010-neutral-agent-governance.md) | Accepted | Neutral agent governance (one canonical AGENTS.md + per-harness adapters) |
 | [011](011-skill-currency-protocol.md) | Accepted | Skill currency protocol (Intent + MCP servers) |
 | [012](012-discoverability-in-template.md) | Accepted | Discoverability surface in the template |
 | [013](013-forms-and-validation.md) | Accepted | Forms + validation (TanStack Form, React 19 actions, Zod) |

@@ -91,7 +91,7 @@ pnpm dev                                # ditto
 CLOUDFLARE_ENV=production pnpm build    # env.production block wins
 ```
 
-Why this works (and an earlier iteration of this template got it wrong): the Cloudflare Vite plugin **does** flatten the wrangler config into `dist/server/wrangler.json`, but that's intentional, not a bug. It uses `CLOUDFLARE_ENV` to choose which env to flatten. The first cut of this template misread the flattening as "env: blocks aren't supported" and shipped two separate wrangler files; the canonical pattern is one file plus the env var.
+The Cloudflare Vite plugin flattens the wrangler config into `dist/server/wrangler.json` based on `CLOUDFLARE_ENV`. This is the canonical multi-env pattern from Cloudflare; `wrangler deploy` reads the dist version directly with no flag needed.
 
 Some non-obvious bits:
 
@@ -112,18 +112,17 @@ curl -sSL https://raw.githubusercontent.com/mwheatfill/app-platform-recipes/main
 
 This template is built to be evolved by AI coding agents (Claude Code, Codex, Cursor, Aider):
 
-- **[`AGENTS.md`](AGENTS.md)** is the canonical entry point. Every agent harness should read this first.
-- **[`agent-rules/`](agent-rules/)** holds harness-agnostic markdown rules: dependency policy, spec fidelity, lookup order, conventions.
-- **[`.claude/settings.json`](.claude/settings.json)** carries Claude Code-specific permissions and pre-configured MCP servers (Cloudflare Docs, Microsoft Learn, Context7) so agents reference current documentation, not training-data snapshots.
+- **[`AGENTS.md`](AGENTS.md)** is the canonical entry point. Codex, Cursor, and Aider read it natively; Claude Code loads it via the one-line `@AGENTS.md` import in `CLAUDE.md`.
+- **[`.claude/hooks/`](.claude/hooks/)** holds deterministic enforcement (the research-first protocol re-anchored every turn).
+- **[`.claude/settings.json`](.claude/settings.json)** carries Claude Code permission gates and hook wiring.
+- **[`.mcp.json`](.mcp.json)** preconfigures MCP servers (Cloudflare Docs, Microsoft Learn, Context7) portably across harnesses.
 - **[TanStack Intent](https://tanstack.com/intent)** is wired so in-tree library guidance stays version-locked to installed packages.
-
-If you're using a different agent harness, the rules in `agent-rules/` apply unchanged; only the gate layer differs. See [`agent-rules/codex-config.md`](agent-rules/codex-config.md) for the Codex equivalent.
 
 ## Documentation
 
-- [`AGENTS.md`](AGENTS.md): agent onboarding, session protocol, stack snapshot
-- [`agent-rules/`](agent-rules/): governance rules (cross-harness)
+- [`AGENTS.md`](AGENTS.md): canonical agent instructions (stack, locked decisions, doc resolution, file naming, things to avoid)
 - [`docs/adr/`](docs/adr/): Architecture Decision Records (why each major choice)
+- [`docs/roadmap.md`](docs/roadmap.md): open work and milestones
 
 ## License
 

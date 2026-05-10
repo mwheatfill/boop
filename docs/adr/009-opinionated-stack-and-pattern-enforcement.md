@@ -8,7 +8,7 @@ Two failure modes drove this. First, agents pattern-match on the codebase: if th
 
 ## Decision
 
-For every architectural concern (routing, query/cache, tables, forms, UI primitives, validation, auth, AI, email, tests, etc.), the template declares a single canonical choice in [`agent-rules/preferences.md`](../../agent-rules/preferences.md). A `pnpm audit:patterns` CI gate enforces the list mechanically: forbidden imports fail the gate; hand-rolled primitives that have canonical equivalents fail the gate; pattern drift from the canonical sources (the shadcn registry, version-locked TanStack Intent skills) fails the gate. The audit reads canonical sources at run time (not snapshots in this repo), so when shadcn changes the canonical Button next year, the next audit run flags us as drifted automatically. Deviations require an ADR; the audit ships an allowlist for documented exceptions.
+For every architectural concern (routing, query/cache, tables, forms, UI primitives, validation, auth, AI, email, tests, etc.), the template declares a single canonical choice in [`scripts/audit-patterns/preferences.ts`](../../scripts/audit-patterns/preferences.ts) (TypeScript; the source of truth that the audit gate reads at run time). A `pnpm audit:patterns` CI gate enforces the list mechanically: forbidden imports fail the gate; hand-rolled primitives that have canonical equivalents fail the gate; pattern drift from the canonical sources (the shadcn registry, version-locked TanStack Intent skills) fails the gate. The audit reads canonical sources at run time (not snapshots in this repo), so when shadcn changes the canonical Button next year, the next audit run flags us as drifted automatically. Deviations require an ADR; the audit ships an allowlist for documented exceptions.
 
 ## Consequences
 
@@ -20,7 +20,7 @@ For every architectural concern (routing, query/cache, tables, forms, UI primiti
 
 **Negative:**
 
-- The preferences list is a living document. Adding a new concern (e.g., "for charts use Recharts") means adding a row, adding a check to [`scripts/audit-patterns/preferences.ts`](../../scripts/audit-patterns/preferences.ts), and shipping both in the same PR.
+- The preferences list is a living TypeScript source. Adding a new concern (e.g., "for charts use Recharts") means adding a rule to [`scripts/audit-patterns/preferences.ts`](../../scripts/audit-patterns/preferences.ts) and a documenting ADR, shipping both in the same PR.
 - shadcn upstream risk: if shadcn changes a primitive's canonical shape, the audit flags drift and we react. Acceptable given the early signal it provides.
 
 **Neutral / trade-off:**

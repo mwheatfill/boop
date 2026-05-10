@@ -92,7 +92,7 @@ const checks: Check[] = [
             severity: 'error',
             line: i + 1,
             message:
-              'No-op `.inputValidator((d) => d)` is a pass-through. Real validation must call `schema.parse(data)`. See agent-rules/api-contract.md.',
+              'No-op `.inputValidator((d) => d)` is a pass-through. Real validation must call `schema.parse(data)`. See ADR-013.',
           }
         }
       }

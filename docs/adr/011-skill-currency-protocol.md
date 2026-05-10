@@ -8,10 +8,10 @@ Library APIs change; agent training data goes stale. Without a stated protocol, 
 
 ## Decision
 
-A layered protocol agents follow when resolving documentation questions, codified in [`agent-rules/lookup-order.md`](../../agent-rules/lookup-order.md):
+A layered protocol agents follow when resolving documentation questions, codified in [`AGENTS.md`](../../AGENTS.md) → "Doc resolution" section and re-anchored each turn via the `UserPromptSubmit` hook:
 
 ```
-1. Project rules         → agent-rules/, AGENTS.md, docs/adr/
+1. Project rules         → AGENTS.md, docs/adr/
 2. TanStack Intent       → npx @tanstack/intent load <pkg>#<skill>
 3. MCP servers           → Cloudflare Docs, Microsoft Learn, Context7
 4. llms.txt              → curl https://<vendor>/llms.txt
@@ -20,7 +20,7 @@ A layered protocol agents follow when resolving documentation questions, codifie
 7. Training data         → last resort; verify against (2)–(5)
 ```
 
-`@tanstack/intent` is installed as a devDep. MCP servers are pre-configured in `.mcp.json` per [ADR-010](010-neutral-agent-governance.md). Cadence rules for Intent live in [`agent-rules/intent.md`](../../agent-rules/intent.md).
+`@tanstack/intent` is installed as a devDep. MCP servers are pre-configured in `.mcp.json` per [ADR-010](010-neutral-agent-governance.md). Run `npx @tanstack/intent install` after dependency changes to refresh skill bindings.
 
 ## Consequences
 

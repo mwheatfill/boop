@@ -5,10 +5,9 @@
 // overlay this module to add `Sentry.captureException`, OTel spans, etc.,
 // without touching call sites.
 //
-// Convention (see agent-rules/observability.md): the first arg is a
-// dotted event name (`domain.action.outcome`); the second is structured
-// fields. Errors are passed as a separate arg so normalization happens
-// in one place.
+// Convention: the first arg is a dotted event name (`domain.action.outcome`);
+// the second is structured fields. Errors are passed as a separate arg so
+// normalization happens in one place.
 
 type LogFields = Record<string, unknown>
 

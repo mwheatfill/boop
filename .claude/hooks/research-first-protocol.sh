@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # UserPromptSubmit hook. Injects the research-first protocol into agent context
 # before every user message. Plain stdout = additionalContext for the upcoming turn.
-# Wired in .claude/settings.json. See agent-rules/lookup-order.md for the
+# Wired in .claude/settings.json. See AGENTS.md → "Doc resolution" for the
 # resolution order this protocol points at.
 #
 # To disable temporarily: rename or chmod -x this file.
@@ -16,7 +16,7 @@ Before producing code or edits touching any external runtime, framework, library
    "Cloudflare Workers + wrangler.jsonc + GitHub Actions deploy"
    not "the backend."
 
-2. CITE the current-docs source you'll consult per agent-rules/lookup-order.md.
+2. CITE the current-docs source you'll consult per AGENTS.md "Doc resolution".
    Name it specifically:
    "Intent skill @tanstack/react-router#routing"
    "the cloudflare-docs MCP"

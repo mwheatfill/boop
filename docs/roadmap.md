@@ -11,7 +11,7 @@ The template is feature-complete for "what every Cloudflare Workers + TanStack S
 
 ## Current state (May 2026)
 
-- **Stack pinned and audit-enforced.** [`agent-rules/preferences.md`](../agent-rules/preferences.md) is the canonical-choice list (~22 rows covering routing, query, forms, validation, UI primitives, headless, charts, animation, dashboard, toasts, dates, fonts, currency, markdown, logging, error monitoring, analytics, client state, component dev env, postgres swap, chat UI, email transport, rich-text, billing, background jobs, real-time, search, image optimization, env var policy). [`scripts/audit-patterns/preferences.ts`](../scripts/audit-patterns/preferences.ts) blocks every "don't reach for" entry mechanically.
+- **Stack pinned and audit-enforced.** [`scripts/audit-patterns/preferences.ts`](../scripts/audit-patterns/preferences.ts) is the canonical-choice list (~22 rows covering routing, query, forms, validation, UI primitives, headless, charts, animation, dashboard, toasts, dates, fonts, currency, markdown, logging, error monitoring, analytics, client state, component dev env, postgres swap, chat UI, email transport, rich-text, billing, background jobs, real-time, search, image optimization, env var policy) and blocks every "don't reach for" entry mechanically via `pnpm audit:patterns`.
 - **Three audits run on every PR.** Shadcn structural-diff against the live registry, TanStack pattern assertions against version-locked Intent skills, and the preferences grep. See [ADR-009](adr/009-opinionated-stack-and-pattern-enforcement.md) for the rationale.
 - **Wired in `src/lib/`:** `auth/get-current-user`, `db/client`, `db/schema` (empty), `query-client`, `log` (structured `console.*` wrapper), `format` (Intl-based `formatMoney`/`formatNumber`/`formatPercent`), `utils` (`cn`).
 - **Wired in `src/components/`:** Button + Card from canonical shadcn `base-vega` (Base UI primitives), Sonner Toaster mounted in `__root.tsx`, ThemeProvider + ThemeToggle, DefaultCatchBoundary + NotFound.
@@ -35,7 +35,7 @@ Suggested priority (highest-leverage first):
 2. **`charts/setup`** — installs shadcn Chart + adds an example chart route showing area + bar + tooltip wired into the QueryClient pattern.
 3. **`motion/setup`** — installs `motion`, adds a minimal animated example so the import pattern is visible.
 4. **`dashboard/scaffold`** — runs `npx shadcn@latest add dashboard-01` and adapts it to use `MyRouterContext` + the template's auth abstraction.
-5. **`data-layer/switch-to-neon-postgres`** — the two-tier driver guidance (default `@neondatabase/serverless`, scale-up to Hyperdrive + postgres-js); see [`agent-rules/preferences.md`](../agent-rules/preferences.md) → "Postgres swap" for the spec.
+5. **`data-layer/switch-to-neon-postgres`** — the two-tier driver guidance (default `@neondatabase/serverless`, scale-up to Hyperdrive + postgres-js).
 6. **`billing/stripe`** — Stripe SDK + webhook receiver + customer portal redirect + subscription state cached in D1.
 7. **`editor/tiptap`** — TipTap (`@tiptap/core` + `@tiptap/pm`) wired into a Zod-validated form field.
 8. **`background/queue-consumer`, `cron-trigger`, `workflow`** — Cloudflare-native primitives, one recipe per primitive.
