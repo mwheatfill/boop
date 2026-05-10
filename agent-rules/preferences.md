@@ -6,6 +6,8 @@ The `pnpm audit:patterns` CI job enforces this list mechanically: forbidden impo
 
 ## Canonical choices
 
+> Rows that say "via `<domain>/<name>` recipe" name the canonical *choice* for this template. When the description says "(planned)" the recipe doesn't exist in `app-platform-recipes` yet — treat as design intent, not as something you can install. The pinned choice is still load-bearing: don't reach for an alternative without an ADR.
+
 | Concern | Choice | Don't reach for |
 |---|---|---|
 | Runtime | Cloudflare Workers | Node servers, Deno, Bun (without ADR) |
@@ -54,7 +56,7 @@ The `pnpm audit:patterns` CI job enforces this list mechanically: forbidden impo
 | Lint + format | Biome | ESLint + Prettier |
 | Package manager | pnpm | npm, yarn, bun |
 | Node | 24.x | older majors |
-| Deploy | Wrangler via GitHub Actions, `CLOUDFLARE_ENV` selects env | Cloudflare Workers Builds (without ADR), manual `wrangler deploy` |
+| Deploy | `cloudflare/wrangler-action@v3` in GitHub Actions; `CLOUDFLARE_ENV=production pnpm build` for prod (no env var = dev). Build and deploy in the same job so `.wrangler/deploy/config.json` (the Cloudflare Vite plugin's redirect to `dist/server/wrangler.json`) is local. **Don't** pass `--config dist/server/wrangler.json` or `--env=""` — those papered over a missing redirect file in an earlier cross-job artifact pattern. **Don't** pass `dist/` as a build artifact between jobs unless you also include `.wrangler/deploy/config.json`; rebuilding (~3s) is simpler. See [Cloudflare's GitHub Actions guide](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/) and the [TanStack Start framework guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/tanstack/). | Cloudflare Workers Builds (without ADR), manual `wrangler deploy`, raw `pnpm exec wrangler deploy` in CI (use `wrangler-action@v3`) |
 
 ## Canonical patterns inside the choices
 

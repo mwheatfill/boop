@@ -60,16 +60,6 @@ pnpm openapi:check   # hard gate; runs scripts/check-openapi-contract.ts
 
 A scheduled GitHub Action runs `pnpm intent:stale` and `pnpm outdated`, opens a PR if either flags. The Renovate config covers most of this; the Intent stale check adds skill-specific awareness.
 
-## Conflict resolution
-
-When sources conflict (training data says X, Intent skill says Y):
-
-1. **Intent skill wins** for the package the skill ships with. The skill version is locked to the installed package version; training data is not.
-2. **Configured MCP servers win** over training data for vendors with MCPs (Cloudflare, Microsoft Learn, Context7).
-3. **Training data is last resort.** Verify against (1) and (2) before relying on it.
-
-This is the same protocol as `agent-rules/lookup-order.md`: Intent is step 2 in the lookup order.
-
 ## What Intent doesn't cover
 
 Intent only helps with libraries that ship `SKILL.md` files. Right now, that's mostly TanStack:

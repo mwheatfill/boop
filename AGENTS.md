@@ -53,7 +53,6 @@ The full rule set lives in `agent-rules/`. Each rule is a short, harness-agnosti
 | TanStack Intent cadence | `agent-rules/intent.md` | After dep changes, per-task on TanStack-area work |
 | Naming, formatting, comments, voice | `agent-rules/conventions.md` | Always |
 | Logging + error/analytics layering | `agent-rules/observability.md` | Before reaching for `console.*` or any monitoring SDK |
-| Codex-specific harness setup | `agent-rules/codex-config.md` | Codex sessions only |
 
 ## Session protocol
 
@@ -74,7 +73,7 @@ The full rule set lives in `agent-rules/`. Each rule is a short, harness-agnosti
 **At session end:**
 
 - Surface what changed, what's tested, what's pending.
-- Don't mark tasks complete unless verified.
+- Don't mark tasks complete unless verified. For CI/deploy work, verified means the CI itself ran the path on a real PR or tag — not "built locally and looks right."
 
 ## Locked decisions (don't override silently)
 
@@ -98,7 +97,6 @@ These have ADRs in `docs/adr/`. If you're tempted to deviate, read the ADR first
 - **Don't write code that the OpenAPI contract doesn't describe.** Server functions take Zod-validated inputs that flow into `public/openapi.json`. The CI guard (`scripts/check-openapi-contract.ts`, run via `pnpm openapi:check`) blocks deploys when this drifts.
 - **Don't bypass the auth abstraction.** All identity reads go through `getCurrentUser(request)`. Don't import Better Auth directly from route guards or server functions.
 - **Don't import from `radix-ui` or `@radix-ui/*`.** The template uses Base UI primitives via `@base-ui/react` (style `base-vega`). For composition (the equivalent of Radix's `asChild` / `Slot`), use Base UI's `render` prop: `<Button render={<Link to="/x" />}>Label</Button>`. The audit (`pnpm audit:patterns`) blocks Radix imports.
-- **Don't trust training data over current docs.** When library guidance from training conflicts with what `intent load`, an MCP server, or `llms.txt` says, the live source wins. Verify before writing.
 - **Don't tack on rules; revise them.** When an existing rule almost-but-not-quite covered a case you hit, revise that rule. Don't add a near-duplicate elsewhere or append a caveat. The bar to add a *new* rule is "no existing rule, slightly tightened, would have prevented this." Apply the same principle to ADRs and to the spec.
 - **Don't add comments that explain "what."** Code says what; comments say why, only when non-obvious.
 - **Don't use em dashes in prose.** Repo voice convention. Use commas, parens, or split sentences.
@@ -117,6 +115,6 @@ Full conventions in `agent-rules/conventions.md`.
 
 - `CLAUDE.md` is a thin shim pointing at this file. Older Claude Code versions look for `CLAUDE.md`; newer versions read `AGENTS.md` directly.
 - `.cursorrules` is a thin shim pointing at this file with high-priority rules inlined for Cursor's fallback parsing.
-- `.claude/settings.json` carries Claude Code-specific permission gates and MCP server preconfig. The Codex equivalent is documented in `agent-rules/codex-config.md`.
+- `.claude/settings.json` carries Claude Code-specific permission gates. MCP servers are configured in repo-root `.mcp.json` (portable across harnesses that read it). Codex users replicate the same three servers under `[mcp_servers.<name>]` in `~/.codex/config.toml`.
 
 If you're an agent that reads neither `AGENTS.md` nor `CLAUDE.md` natively: read this file before doing anything else.

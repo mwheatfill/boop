@@ -13,15 +13,7 @@ Adding a dependency is two questions, in order. Skipping the first is how you in
 
 **1. Is this the current recommended approach?**
 
-For packages from major vendors (Cloudflare, Microsoft, Vercel, AWS, Anthropic, etc.), check the vendor's current setup docs *before* installing. The package may still be published but superseded by a different mechanism. For example, `wrangler types` superseded `@cloudflare/workers-types` for Cloudflare Workers TypeScript types.
-
-Use the lookup order in [`lookup-order.md`](lookup-order.md). Configured MCP servers (step 3) are the fastest path to current vendor guidance:
-
-- Cloudflare ecosystem → Cloudflare Docs MCP
-- Microsoft ecosystem (Graph, Entra, Foundry, Teams) → Microsoft Learn MCP
-- Anything else → Context7 MCP
-
-Sample repos and starter templates lag. Use them for *structure* (file layout, plugin order, config shape), not for *which packages are current*. Don't copy `package.json` from an example and assume it is.
+The research-first protocol covers this generally: resolve via [`lookup-order.md`](lookup-order.md) before installing. The dep-specific trap: a package may still be published on npm but superseded by a different mechanism (e.g., `wrangler types` superseded `@cloudflare/workers-types`). Sample repos and starter templates lag; use them for *structure* (file layout, plugin order, config shape), not for *which packages are current*. Don't copy `package.json` from an example and assume it is.
 
 **2. What's the latest stable version?**
 

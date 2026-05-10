@@ -33,13 +33,13 @@ pnpm intent:list                            # see what's available for installed
 npx @tanstack/intent load @tanstack/react-router#routing
 ```
 
-**Cloudflare Workers / D1 / Hyperdrive / R2 / Queues / AI Gateway question:**
+**Cloudflare Workers / D1 / Hyperdrive / R2 / Queues / AI Gateway / Workers CI question:**
 
-Use the `cloudflare-docs` MCP server preconfigured in `.claude/settings.json`. Search by topic; the MCP returns current docs.
+Use the `cloudflare-docs` MCP server preconfigured in `.mcp.json`. Search by topic; the MCP returns current docs. This includes CI/deploy questions — `wrangler-action@v3`, GitHub Actions patterns, framework deploy guides.
 
 **Microsoft Graph / Entra / Foundry question:**
 
-Use the `microsoft-learn` MCP server preconfigured in `.claude/settings.json`. The Microsoft Learn corpus covers Graph API, Entra ID, Microsoft Foundry, Teams.
+Use the `microsoft-learn` MCP server preconfigured in `.mcp.json`. The Microsoft Learn corpus covers Graph API, Entra ID, Microsoft Foundry, Teams.
 
 **Generic library question** (Better Auth, Drizzle, AI SDK, React Email, etc.):
 
@@ -59,3 +59,4 @@ If a layer fails (MCP server down, Intent skill missing, etc.), fall through to 
 - Don't quote training-data API shapes without verifying against (2)–(5). Library APIs change.
 - Don't fall back to web search for vendors with MCP servers configured. The MCP is faster and more authoritative.
 - Don't use the OpenAI deprecated `gpt-3.5-turbo` (or similar training-frozen examples) when current models are documented in the live docs.
+- Don't ship workaround flags (e.g. `wrangler deploy --config X --env=""`, hand-rolled artifact passing) when a framework guide documents the canonical pattern. Signal: if you're writing multi-line comments to defend why a step needs unusual flags, you missed a higher layer in this list — re-resolve from the top before committing.
