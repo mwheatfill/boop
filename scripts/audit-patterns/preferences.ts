@@ -160,6 +160,22 @@ const rules: Rule[] = [
     pattern: /from\s+['"]@nivo\//,
     message: 'Use shadcn Chart via the `charts/setup` recipe. preferences.md → "Charts".',
   },
+  // Currency lib alternatives. Canonical is Intl.NumberFormat via
+  // @/lib/format. dinero.js is the documented ADR escape hatch (not
+  // banned). currency.js / accounting.js add bundle weight for what
+  // Intl handles natively.
+  {
+    id: 'no-currency-js',
+    pattern: /from\s+['"]currency\.js['"]/,
+    message:
+      'Use Intl.NumberFormat via formatMoney from @/lib/format. Store money as integer minor units. preferences.md → "Currency / numbers".',
+  },
+  {
+    id: 'no-accounting-js',
+    pattern: /from\s+['"]accounting(\.js)?['"]/,
+    message:
+      'Use Intl.NumberFormat via formatMoney from @/lib/format. preferences.md → "Currency / numbers".',
+  },
   // Date library alternatives. Canonical is date-fns v4 + @date-fns/tz.
   // Native Temporal isn't on workerd yet (see workerd #5630); polyfills
   // are too heavy for the template default.
