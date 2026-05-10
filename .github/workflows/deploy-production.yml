@@ -42,6 +42,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Quality gates
+        # Intentional re-verification on the tagged SHA. main.yml ran the
+        # same gates on whatever main pointed at when the commit landed,
+        # but tags can be cut from older commits or via workflow_dispatch
+        # on arbitrary refs. Belt-and-suspenders for production.
         run: |
           pnpm check
           pnpm build

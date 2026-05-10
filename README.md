@@ -90,7 +90,7 @@ pnpm build                                                   # uses wrangler.jso
 WRANGLER_CONFIG=wrangler.production.jsonc pnpm build         # uses wrangler.production.jsonc
 ```
 
-The deploy step then runs `pnpm exec wrangler deploy` with no `--config` flag — wrangler reads `dist/server/wrangler.json` which the plugin wrote with the right values. Migrations apply commands need `--config` explicitly (they read `wrangler.jsonc` directly, not the dist version).
+The deploy step then runs `pnpm exec wrangler deploy` with no `--config` flag — wrangler reads `dist/server/wrangler.json` which the plugin wrote with the right values. Migrations apply commands need `--config wrangler.production.jsonc` for production because `wrangler d1` reads a wrangler config file directly (not the dist version) and defaults to `wrangler.jsonc`.
 
 ## Recipes
 

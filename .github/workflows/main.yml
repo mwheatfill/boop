@@ -73,6 +73,9 @@ jobs:
         run: pnpm build
 
       - name: Apply D1 migrations to dev
+        # No --config flag: wrangler d1 defaults to wrangler.jsonc, which
+        # holds the dev D1 binding. Production has its own --config flag
+        # in deploy-production.yml pointing at wrangler.production.jsonc.
         run: |
           if compgen -G "drizzle/*.sql" > /dev/null; then
             pnpm exec wrangler d1 migrations apply DB --remote

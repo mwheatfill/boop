@@ -35,13 +35,14 @@ pnpm openapi:check || {
   echo "  ⚠ openapi.json drifted. Run 'pnpm openapi:generate' and commit the result."
 }
 
-# 4. Optional: create Cloudflare D1 databases
+# 4. Optional: create your own Cloudflare D1 databases
 echo ""
-echo "▶ The template's wrangler.jsonc has placeholder D1 database IDs."
-echo "  Real IDs are required before deploy. Want to create them now?"
+echo "▶ wrangler.jsonc and wrangler.production.jsonc currently point at the"
+echo "  D1 databases on the template author's Cloudflare account. To use your"
+echo "  own (typical for a fresh fork), create them now."
 echo "  (You'll need 'wrangler login' completed first.)"
 echo ""
-read -r -p "  Create D1 databases? [y/N] " create_d1
+read -r -p "  Create your own D1 databases? [y/N] " create_d1
 
 case "${create_d1:-N}" in
   [Yy]*)
@@ -50,10 +51,10 @@ case "${create_d1:-N}" in
     if "${WRANGLER[@]}" d1 create template-cf-fullstack-dev; then
       echo "  ✓ Created (or existing). Copy the database_id printed above."
     else
-      status=$?
-      echo "  ✗ Failed (exit $status). Common causes: not logged in, name taken, quota."
+      cmd_status=$?
+      echo "  ✗ Failed (exit $cmd_status). Common causes: not logged in, name taken, quota."
       echo "    Run 'pnpm exec wrangler login' and retry."
-      exit "$status"
+      exit "$cmd_status"
     fi
 
     echo ""
@@ -61,22 +62,24 @@ case "${create_d1:-N}" in
     if "${WRANGLER[@]}" d1 create template-cf-fullstack-prod; then
       echo "  ✓ Created (or existing)."
     else
-      status=$?
-      echo "  ✗ Failed (exit $status)."
-      exit "$status"
+      cmd_status=$?
+      echo "  ✗ Failed (exit $cmd_status)."
+      exit "$cmd_status"
     fi
 
     echo ""
-    echo "  ⚠ Now patch wrangler.jsonc:"
-    echo "    Replace REPLACE_WITH_DEV_D1_ID with the dev database_id."
-    echo "    Replace REPLACE_WITH_PROD_D1_ID with the production database_id."
+    echo "  ⚠ Patch the database_id field in each config with the IDs printed above:"
+    echo "    - wrangler.jsonc                (dev DB) -> d1_databases[0].database_id"
+    echo "    - wrangler.production.jsonc     (prod DB) -> d1_databases[0].database_id"
     ;;
   *)
     echo ""
-    echo "  Skipped. To create D1 databases later:"
+    echo "  Skipped. The template's existing D1 IDs stay in place. To create"
+    echo "  your own later:"
     echo "    pnpm exec wrangler d1 create template-cf-fullstack-dev"
     echo "    pnpm exec wrangler d1 create template-cf-fullstack-prod"
-    echo "    Then patch wrangler.jsonc with the printed IDs."
+    echo "  Then update database_id in wrangler.jsonc (dev) and"
+    echo "  wrangler.production.jsonc (prod)."
     ;;
 esac
 
