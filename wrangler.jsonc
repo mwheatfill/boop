@@ -1,9 +1,5 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // Single-file multi-env: top level is dev defaults; CLOUDFLARE_ENV=production
-  // selects the env.production block at build time. README → "Per-environment
-  // wrangler config" covers gotchas (non-inheritable bindings, explicit
-  // env.production.name to avoid the awkward `-dev-production` auto-suffix).
   "name": "template-cf-fullstack-dev",
   "compatibility_date": "2026-05-09",
   "compatibility_flags": ["nodejs_compat"],

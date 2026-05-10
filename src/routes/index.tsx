@@ -3,9 +3,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-// Reference pattern: server fn → queryOptions → loader.ensureQueryData
-// → useSuspenseQuery. Documented in agent-rules/architecture.md.
-
 const getHealth = createServerFn({ method: 'GET' }).handler(async () => {
   const { env } = await import('cloudflare:workers')
   return {
