@@ -8,9 +8,9 @@ This file documents the Codex equivalents. **Verify against current Codex docs b
 
 Codex runs commands inside a sandbox. The `.claude/settings.json` allow / deny lists in this repo correspond to Codex sandbox modes:
 
-- **`--workspace-write`** (Codex's default for trusted projects) — allows file edits and most reads. Equivalent to the read-only and idempotent commands in our Claude Code allow-list.
-- **`--read-only`** — for inspection-only sessions. No equivalent needed in this template's day-to-day work.
-- **Approval prompts** — Codex prompts the user before executing potentially destructive commands. The deny-list in `.claude/settings.json` (e.g., `pnpm add`, `pnpm remove`, `git push --force`, `wrangler deploy`) maps to commands Codex should require approval for.
+- **`--workspace-write`** (Codex's default for trusted projects): allows file edits and most reads. Equivalent to the read-only and idempotent commands in our Claude Code allow-list.
+- **`--read-only`**: for inspection-only sessions. No equivalent needed in this template's day-to-day work.
+- **Approval prompts**: Codex prompts the user before executing potentially destructive commands. The deny-list in `.claude/settings.json` (e.g., `pnpm add`, `pnpm remove`, `git push --force`, `wrangler deploy`) maps to commands Codex should require approval for.
 
 Recommended Codex invocation for this repo:
 

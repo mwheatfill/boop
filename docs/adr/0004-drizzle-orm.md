@@ -14,7 +14,7 @@ Accepted (2026-05-09)
 
 ## What
 
-Drizzle is the ORM. Schemas are TypeScript objects in `src/lib/db/schema.ts`. `drizzle-kit` generates SQL migrations.
+Drizzle is the ORM. Schemas are TypeScript objects in `src/lib/db/schema.ts` (empty stub by default; recipes such as `auth/better-auth` extend it). `drizzle-kit generate` produces SQL migration files in `drizzle/`.
 
 ## When this default is right
 
@@ -25,12 +25,12 @@ Drizzle is the ORM. Schemas are TypeScript objects in `src/lib/db/schema.ts`. `d
 ## When to switch
 
 - Want Prisma's generated client ergonomics and don't mind the bundle weight
-- Prefer schema-first SQL files (with the ORM reading the SQL) — pick something else
+- Prefer schema-first SQL files (with the ORM reading the SQL); pick something else
 
 ## Notable
 
-- `drizzle-kit migrate` is the production-DB migration command; CI runs this before deploy.
-- `drizzle-kit push` is for local dev iteration only — never run against a production DB.
+- `drizzle-kit generate` writes new migration SQL into `drizzle/`. CI applies migrations to D1 with `pnpm exec wrangler d1 migrations apply DB --remote` (dev) or `... --config wrangler.production.jsonc --remote` (production). `drizzle-kit migrate` is not used here because D1 needs its migrations applied through wrangler, which records them in the D1 migrations table.
+- `drizzle-kit push` is for local dev iteration only; never run against a production DB.
 - Type inference flows from schema to queries automatically; complex relations occasionally need explicit typing for performance.
 
 ## References

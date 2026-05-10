@@ -30,16 +30,7 @@ jobs:
       # so dist/server/wrangler.json gets the production worker name + D1.
       WRANGLER_CONFIG: wrangler.production.jsonc
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
 
       - name: Quality gates
         # Intentional re-verification on the tagged SHA. main.yml ran the

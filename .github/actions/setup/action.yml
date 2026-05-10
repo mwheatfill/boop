@@ -1,0 +1,27 @@
+name: Setup
+description: |
+  Checkout, install pnpm and Node, restore pnpm cache, and install
+  dependencies. Used by every workflow in this repo so the install
+  pipeline stays defined in exactly one place.
+
+inputs:
+  node-version:
+    description: Node.js version to install. Matches the worker runtime.
+    required: false
+    default: '24'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+
+    - uses: pnpm/action-setup@v4
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile

@@ -43,8 +43,8 @@ Proposed | Accepted (YYYY-MM-DD) | Deprecated (YYYY-MM-DD) | Superseded by [ADR-
 
 <What else was on the table? Why not those?>
 
-- **<Alternative 1>** — <one-line reason it lost>
-- **<Alternative 2>** — <one-line reason it lost>
+- **<Alternative 1>**: <one-line reason it lost>
+- **<Alternative 2>**: <one-line reason it lost>
 
 ## References
 

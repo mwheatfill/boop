@@ -18,14 +18,14 @@ Two-layer governance:
 
 **Rules layer (harness-agnostic markdown):**
 
-- `AGENTS.md` at repo root — canonical entry for any agent harness
-- `agent-rules/` (no leading dot) — individual rule files: `lookup-order.md`, `dependencies.md`, `spec-fidelity.md`, `architecture.md`, `api-contract.md`, `intent.md`, `conventions.md`, `codex-config.md`
-- `CLAUDE.md` — thin shim pointing at `AGENTS.md`
-- `.cursorrules` — thin shim with the highest-priority rules inlined
+- `AGENTS.md` at repo root: canonical entry for any agent harness
+- `agent-rules/` (no leading dot): individual rule files (`lookup-order.md`, `dependencies.md`, `spec-fidelity.md`, `architecture.md`, `api-contract.md`, `intent.md`, `conventions.md`, `codex-config.md`)
+- `CLAUDE.md`: thin shim pointing at `AGENTS.md`
+- `.cursorrules`: thin shim with the highest-priority rules inlined
 
 **Gate layer (per-harness configuration):**
 
-- `.claude/settings.json` — Claude Code permission allow/deny lists and MCP server preconfig
+- `.claude/settings.json`: Claude Code permission allow/deny lists and MCP server preconfig
 - Codex equivalents documented in `agent-rules/codex-config.md`
 - Other harnesses: same content, different config file syntax; add as needed
 

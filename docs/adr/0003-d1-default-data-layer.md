@@ -27,7 +27,7 @@ Cloudflare D1 (SQLite at edge) is the default relational data layer. Drizzle is 
 - Need JSONB, advisory locks, `LISTEN`/`NOTIFY`, or other Postgres-specific features
 - Hit D1's per-database size or write-throughput limits
 - Need cross-region multi-master replication
-- **Recipe:** [`data-layer/switch-to-neon-postgres.md`](https://github.com/mwheatfill/app-platform-recipes/tree/main/recipes/data-layer) (Neon + Cloudflare Hyperdrive; mechanical 10–30 min swap because the ORM API is identical)
+- **Planned recipe:** `data-layer/switch-to-neon-postgres` (Neon + Cloudflare Hyperdrive; mechanical 10-30 min swap because the ORM API is identical). See [`app-platform-recipes` planned recipes](https://github.com/mwheatfill/app-platform-recipes#planned-recipes).
 
 ## Notable
 

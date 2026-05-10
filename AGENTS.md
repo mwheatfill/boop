@@ -14,21 +14,21 @@ You're an AI coding agent (Claude Code, Codex, Cursor, Aider, or similar) workin
 
 1. **This file (`AGENTS.md`)**
 2. **The canonical spec** if one exists. Look for `SPEC.md`, `PRD.md`, or `docs/spec/*` in the repo root or `docs/`. If multiple candidates exist, ask which is canonical.
-3. **`docs/adr/README.md`** — index of Architecture Decision Records. Skim titles to know what decisions exist. Read individual ADRs before contemplating overrides.
-4. **`agent-rules/lookup-order.md`** — the doc-resolution protocol for everything else.
-5. **Recent commits** — `git log --oneline -20` for context on what's in flight.
+3. **`docs/adr/README.md`**: index of Architecture Decision Records. Skim titles to know what decisions exist. Read individual ADRs before contemplating overrides.
+4. **`agent-rules/lookup-order.md`**: the doc-resolution protocol for everything else.
+5. **Recent commits**: run `git log --oneline -20` for context on what's in flight.
 
 ## Stack snapshot
 
 | Layer | Choice |
 |---|---|
-| Runtime | Cloudflare Workers (Wrangler 4, multi-env: `dev`, `production`) |
+| Runtime | Cloudflare Workers (Wrangler 4, per-env config files: `wrangler.jsonc` for dev, `wrangler.production.jsonc` for prod, selected via `WRANGLER_CONFIG`) |
 | Framework | TanStack Start (SSR + file-based routing + API routes) |
-| Database | Cloudflare D1 + Drizzle ORM (Neon Postgres available via recipe) |
-| Auth | Better Auth, providers via env (email+password, email-OTP, social OAuth, Entra OIDC). All identity reads via `getCurrentUser()` in `src/lib/auth/` |
-| AI | Vercel AI SDK + AI Elements; provider via env (`AI_PROVIDER`: `cloudflare-workers-ai` / `foundry` / `anthropic` / `openai`); recommended pattern AI Gateway-fronted |
-| Email | React Email 6 templates; transport via env (`EMAIL_TRANSPORT`: `resend` / `graph` / `cloudflare-email`) |
-| UI | shadcn/ui (base-ui primitives), Tailwind v4, `next-themes` for theme provider |
+| Database | Cloudflare D1 + Drizzle ORM (empty schema by default; Neon Postgres available via recipe) |
+| Auth | `getCurrentUser(request)` abstraction in `src/lib/auth/`; returns `null` until an auth recipe is installed (e.g. `auth/better-auth`, `auth/cloudflare-access`) |
+| AI | Recipe-only. Install `ai/chat-route` + a provider recipe (e.g. `microsoft-foundry/chat-completion`); template ships nothing AI-related |
+| Email | Recipe-only. Install `email/send-pipeline` + a transport recipe (e.g. `email/graph-shared-mailbox`); template ships nothing email-related |
+| UI | shadcn/ui new-york style on Radix primitives (`@radix-ui/react-slot`), Tailwind v4, `next-themes` for theme provider |
 | Validation | Zod + zod-openapi → generated `openapi.json` contract (CI-enforced) |
 | Testing | Vitest + Testing Library |
 | Tooling | Biome, Husky, lint-staged, Renovate, TanStack Intent |
@@ -90,7 +90,7 @@ These have ADRs in `docs/adr/`. If you're tempted to deviate, read the ADR first
 ## Things to avoid
 
 - **Don't add dependencies without proposing.** See `agent-rules/dependencies.md`. The harness will prompt the user on `pnpm add`; this is intentional.
-- **Don't write code that the OpenAPI contract doesn't describe.** Server functions take Zod-validated inputs that flow into `openapi.json`. The CI guard (`scripts/check-openapi-contract.mjs`) blocks deploys when this drifts.
+- **Don't write code that the OpenAPI contract doesn't describe.** Server functions take Zod-validated inputs that flow into `public/openapi.json`. The CI guard (`scripts/check-openapi-contract.ts`, run via `pnpm openapi:check`) blocks deploys when this drifts.
 - **Don't bypass the auth abstraction.** All identity reads go through `getCurrentUser(request)`. Don't import Better Auth directly from route guards or server functions.
 - **Don't trust training data over current docs.** When library guidance from training conflicts with what `intent load`, an MCP server, or `llms.txt` says, the live source wins. Verify before writing.
 - **Don't tack on rules; revise them.** When an existing rule almost-but-not-quite covered a case you hit, revise that rule. Don't add a near-duplicate elsewhere or append a caveat. The bar to add a *new* rule is "no existing rule, slightly tightened, would have prevented this." Apply the same principle to ADRs and to the spec.

@@ -39,10 +39,10 @@ import { ThemeProvider } from 'next-themes'
 
 Always write in full:
 
-- **"Microsoft 365"** — never "M365" or "MS365".
-- **"Microsoft Foundry"** — never "Azure AI Foundry" alone, never "Azure OpenAI" alone.
-- **"Cloudflare Workers"** — not "CF Workers" in user-facing text or docs (in code/config it's fine to use abbreviations).
-- **"TanStack Start"** — not "TSS" outside of throwaway commit messages.
+- **"Microsoft 365"**, never "M365" or "MS365".
+- **"Microsoft Foundry"**, never "Azure AI Foundry" alone, never "Azure OpenAI" alone.
+- **"Cloudflare Workers"**, not "CF Workers" in user-facing text or docs (in code/config it's fine to use abbreviations).
+- **"TanStack Start"**, not "TSS" outside of throwaway commit messages.
 
 In code identifiers, abbreviations are acceptable (`getCfAccessJwt`, `tssRoot`).
 

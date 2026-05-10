@@ -51,7 +51,7 @@ The skill content overrides training data. If your training-recall and the loade
 
 ```bash
 pnpm intent:stale    # soft gate; warns but doesn't block
-pnpm openapi:generate && node scripts/check-openapi-contract.mjs    # hard gate
+pnpm openapi:check   # hard gate; runs scripts/check-openapi-contract.ts
 ```
 
 `intent:stale` is advisory because skill drift doesn't break the app at runtime; it just means agent guidance might lag. `openapi-contract` is hard because spec drift breaks the API.
@@ -66,9 +66,9 @@ When sources conflict (training data says X, Intent skill says Y):
 
 1. **Intent skill wins** for the package the skill ships with. The skill version is locked to the installed package version; training data is not.
 2. **Configured MCP servers win** over training data for vendors with MCPs (Cloudflare, Microsoft Learn, Context7).
-3. **Training data is last resort.** Verify against (1)–(2) before relying on it.
+3. **Training data is last resort.** Verify against (1) and (2) before relying on it.
 
-This is the same protocol as `agent-rules/lookup-order.md` — Intent is step 2 in the lookup order.
+This is the same protocol as `agent-rules/lookup-order.md`: Intent is step 2 in the lookup order.
 
 ## What Intent doesn't cover
 
@@ -83,7 +83,7 @@ Intent only helps with libraries that ship `SKILL.md` files. Right now, that's m
 
 For everything else, fall back to:
 
-- **MCP servers** (Cloudflare Docs, Microsoft Learn, Context7) — preconfigured in `.claude/settings.json`
+- **MCP servers** (Cloudflare Docs, Microsoft Learn, Context7), preconfigured in `.claude/settings.json`
 - **`llms.txt`** at the vendor domain
 - **Vendor official docs** via WebFetch
 - See `agent-rules/lookup-order.md` for the full protocol.

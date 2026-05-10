@@ -21,13 +21,16 @@ type User = {
   id: string
   email: string
   name?: string
+  image?: string
   groups: string[]
 }
 
 export async function getCurrentUser(request: Request): Promise<User | null>
 ```
 
-`User` lives in `src/shared/types/auth.ts` so client code can import the type for UI personalization without pulling in server-only auth code.
+The Zod schema lives in `src/shared/schemas/auth.ts` (so it flows into `openapi.json`) and the matching TypeScript type is re-exported from `src/shared/types/auth.ts` so client code can import the type for UI personalization without pulling in server-only auth code.
+
+The default body of `getCurrentUser` returns `null`. An auth recipe (e.g. `auth/better-auth`, planned `auth/cloudflare-access`) replaces the body with a real implementation that conforms to the same `User` shape.
 
 ## When this default is right
 
@@ -46,5 +49,6 @@ Don't. The point of the abstraction is durability across provider swaps and mode
 
 ## References
 
-- [`agent-rules/architecture.md`](../../agent-rules/architecture.md) — auth section
-- [`auth/swap-better-auth-for-cloudflare-access`](https://github.com/mwheatfill/app-platform-recipes/tree/main/recipes/auth) — recipe consumer of this abstraction
+- [`agent-rules/architecture.md`](../../agent-rules/architecture.md): auth section
+- [`auth/better-auth`](https://github.com/mwheatfill/app-platform-recipes/tree/main/recipes/auth/better-auth): default recipe consumer of this abstraction
+- Planned `auth/cloudflare-access`: alternate provider behind the same abstraction

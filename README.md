@@ -29,11 +29,11 @@ See [`docs/adr/`](docs/adr/) for the rationale behind each choice.
 
 ## What's not in the box (install via recipes)
 
-- Auth providers — `auth/better-auth` (default), `auth/cloudflare-access`
-- AI features — `ai/chat-route`, `ai/chat-ui`, provider recipes (Foundry, Workers AI, Anthropic, OpenAI)
-- Email — `email/send-pipeline` plus per-transport recipes (Resend, Microsoft Graph, Cloudflare Email Service)
-- MCP server — `mcp/expose-app-as-mcp-server`
-- Postgres swap — `data-layer/switch-to-neon-postgres`
+- Auth providers: `auth/better-auth` (default), planned `auth/cloudflare-access`
+- AI features: `ai/chat-route`, `ai/chat-ui`, plus a provider recipe (Microsoft Foundry today; planned Workers AI, Anthropic, OpenAI)
+- Email: `email/send-pipeline` plus per-transport recipes (`email/graph-shared-mailbox` today; planned Resend, Cloudflare Email Service)
+- MCP server: `mcp/expose-app-as-mcp-server`
+- Postgres swap: planned `data-layer/switch-to-neon-postgres`
 - See the [recipes repo](https://github.com/mwheatfill/app-platform-recipes) for the full list
 
 ## Quick start
@@ -42,8 +42,11 @@ See [`docs/adr/`](docs/adr/) for the rationale behind each choice.
 # 1. Clone via "Use this template" on GitHub or
 #    git clone https://github.com/<owner>/<your-app>.git
 
-# 2. Install + bootstrap (creates D1, generates .dev.vars from example,
-#    installs TanStack Intent skill bindings)
+# 2. Install + bootstrap. The bootstrap script does an interactive app
+#    rename across 9 files (wrangler configs, package.json, README.md,
+#    AGENTS.md, etc.), generates .dev.vars from the example, installs
+#    TanStack Intent skill bindings, verifies openapi.json is in sync,
+#    and offers to create your own dev/prod D1 databases.
 pnpm install
 pnpm bootstrap
 
@@ -57,8 +60,10 @@ Then open `http://localhost:3000`.
 
 GitHub Actions handles deploys. Two workflows in [`.github/workflows/`](.github/workflows/):
 
-- **`main.yml`** — runs on every PR (check job only) and on push to `main` (check + deploy-dev). The `deploy-dev` job depends on `check` passing.
-- **`deploy-production.yml`** — git tag matching `v*.*.*` → deploys to the `production` Cloudflare environment after running its own quality gates.
+- **`main.yml`**: runs on every PR (check job only) and on push to `main` (check + deploy-dev). The `deploy-dev` job depends on `check` passing and downloads the `dist/` artifact the check job uploaded, so it deploys exactly what passed the gates instead of rebuilding.
+- **`deploy-production.yml`**: a git tag matching `v*.*.*` deploys to the `production` Cloudflare environment after running its own quality gates on the tagged SHA.
+
+Both workflows share their setup (checkout, pnpm, Node, install) through a composite action at [`.github/actions/setup`](.github/actions/setup/action.yml). Update the install pipeline in one place.
 
 Quality gates: Biome lint/format, build, vitest, `openapi:check`. `intent:stale` runs as a soft warning on the check job. Migrations run via `pnpm exec wrangler d1 migrations apply` against the target env before deploy.
 
@@ -77,8 +82,8 @@ Both are referenced as job-level `env:` so wrangler picks them up automatically.
 
 The TanStack Start Vite plugin flattens `wrangler.jsonc` into `dist/server/wrangler.json` and drops nested `env:` blocks, so the multi-env-in-one-file pattern doesn't work. Instead the template ships:
 
-- **`wrangler.jsonc`** — dev defaults. Used by `pnpm dev`, `pnpm bootstrap`, the dev deploy workflow, and any `pnpm exec wrangler …` you run locally.
-- **`wrangler.production.jsonc`** — production overrides (worker name, D1 binding, vars). Used only by `deploy-production.yml`.
+- **`wrangler.jsonc`**: dev defaults. Used by `pnpm dev`, `pnpm bootstrap`, the dev deploy workflow, and any `pnpm exec wrangler …` you run locally.
+- **`wrangler.production.jsonc`**: production overrides (worker name, D1 binding, vars). Used only by `deploy-production.yml`.
 
 Selection happens via the `WRANGLER_CONFIG` env var, picked up by the Cloudflare Vite plugin at build time:
 
@@ -90,7 +95,7 @@ pnpm build                                                   # uses wrangler.jso
 WRANGLER_CONFIG=wrangler.production.jsonc pnpm build         # uses wrangler.production.jsonc
 ```
 
-The deploy step then runs `pnpm exec wrangler deploy` with no `--config` flag — wrangler reads `dist/server/wrangler.json` which the plugin wrote with the right values. Migrations apply commands need `--config wrangler.production.jsonc` for production because `wrangler d1` reads a wrangler config file directly (not the dist version) and defaults to `wrangler.jsonc`.
+The deploy step then runs `pnpm exec wrangler deploy` with no `--config` flag, because wrangler reads `dist/server/wrangler.json` which the plugin wrote with the right values. Migrations apply commands need `--config wrangler.production.jsonc` for production because `wrangler d1` reads a wrangler config file directly (not the dist version) and defaults to `wrangler.jsonc`.
 
 ## Recipes
 
@@ -113,9 +118,9 @@ If you're using a different agent harness, the rules in `agent-rules/` apply unc
 
 ## Documentation
 
-- [`AGENTS.md`](AGENTS.md) — agent onboarding, session protocol, stack snapshot
-- [`agent-rules/`](agent-rules/) — governance rules (cross-harness)
-- [`docs/adr/`](docs/adr/) — Architecture Decision Records (why each major choice)
+- [`AGENTS.md`](AGENTS.md): agent onboarding, session protocol, stack snapshot
+- [`agent-rules/`](agent-rules/): governance rules (cross-harness)
+- [`docs/adr/`](docs/adr/): Architecture Decision Records (why each major choice)
 
 ## License
 

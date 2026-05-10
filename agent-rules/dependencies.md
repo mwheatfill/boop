@@ -13,7 +13,7 @@ Adding a dependency is two questions, in order. Skipping the first is how you in
 
 **1. Is this the current recommended approach?**
 
-For packages from major vendors (Cloudflare, Microsoft, Vercel, AWS, Anthropic, etc.), check the vendor's current setup docs *before* installing. The package may still be published but superseded by a different mechanism — for example, `wrangler types` superseded `@cloudflare/workers-types` for Cloudflare Workers TypeScript types.
+For packages from major vendors (Cloudflare, Microsoft, Vercel, AWS, Anthropic, etc.), check the vendor's current setup docs *before* installing. The package may still be published but superseded by a different mechanism. For example, `wrangler types` superseded `@cloudflare/workers-types` for Cloudflare Workers TypeScript types.
 
 Use the lookup order in [`lookup-order.md`](lookup-order.md). Configured MCP servers (step 3) are the fastest path to current vendor guidance:
 
