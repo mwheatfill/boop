@@ -3,27 +3,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-// Canonical TanStack Start + Router + Query integration, all four layers
-// stacked. Future agents should pattern-match on this when building
-// data-driven routes:
-//
-// 1. createServerFn — server-only RPC. Runs on the Worker; can read env,
-//    D1, R2, secrets. Define as colocated next to the route, or in
-//    src/server/<feature>.ts when shared across routes.
-//
-// 2. queryOptions — reusable Query config (key + fn). Used by both the
-//    loader (for SSR prefetch) and the component (for read). Keeping the
-//    options factory next to the server fn keeps key/fetcher in sync.
-//
-// 3. Route loader — calls `context.queryClient.ensureQueryData(opts)` so
-//    the query is in cache before the component renders. SSR dehydrates
-//    the cache; the client picks it up at hydration with no refetch.
-//
-// 4. useSuspenseQuery — component reads the cached data. Suspense + the
-//    loader's ensureQueryData together guarantee the data is present
-//    when the component runs, so no loading state needed in normal flow.
-//    DefaultCatchBoundary catches errors; the loader can reject if the
-//    server fn throws.
+// Reference pattern: server fn → queryOptions → loader.ensureQueryData
+// → useSuspenseQuery. Documented in agent-rules/architecture.md.
 
 const getHealth = createServerFn({ method: 'GET' }).handler(async () => {
   const { env } = await import('cloudflare:workers')

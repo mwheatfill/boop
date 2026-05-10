@@ -1,27 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // Canonical Cloudflare multi-env pattern: a single wrangler config with
-  // an `env:` block per non-default environment. Top-level values double
-  // as the dev defaults, so `pnpm dev` and `pnpm bootstrap` "just work"
-  // with no env var to remember.
-  //
-  // For production builds, set CLOUDFLARE_ENV=production. The Cloudflare
-  // Vite plugin reads it at build time and flattens the env.production
-  // overrides into dist/server/wrangler.json (this is intentional, not a
-  // bug; an earlier iteration of this template misdiagnosed the
-  // flattening and shipped two separate config files).
-  //
-  // Important: bindings (`vars`, `d1_databases`, etc.) are
-  // **non-inheritable**. The env.production block must redefine them
-  // explicitly, even if the values mostly match the top-level. Compat
-  // date, compat flags, `main`, and `observability` *are* inheritable
-  // and only need to live at the top level.
-  //
-  // Worker names: top-level `name` applies to dev. The env.production
-  // block sets its own explicit `name` (rather than relying on the
-  // `<top>-<env>` auto-suffix) so the production worker is clearly
-  // `-prod`, not `-production`. The auto-suffix would also collide
-  // awkwardly with the top-level `-dev` suffix.
+  // Single-file multi-env: top level is dev defaults; CLOUDFLARE_ENV=production
+  // selects the env.production block at build time. README → "Per-environment
+  // wrangler config" covers gotchas (non-inheritable bindings, explicit
+  // env.production.name to avoid the awkward `-dev-production` auto-suffix).
   "name": "template-cf-fullstack-dev",
   "compatibility_date": "2026-05-09",
   "compatibility_flags": ["nodejs_compat"],
