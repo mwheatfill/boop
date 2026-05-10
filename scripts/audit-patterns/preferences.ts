@@ -160,6 +160,39 @@ const rules: Rule[] = [
     pattern: /from\s+['"]@nivo\//,
     message: 'Use shadcn Chart via the `charts/setup` recipe. preferences.md → "Charts".',
   },
+  // Date library alternatives. Canonical is date-fns v4 + @date-fns/tz.
+  // Native Temporal isn't on workerd yet (see workerd #5630); polyfills
+  // are too heavy for the template default.
+  {
+    id: 'no-moment',
+    pattern: /from\s+['"]moment(\/[\w-]+)?['"]/,
+    message:
+      'Moment is deprecated and Node-only. Use `date-fns` v4 + `@date-fns/tz`. preferences.md → "Dates / time zones".',
+  },
+  {
+    id: 'no-dayjs',
+    pattern: /from\s+['"]dayjs(\/[\w-]+)?['"]/,
+    message:
+      'Use `date-fns` v4 + `@date-fns/tz` (tree-shakable, smaller for typical usage than dayjs + plugins). preferences.md → "Dates / time zones".',
+  },
+  {
+    id: 'no-luxon',
+    pattern: /from\s+['"]luxon['"]/,
+    message:
+      'Use `date-fns` v4 + `@date-fns/tz` (smaller bundle, tree-shakable). preferences.md → "Dates / time zones".',
+  },
+  {
+    id: 'no-date-fns-tz-legacy',
+    pattern: /from\s+['"]date-fns-tz(\/[\w-]+)?['"]/,
+    message:
+      'Use `@date-fns/tz` (the v4-native package), not the legacy `date-fns-tz`. preferences.md → "Dates / time zones".',
+  },
+  {
+    id: 'no-temporal-polyfill',
+    pattern: /from\s+['"](@js-temporal\/polyfill|temporal-polyfill)['"]/,
+    message:
+      'Temporal is Stage 4 but not on workerd yet (see workerd #5630). Polyfills are 20-56 KB; not worth it for the template. Use `date-fns` v4 + `@date-fns/tz` until Cloudflare ships a `temporal_api` compat flag. preferences.md → "Dates / time zones".',
+  },
   // Toast alternatives. Template ships shadcn Sonner.
   {
     id: 'no-react-toastify',

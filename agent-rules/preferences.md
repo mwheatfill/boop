@@ -21,6 +21,7 @@ The `pnpm audit:patterns` CI job enforces this list mechanically: forbidden impo
 | Charts | shadcn/ui Chart via `charts/setup` recipe (Recharts v3 underneath) | Chart.js, Victory, Plotly, Nivo, ECharts (without ADR) |
 | Animation | `motion` (formerly Framer Motion) via `motion/setup` recipe; CSS / Tailwind utilities for simple transitions | react-spring, @react-spring/*, GSAP (without ADR) |
 | Toasts | shadcn Sonner (`npx shadcn@latest add sonner`); template ships `<Toaster />` in `__root.tsx`. Call `toast.success(...)` / `toast.error(...)` from `'sonner'` | react-toastify, react-hot-toast, notistack |
+| Dates / time zones | `date-fns` v4 + `@date-fns/tz` (the v4-native TZ package, ~761 B for `TZDate`). Install on first need: `pnpm add date-fns @date-fns/tz` | `date-fns-tz` (legacy companion, pre-v4 API), `moment`, `dayjs`, `luxon`, `@js-temporal/polyfill`, `temporal-polyfill`. Revisit when Cloudflare ships a `temporal_api` compatibility flag (see [workerd #5630](https://github.com/cloudflare/workerd/pull/5630)) |
 | Dashboard composition | `dashboard/scaffold` recipe (runs `npx shadcn@latest add dashboard-01` + adapts to template conventions) | hand-rolled sidebar+chart layout |
 | Icons | `lucide-react` | Heroicons, react-icons, Tabler |
 | Styling | Tailwind v4 with CSS-first `@theme` config | tailwind.config.{js,ts}, CSS-in-JS, CSS modules |
