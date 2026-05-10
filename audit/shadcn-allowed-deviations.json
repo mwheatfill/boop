@@ -1,0 +1,7 @@
+{
+  "_documentation": "Map of shadcn component name → array of structural signals to skip in scripts/audit-patterns/shadcn.ts. Use this only for documented intentional deviations from the canonical shadcn registry. Each entry should have a comment explaining why. Pattern: \"<component>\": [\"import:<source>\" | \"export:<name>\" | \"data-slot:<value>\"].",
+  "_examples": {
+    "_button-comment": "Example: skip the Slot import drift if we forked Button to use a different slot lib.",
+    "_button-skip": ["import:radix-ui"]
+  }
+}

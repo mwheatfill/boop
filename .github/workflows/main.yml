@@ -37,6 +37,55 @@ jobs:
       - name: OpenAPI contract in sync
         run: pnpm openapi:check
 
+      - name: Audit patterns (canonical-stack enforcement)
+        # Runs the three audits in scripts/audit-patterns/:
+        #   - shadcn: structural-diff src/components/ui against the live
+        #     shadcn registry; catches hand-rolled drift.
+        #   - tanstack: structural assertions for canonical TSS / Router /
+        #     Query patterns (verbatimModuleSyntax off, root uses with-
+        #     context, server fns have real validators, etc.).
+        #   - preferences: grep src/ for forbidden imports declared in
+        #     agent-rules/preferences.md.
+        # See ADR-0011 for the why.
+        run: pnpm audit:patterns
+
+      - name: Upload audit-patterns report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report
+          path: audit-report.md
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Comment audit-patterns report on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (!fs.existsSync('audit-report.md')) return;
+            const body = fs.readFileSync('audit-report.md', 'utf8');
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            // Find an existing comment from this bot to update in place.
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number,
+            });
+            const marker = '# Audit patterns report';
+            const existing = comments.find((c) =>
+              c.user?.type === 'Bot' && c.body?.startsWith(marker),
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number, body,
+              });
+            }
+
       - name: TanStack Intent skill freshness (soft)
         run: pnpm intent:stale
         continue-on-error: true
