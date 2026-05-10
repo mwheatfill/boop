@@ -1,8 +1,10 @@
 name: Setup
 description: |
-  Checkout, install pnpm and Node, restore pnpm cache, and install
-  dependencies. Used by every workflow in this repo so the install
-  pipeline stays defined in exactly one place.
+  Install pnpm and Node, restore pnpm cache, and install dependencies.
+  Used by every workflow in this repo so the install pipeline stays
+  defined in exactly one place. Caller must run actions/checkout before
+  this action: a local `uses: ./.github/actions/setup` cannot be resolved
+  until the repo is on disk, so checkout has to live in the workflow.
 
 inputs:
   node-version:
@@ -13,8 +15,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v4
-
     - uses: pnpm/action-setup@v4
 
     - uses: actions/setup-node@v4

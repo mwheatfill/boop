@@ -18,12 +18,12 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-        # Composite action handles checkout + pnpm + node + install. See
-        # .github/actions/setup/action.yml. We can't `uses:` a local action
-        # without first checking out the repo — but composite actions work
-        # around this because the runner does an implicit shallow clone of
-        # the workflow ref before resolving local `uses:` paths.
+        # Composite action handles pnpm + node + install. See
+        # .github/actions/setup/action.yml. Checkout has to run first
+        # at the workflow level — a local `uses:` can't be resolved
+        # until the action file is on disk.
 
       - name: Lint and format
         run: pnpm check
@@ -115,6 +115,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
 
       - name: Download build artifact
