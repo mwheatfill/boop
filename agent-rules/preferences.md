@@ -20,6 +20,7 @@ The `pnpm audit:patterns` CI job enforces this list mechanically: forbidden impo
 | Headless primitives | Base UI (`@base-ui/react`) under shadcn | Radix, Headless UI, Reach UI |
 | Charts | shadcn/ui Chart via `charts/setup` recipe (Recharts v3 underneath) | Chart.js, Victory, Plotly, Nivo, ECharts (without ADR) |
 | Animation | `motion` (formerly Framer Motion) via `motion/setup` recipe; CSS / Tailwind utilities for simple transitions | react-spring, @react-spring/*, GSAP (without ADR) |
+| Toasts | shadcn Sonner (`npx shadcn@latest add sonner`); template ships `<Toaster />` in `__root.tsx`. Call `toast.success(...)` / `toast.error(...)` from `'sonner'` | react-toastify, react-hot-toast, notistack |
 | Dashboard composition | `dashboard/scaffold` recipe (runs `npx shadcn@latest add dashboard-01` + adapts to template conventions) | hand-rolled sidebar+chart layout |
 | Icons | `lucide-react` | Heroicons, react-icons, Tabler |
 | Styling | Tailwind v4 with CSS-first `@theme` config | tailwind.config.{js,ts}, CSS-in-JS, CSS modules |

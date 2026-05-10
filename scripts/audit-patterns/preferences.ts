@@ -160,6 +160,23 @@ const rules: Rule[] = [
     pattern: /from\s+['"]@nivo\//,
     message: 'Use shadcn Chart via the `charts/setup` recipe. preferences.md → "Charts".',
   },
+  // Toast alternatives. Template ships shadcn Sonner.
+  {
+    id: 'no-react-toastify',
+    pattern: /from\s+['"]react-toastify['"]/,
+    message:
+      'Use `sonner` via the shadcn Toaster (`<Toaster />` is mounted in __root.tsx). preferences.md → "Toasts".',
+  },
+  {
+    id: 'no-react-hot-toast',
+    pattern: /from\s+['"]react-hot-toast['"]/,
+    message: 'Use `sonner` via the shadcn Toaster. preferences.md → "Toasts".',
+  },
+  {
+    id: 'no-notistack',
+    pattern: /from\s+['"]notistack['"]/,
+    message: 'Use `sonner` via the shadcn Toaster. preferences.md → "Toasts".',
+  },
   // Motion alternatives.
   {
     id: 'no-react-spring',

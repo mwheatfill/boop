@@ -5,6 +5,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import type { ReactNode } from 'react'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { Toaster } from '@/components/ui/sonner'
 import type { MyRouterContext } from '@/router-context'
 import appCss from '@/styles/app.css?url'
 
@@ -45,6 +46,7 @@ function RootDocument({ children }: { children: ReactNode }) {
             </div>
           </header>
           <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+          <Toaster />
           {import.meta.env.DEV && (
             <>
               <TanStackRouterDevtools position="bottom-right" />

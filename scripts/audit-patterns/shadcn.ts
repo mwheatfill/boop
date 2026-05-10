@@ -113,12 +113,14 @@ function diffSignals(
 ): Array<{ signal: string; message: string }> {
   const issues: Array<{ signal: string; message: string }> = []
 
-  // Internal monorepo paths like `@/registry/base-vega/lib/utils` get
-  // rewritten by the CLI to consumer aliases (e.g. `@/lib/utils`) on
-  // install — diffing them as raw strings would always fail. Skip.
+  // Internal monorepo paths get rewritten by the CLI on install (or
+  // reference shadcn's demo app and never make it into the registry's
+  // emitted file). Skip:
+  //   - `@/registry/...` (monorepo lib paths)
+  //   - `@/app/...` (Next.js app-router demo paths)
   const ourSources = new Set(ours.imports.map((i) => i.source))
   for (const imp of theirs.imports) {
-    if (imp.source.startsWith('@/registry/')) continue
+    if (imp.source.startsWith('@/registry/') || imp.source.startsWith('@/app/')) continue
     const sig = `import:${imp.source}`
     if (!ourSources.has(imp.source) && !allowlist.includes(sig)) {
       issues.push({
