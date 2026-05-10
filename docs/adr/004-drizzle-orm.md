@@ -8,7 +8,7 @@ Workers caps compressed bundles at 1 MB, which rules out Prisma's generated clie
 
 ## Decision
 
-[Drizzle ORM](https://orm.drizzle.team/) as the ORM, with schemas as TypeScript objects in `src/lib/db/schema.ts` (empty stub by default; recipes such as `auth/better-auth` extend it). [`drizzle-kit generate`](https://orm.drizzle.team/kit-docs/overview) writes new SQL migrations into `drizzle/`. CI applies them to D1 with `pnpm exec wrangler d1 migrations apply DB --remote` (dev) or `... --env production --remote` (prod); `drizzle-kit migrate` is not used because D1 needs migrations applied through wrangler so they're recorded in the D1 migrations table. `drizzle-kit push` is local-dev only — never run against a production DB.
+[Drizzle ORM](https://orm.drizzle.team/) as the ORM, with schemas as TypeScript objects in `src/lib/db/schema.ts` (empty stub by default; recipes such as `auth/better-auth` extend it). [`drizzle-kit generate`](https://orm.drizzle.team/kit-docs/overview) writes new SQL migrations into `drizzle/`. CI applies them to D1 with `pnpm exec wrangler d1 migrations apply DB --remote` (dev) or `... --env production --remote` (prod); `drizzle-kit migrate` is not used because D1 needs migrations applied through wrangler so they're recorded in the D1 migrations table. `drizzle-kit push` is local-dev only; never run it against a production DB.
 
 ## Consequences
 

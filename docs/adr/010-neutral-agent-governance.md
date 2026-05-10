@@ -38,4 +38,4 @@ The rules content is portable; only the gate-layer config syntax differs by harn
 
 **Neutral / trade-off:**
 
-- MCP servers moved out of `.claude/settings.json` into `.mcp.json` so they're portable. This trade is net-positive but means Claude-Code-specific MCP setup (per-tenant MCPs, etc.) is a separate consideration if it ever applies.
+- MCP servers live in `.mcp.json` (portable across harnesses). Claude-Code-specific MCP wiring, if ever needed, has to go in `.claude/settings.json` separately.

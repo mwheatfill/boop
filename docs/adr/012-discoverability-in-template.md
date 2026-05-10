@@ -32,7 +32,7 @@ Recipes that need dynamic well-known endpoints (e.g., OAuth Protected Resource m
 
 **Negative:**
 
-- Apps that genuinely have no agent surface still ship the files. The bytes are negligible, but the conceptual surface is non-zero — engineers may wonder why `public/llms.txt` exists when their app is internal-only.
+- Apps with no agent surface still ship these files. Bytes are negligible.
 
 **Neutral / trade-off:**
 

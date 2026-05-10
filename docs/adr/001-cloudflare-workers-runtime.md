@@ -8,7 +8,7 @@ Picking the runtime locks every downstream choice: deploy primitives, native bin
 
 ## Decision
 
-Cloudflare Workers, deployed via Wrangler. A single [`wrangler.jsonc`](https://developers.cloudflare.com/workers/wrangler/configuration/) at the repo root holds dev settings at the top level and an `env.production` block for production overrides; the [Cloudflare Vite plugin](https://github.com/cloudflare/workers-sdk/tree/main/packages/vite-plugin) selects the active environment at build time via `CLOUDFLARE_ENV` (unset = dev, `production` = prod). This is the canonical multi-env pattern from [Cloudflare's docs](https://developers.cloudflare.com/workers/wrangler/environments/); an earlier iteration of this template shipped two separate wrangler files plus a `WRANGLER_CONFIG` env var, which misread the plugin's intentional flattening as a bug.
+Cloudflare Workers, deployed via Wrangler. A single [`wrangler.jsonc`](https://developers.cloudflare.com/workers/wrangler/configuration/) at the repo root holds dev settings at the top level and an `env.production` block for production overrides; the [Cloudflare Vite plugin](https://github.com/cloudflare/workers-sdk/tree/main/packages/vite-plugin) selects the active environment at build time via `CLOUDFLARE_ENV` (unset = dev, `production` = prod). This is the canonical multi-env pattern from [Cloudflare's docs](https://developers.cloudflare.com/workers/wrangler/environments/).
 
 ## Consequences
 
