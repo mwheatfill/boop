@@ -91,6 +91,7 @@ These have ADRs in `docs/adr/`. If you're tempted to deviate, read the ADR first
 - Neutral agent governance (this file + `agent-rules/`) ([ADR-010](docs/adr/010-neutral-agent-governance.md))
 - TanStack Intent + MCP servers for documentation currency ([ADR-011](docs/adr/011-skill-currency-protocol.md))
 - Discoverability surface in template (`.well-known/`, robots, sitemap, llms.txt) ([ADR-012](docs/adr/012-discoverability-in-template.md))
+- Forms + validation: TanStack Form (rich), React 19 `<form action>` + `useActionState` (simple), Zod 4 via `@/shared/schemas/openapi` ([ADR-013](docs/adr/013-forms-and-validation.md))
 
 ## Things to avoid
 

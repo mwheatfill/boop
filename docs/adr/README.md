@@ -31,6 +31,7 @@ Ordered foundation → data → auth → AI → product surface → meta.
 | [010](010-neutral-agent-governance.md) | Accepted | Neutral agent governance (AGENTS.md + agent-rules/) |
 | [011](011-skill-currency-protocol.md) | Accepted | Skill currency protocol (Intent + MCP servers) |
 | [012](012-discoverability-in-template.md) | Accepted | Discoverability surface in the template |
+| [013](013-forms-and-validation.md) | Accepted | Forms + validation (TanStack Form, React 19 actions, Zod) |
 
 ## How to add an ADR
 
