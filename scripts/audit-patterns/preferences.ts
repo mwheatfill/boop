@@ -193,6 +193,25 @@ const rules: Rule[] = [
     message:
       'Temporal is Stage 4 but not on workerd yet (see workerd #5630). Polyfills are 20-56 KB; not worth it for the template. Use `date-fns` v4 + `@date-fns/tz` until Cloudflare ships a `temporal_api` compat flag. preferences.md → "Dates / time zones".',
   },
+  // Font alternatives. Template ships system stack; pin via fontsource
+  // when an app needs a custom font (per-app design decision).
+  {
+    id: 'no-next-font',
+    pattern: /from\s+['"]next\/font(\/[\w-]+)?['"]/,
+    message:
+      'next/font is Next.js-only. Use @fontsource-variable/<name> + a `--font-sans` override in app.css. preferences.md → "Fonts".',
+  },
+  {
+    id: 'no-vercel-fonts',
+    pattern: /from\s+['"]@vercel\/fonts(\/[\w-]+)?['"]/,
+    message: 'Use @fontsource-variable/<name> for self-hosted fonts. preferences.md → "Fonts".',
+  },
+  {
+    id: 'no-google-fonts-cdn',
+    pattern: /["'`]https:\/\/fonts\.googleapis\.com\//,
+    message:
+      'Don\'t use the Google Fonts CDN (privacy leak + cross-origin latency). Self-host via @fontsource-variable/<name>. preferences.md → "Fonts".',
+  },
   // Toast alternatives. Template ships shadcn Sonner.
   {
     id: 'no-react-toastify',

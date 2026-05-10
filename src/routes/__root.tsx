@@ -31,7 +31,7 @@ function RootDocument({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="min-h-screen bg-background text-foreground antialiased">
+      <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <ThemeProvider>
           <header className="border-b border-border">
             <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
