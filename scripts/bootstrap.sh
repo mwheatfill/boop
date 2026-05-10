@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # template-cf-fullstack bootstrap
 #
-# Run once after cloning. Sets up the local environment so `pnpm dev`
-# works, and offers to provision the Cloudflare resources you'll need
-# before your first deploy.
+# Run once after `pnpm install`. Sets up the local environment so
+# `pnpm dev` works, and offers to provision the Cloudflare resources
+# you'll need before your first deploy.
 #
 # Idempotent: re-running skips work that's already done.
 
 set -euo pipefail
+
+WRANGLER=(pnpm exec wrangler)
 
 echo "▶ template-cf-fullstack bootstrap"
 echo ""
@@ -24,16 +26,14 @@ fi
 # 2. TanStack Intent skill bindings
 echo ""
 echo "▶ Installing TanStack Intent skill bindings..."
-if command -v npx >/dev/null 2>&1; then
-  npx @tanstack/intent install || echo "  (intent install reported issues; continuing)"
-else
-  echo "  npx not found; skipping. Run 'npx @tanstack/intent install' manually."
-fi
+npx @tanstack/intent install || echo "  (intent install reported issues; continuing)"
 
-# 3. Generate openapi.json (in case it's stale)
+# 3. Verify openapi.json is in sync (regen happens on schema changes)
 echo ""
-echo "▶ Generating openapi.json..."
-pnpm openapi:generate
+echo "▶ Checking openapi.json is in sync..."
+pnpm openapi:check || {
+  echo "  ⚠ openapi.json drifted. Run 'pnpm openapi:generate' and commit the result."
+}
 
 # 4. Optional: create Cloudflare D1 databases
 echo ""
@@ -45,25 +45,31 @@ read -r -p "  Create D1 databases? [y/N] " create_d1
 
 case "${create_d1:-N}" in
   [Yy]*)
-    if ! command -v wrangler >/dev/null 2>&1 && ! pnpm exec wrangler --version >/dev/null 2>&1; then
-      echo "  ✗ wrangler not found. Install Cloudflare's wrangler CLI and re-run."
-      exit 1
-    fi
-
-    WRANGLER="pnpm exec wrangler"
-
     echo ""
     echo "▶ Creating dev D1..."
-    $WRANGLER d1 create template-cf-fullstack-dev || echo "  (already exists or creation failed; check manually)"
+    if "${WRANGLER[@]}" d1 create template-cf-fullstack-dev; then
+      echo "  ✓ Created (or existing). Copy the database_id printed above."
+    else
+      status=$?
+      echo "  ✗ Failed (exit $status). Common causes: not logged in, name taken, quota."
+      echo "    Run 'pnpm exec wrangler login' and retry."
+      exit "$status"
+    fi
 
     echo ""
     echo "▶ Creating production D1..."
-    $WRANGLER d1 create template-cf-fullstack-prod || echo "  (already exists or creation failed; check manually)"
+    if "${WRANGLER[@]}" d1 create template-cf-fullstack-prod; then
+      echo "  ✓ Created (or existing)."
+    else
+      status=$?
+      echo "  ✗ Failed (exit $status)."
+      exit "$status"
+    fi
 
     echo ""
-    echo "  ⚠ Copy the database_id from each 'wrangler d1 create' output above"
-    echo "    and replace the REPLACE_WITH_DEV_D1_ID and REPLACE_WITH_PROD_D1_ID"
-    echo "    placeholders in wrangler.jsonc."
+    echo "  ⚠ Now patch wrangler.jsonc:"
+    echo "    Replace REPLACE_WITH_DEV_D1_ID with the dev database_id."
+    echo "    Replace REPLACE_WITH_PROD_D1_ID with the production database_id."
     ;;
   *)
     echo ""
@@ -74,12 +80,7 @@ case "${create_d1:-N}" in
     ;;
 esac
 
-# 5. Run cf-typegen so DB binding shows up in worker-configuration.d.ts
-echo ""
-echo "▶ Regenerating Cloudflare worker types..."
-pnpm cf-typegen >/dev/null 2>&1 || echo "  (cf-typegen reported issues; continuing)"
-
-# 6. Apply local migrations if there are any
+# 5. Apply local migrations if there are any
 if compgen -G "drizzle/*.sql" > /dev/null; then
   echo ""
   echo "▶ Applying migrations to local D1..."
@@ -87,8 +88,8 @@ if compgen -G "drizzle/*.sql" > /dev/null; then
 else
   echo ""
   echo "▶ No migrations yet; skipping db:migrate:local"
-  echo "  Recipes that add tables (e.g. auth/better-auth) ship a migration"
-  echo "  on install. Then run: pnpm db:generate && pnpm db:migrate:local"
+  echo "  Recipes that add tables (e.g. auth/better-auth) ship migrations"
+  echo "  on install. After that, run: pnpm db:generate && pnpm db:migrate:local"
 fi
 
 echo ""
@@ -96,8 +97,13 @@ echo "✅ Bootstrap complete."
 echo ""
 echo "Next steps:"
 echo "  1. Edit .dev.vars with values for any recipes you plan to install."
-echo "  2. Install capabilities from https://github.com/mwheatfill/app-platform-recipes"
-echo "     For example: curl -sSL https://raw.githubusercontent.com/mwheatfill/app-platform-recipes/main/install.sh \\"
-echo "                    | bash -s -- auth/better-auth"
-echo "  3. Run 'pnpm dev' to start the dev server."
+echo "  2. Configure GitHub Secrets for CI/CD:"
+echo "     - CLOUDFLARE_API_TOKEN"
+echo "     - CLOUDFLARE_ACCOUNT_ID"
+echo "     (See README → CI/CD for what these need.)"
+echo "  3. Install capabilities from https://github.com/mwheatfill/app-platform-recipes"
+echo "     For example:"
+echo "       curl -sSL https://raw.githubusercontent.com/mwheatfill/app-platform-recipes/main/install.sh \\"
+echo "         | bash -s -- auth/better-auth"
+echo "  4. Run 'pnpm dev' to start the dev server."
 echo ""

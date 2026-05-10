@@ -55,12 +55,23 @@ Then open `http://localhost:3000`.
 
 ## Deploy
 
-GitHub Actions handles deploys (lands in M5). Two workflows in [`.github/workflows/`](.github/workflows/):
+GitHub Actions handles deploys. Two workflows in [`.github/workflows/`](.github/workflows/):
 
-- **`deploy-dev.yml`** — push to `main` → deploys to the `dev` Cloudflare environment
-- **`deploy-production.yml`** — git tag matching `v*.*.*` → deploys to the `production` Cloudflare environment
+- **`main.yml`** — runs on every PR (check job only) and on push to `main` (check + deploy-dev). The `deploy-dev` job depends on `check` passing.
+- **`deploy-production.yml`** — git tag matching `v*.*.*` → deploys to the `production` Cloudflare environment after running its own quality gates.
 
-Both run quality gates (Biome, build, type check, `openapi:check` guard) before `wrangler deploy`. Migrations run via `wrangler d1 migrations apply` in CI before deploy.
+Quality gates: Biome lint/format, build, vitest, `openapi:check`. `intent:stale` runs as a soft warning on the check job. Migrations run via `pnpm exec wrangler d1 migrations apply` against the target env before deploy.
+
+### Required GitHub Secrets
+
+Configure under **Settings → Secrets and variables → Actions** before the first push to `main`:
+
+| Secret | Where to get it |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | Create at <https://dash.cloudflare.com/profile/api-tokens> with the **Edit Cloudflare Workers** template (Workers Scripts: Edit, D1: Edit, Account Analytics: Read). |
+| `CLOUDFLARE_ACCOUNT_ID` | Find in the Cloudflare dashboard sidebar under your account name. |
+
+Both are referenced as job-level `env:` so wrangler picks them up automatically. Configure GitHub Environments named `dev` and `production` if you want per-environment review gates or distinct secrets.
 
 ## Recipes
 
