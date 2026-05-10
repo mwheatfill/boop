@@ -1,13 +1,3 @@
-// Coverage for the canonical shadcn Button (base-vega style: base-ui
-// primitives + the "vega" visual theme). Asserts the data-slot attribute
-// (load-bearing for canonical selectors), ref forwarding through the
-// React 19 ref-as-prop pattern, native HTML pass-through, and variant
-// classes.
-//
-// Note: base-ui's Button primitive doesn't use the Slot pattern that
-// Radix's Slot.Root provides, so there's no `asChild` API on the
-// canonical base-vega Button. Composition with custom elements happens
-// through base-ui's `render` prop where needed.
 import { render, screen } from '@testing-library/react'
 import { createRef } from 'react'
 import { describe, expect, it } from 'vitest'

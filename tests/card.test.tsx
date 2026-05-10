@@ -1,10 +1,3 @@
-// Coverage for the canonical shadcn Card primitive family (base-vega).
-// Title and description render as `<div>` (not h3/p) per the canonical
-// base-vega source; data-slot attributes are load-bearing for the
-// canonical selectors (e.g. has-data-[slot=card-action]).
-//
-// Card now also has a `size` prop ("default" | "sm") that drives a
-// data-size attribute used by sub-components via group selectors.
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import {
