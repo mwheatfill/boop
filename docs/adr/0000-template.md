@@ -1,51 +1,25 @@
----
-title: "ADR-NNNN: <Decision title>"
-type: "Architecture Decision Record"
-status: Proposed
-date: YYYY-MM-DD
-author: "<Name>, <Role>"
-description: "<One-line summary of the decision.>"
----
+# ADR-NNN: <Decision title>
 
-# ADR-NNNN: <Decision title>
-
-## Status
-
-Proposed | Accepted (YYYY-MM-DD) | Deprecated (YYYY-MM-DD) | Superseded by [ADR-NNNN](NNNN-slug.md) (YYYY-MM-DD)
+![Status](https://img.shields.io/badge/status-Proposed-yellow) ![Date](https://img.shields.io/badge/date-YYYY--MM--DD-blue)
 
 ## Context
 
-<What's the situation that called for a decision? What forces are at play? Be concrete: cite the problem, the constraints, the stakeholders' needs. Two to four short paragraphs.>
+<The specific situation that called for this decision. Two to three sentences. Describe the surface, the risk if left undecided, and why coherence here matters. Not generic ADR-meta or "why ADRs exist" throat-clearing.>
 
 ## Decision
 
-<What did we decide? State it plainly in one or two sentences, then expand with the specifics.>
+<What was chosen. One or two sentences, then specifics. For multi-element decisions (a layer with several constituent choices), a Markdown table works well: Concern / Choice / Over. Inline links to vendor docs and recipes go where they're load-bearing; no separate References section.>
 
 ## Consequences
 
-<What follows from this decision?>
-
 **Positive:**
 
-- <Benefit 1>
-- <Benefit 2>
+- <Benefit>
 
 **Negative:**
 
-- <Cost 1>
-- <Cost 2>
+- <Cost>
 
 **Neutral / trade-off:**
 
-- <Trade-off that's neither clearly good nor bad, but worth naming>
-
-## Alternatives considered
-
-<What else was on the table? Why not those?>
-
-- **<Alternative 1>**: <one-line reason it lost>
-- **<Alternative 2>**: <one-line reason it lost>
-
-## References
-
-- <Link to spec section, issue, related ADR, vendor doc>
+- <Tradeoff worth naming>
