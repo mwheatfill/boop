@@ -31,7 +31,7 @@ Steps:
 4. Confirm `template-cf-fullstack-prod` worker is up at `https://template-cf-fullstack-prod.<account-subdomain>.workers.dev`. Hit `/` and verify the home page renders with `PUBLIC_ENV=production` shown in the footer.
 5. If the worker fails to start, the most likely culprits in order: missing `CLOUDFLARE_ENV=production` env at job level, missing GitHub environment secrets (`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` not configured for the `production` environment), the env.production D1 binding pointing at an ID that doesn't exist on the account.
 
-Estimate: 30 min if it works first try; up to a few hours if any of the above need fixing.
+Scope: one commit (version bump + tag); execution is automated by `deploy-production.yml`. Failure surface is bounded to the three culprits above, each with a known fix.
 
 ### 2. M7 wave two — build the planned recipes
 
@@ -56,7 +56,7 @@ Suggested priority (highest-leverage first):
 10. **`search/d1-fts5`, `vectorize`, `cloudflare-ai-search`** — the three-tier search story; AI Search is the new April-2026 hybrid option.
 11. The remaining recipes (auth/cloudflare-access, monitoring/posthog, monitoring/azure-app-insights, monitoring/otel-export, monitoring/cloudflare-logpush-r2, email/resend, email/cloudflare-email-service, images/cloudflare-images, drizzle/d1-migration, entra/group-claim-extraction, webhooks/*, teams/*, pagerduty/*, agent-guards/add-a-guard, testing/playwright-e2e, health-endpoint/setup, cloudflare/workers-builds-setup, cloudflare-tunnel/add-target, autotask/ticket-create) — fill in by demand.
 
-Estimate: 1-2 days of focused work for the top 10; the long tail is open-ended.
+Scope: ~25 small recipes (one README + one `files/` tree + optional `install.sh` + `compatibility.json` per recipe). Independent of each other — high parallelization potential, easy to delegate one recipe per agent session.
 
 ### 3. M8 composer surface
 
@@ -73,7 +73,7 @@ Spec hints:
 - The composer installer is essentially the existing `install.sh` from app-platform-recipes wrapped in a TUI / agent-friendly interface.
 - The composer needs to handle the existing `compatibility.json` `requires` field (e.g., `ai/chat-route` requires an auth recipe).
 
-Estimate: 1-2 days. The TUI shell is straightforward; the recipe-graph resolution is the interesting bit.
+Scope: two surfaces (TUI + agent skill). The TUI shell is a wrapper around the existing per-recipe `install.sh`. The recipe-graph resolution (compatibility.json `requires` chains) is the interesting bit — a topological sort over the manifest with cycle detection.
 
 ## How the milestones interact
 
