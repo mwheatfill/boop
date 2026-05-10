@@ -90,24 +90,6 @@ jobs:
         run: pnpm intent:stale
         continue-on-error: true
 
-      - name: Upload build artifact
-        # deploy-dev consumes this so it doesn't have to re-run pnpm build
-        # on a fresh runner. dist/ holds the worker bundle + client assets
-        # that wrangler deploy uploads. .wrangler/deploy/config.json is the
-        # redirect file the Cloudflare Vite plugin writes during build —
-        # wrangler follows it to read dist/server/wrangler.json (resolved
-        # entry, baked-in env). Without this file, wrangler falls back to
-        # the raw wrangler.jsonc and trips on the virtual main entry.
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: |
-            dist/
-            .wrangler/deploy/config.json
-          retention-days: 1
-          if-no-files-found: error
-
   deploy-dev:
     needs: check
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -117,27 +99,25 @@ jobs:
       deployments: write
     environment:
       name: dev
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
 
-      - name: Download build artifact
-        # Skips the rebuild on the deploy runner. Build was already proven
-        # green by the check job; reusing the same dist/ guarantees we deploy
-        # exactly what passed the gates. Default path restores both dist/
-        # and .wrangler/deploy/config.json at workspace root so the plugin's
-        # deploy redirect points wrangler at the dist config.
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
+      - name: Build
+        # Re-runs vite build so .wrangler/deploy/config.json (the redirect
+        # file the Cloudflare Vite plugin writes) lives next to the freshly
+        # built dist/. Cheaper and simpler than passing a build artifact
+        # between jobs — the whole build is ~3s.
+        run: pnpm build
 
       - name: Apply D1 migrations to dev
-        # The dev D1 binding lives at the top level of wrangler.jsonc, so
-        # no --env flag is needed. Production deploys pass --env production
-        # in deploy-production.yml to select the env.production block.
+        # Dev D1 binding lives at the top level of wrangler.jsonc, so no
+        # --env flag. The check job already proved migrations parse cleanly;
+        # this applies them remotely. compgen guard makes the step a no-op
+        # while the schema is empty.
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if compgen -G "drizzle/*.sql" > /dev/null; then
             pnpm exec wrangler d1 migrations apply DB --remote
@@ -146,8 +126,14 @@ jobs:
           fi
 
       - name: Deploy to dev
-        # The Cloudflare Vite plugin's .wrangler/deploy/config.json (restored
-        # from the artifact) redirects wrangler to dist/server/wrangler.json,
-        # which has the resolved entry and dev bindings baked in. The check
-        # job built without CLOUDFLARE_ENV, so the dist top-level is dev.
-        run: pnpm exec wrangler deploy
+        # cloudflare/wrangler-action@v3 is Cloudflare's canonical CI deploy
+        # action. It detects the existing pnpm-installed wrangler, then runs
+        # `wrangler deploy`, which follows .wrangler/deploy/config.json to
+        # use the resolved dist/server/wrangler.json (dev bindings baked in
+        # since the build ran without CLOUDFLARE_ENV).
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: pnpm
+          command: deploy

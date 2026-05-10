@@ -24,8 +24,6 @@ jobs:
     environment:
       name: production
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       # Tells the Cloudflare Vite plugin to merge the env.production block
       # from wrangler.jsonc into dist/server/wrangler.json. Without this,
       # the build would default to the top-level (dev) config.
@@ -49,6 +47,9 @@ jobs:
         # `wrangler d1` reads wrangler.jsonc directly (not the dist
         # version), so it needs --env production to pick the prod D1
         # binding from the env.production block.
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if compgen -G "drizzle/*.sql" > /dev/null; then
             pnpm exec wrangler d1 migrations apply DB --env production --remote
@@ -57,8 +58,14 @@ jobs:
           fi
 
       - name: Deploy to production
-        # The Cloudflare Vite plugin wrote .wrangler/deploy/config.json
-        # during `pnpm build` above; wrangler follows that redirect to
-        # dist/server/wrangler.json, where CLOUDFLARE_ENV=production has
-        # already merged the env.production block into the top level.
-        run: pnpm exec wrangler deploy
+        # cloudflare/wrangler-action@v3 is Cloudflare's canonical CI deploy
+        # action. The Quality gates step already built with
+        # CLOUDFLARE_ENV=production, so .wrangler/deploy/config.json
+        # redirects wrangler to a dist config where env.production has
+        # been merged into the top level — plain `deploy` is enough.
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: pnpm
+          command: deploy

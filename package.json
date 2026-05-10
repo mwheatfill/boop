@@ -1,6 +1,6 @@
 {
   "name": "template-cf-fullstack",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
@@ -12,6 +12,7 @@
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "preview": "vite preview",
+    "deploy": "vite build && wrangler deploy",
     "cf-typegen": "wrangler types",
     "check": "biome check .",
     "check:fix": "biome check --write .",
