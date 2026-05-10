@@ -1,21 +1,30 @@
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-// Canonical createServerFn pattern (from the version-locked TanStack
-// Intent skill in node_modules/@tanstack/react-start/skills/react-start/SKILL.md).
-// Server functions are RPC-style: defined here, callable from anywhere
-// (route loaders, components via `useServerFn`, mutations). They run
-// only on the server, so it's safe to import bindings from
-// `cloudflare:workers` and read env vars / D1 / R2 / etc.
+// Canonical TanStack Start + Router + Query integration, all four layers
+// stacked. Future agents should pattern-match on this when building
+// data-driven routes:
 //
-// Pattern to copy when adding a new server fn:
-//   const myFn = createServerFn({ method: 'POST' })
-//     .inputValidator((data) => MySchema.parse(data))
-//     .handler(async ({ data }) => { /* server-only logic */ })
+// 1. createServerFn — server-only RPC. Runs on the Worker; can read env,
+//    D1, R2, secrets. Define as colocated next to the route, or in
+//    src/server/<feature>.ts when shared across routes.
 //
-// Then wire it into a route via `loader: () => myFn(...)` (eager, runs
-// during navigation) or call from a component via `useServerFn(myFn)`.
+// 2. queryOptions — reusable Query config (key + fn). Used by both the
+//    loader (for SSR prefetch) and the component (for read). Keeping the
+//    options factory next to the server fn keeps key/fetcher in sync.
+//
+// 3. Route loader — calls `context.queryClient.ensureQueryData(opts)` so
+//    the query is in cache before the component renders. SSR dehydrates
+//    the cache; the client picks it up at hydration with no refetch.
+//
+// 4. useSuspenseQuery — component reads the cached data. Suspense + the
+//    loader's ensureQueryData together guarantee the data is present
+//    when the component runs, so no loading state needed in normal flow.
+//    DefaultCatchBoundary catches errors; the loader can reject if the
+//    server fn throws.
+
 const getHealth = createServerFn({ method: 'GET' }).handler(async () => {
   const { env } = await import('cloudflare:workers')
   return {
@@ -26,12 +35,13 @@ const getHealth = createServerFn({ method: 'GET' }).handler(async () => {
   }
 })
 
+const healthQueryOptions = queryOptions({
+  queryKey: ['health'],
+  queryFn: () => getHealth(),
+})
+
 export const Route = createFileRoute('/')({
-  // Route loader runs the server fn during navigation; the result is
-  // available via `Route.useLoaderData()` in the component. Loaders are
-  // isomorphic (server during SSR, client on subsequent navigations);
-  // the server fn enforces the server-only boundary inside.
-  loader: () => getHealth(),
+  loader: ({ context }) => context.queryClient.ensureQueryData(healthQueryOptions),
   component: HomePage,
 })
 
@@ -59,7 +69,7 @@ const docLinks = [
 ] as const
 
 function HomePage() {
-  const health = Route.useLoaderData()
+  const { data: health } = useSuspenseQuery(healthQueryOptions)
 
   return (
     <div className="flex flex-col gap-6">
@@ -108,10 +118,12 @@ function HomePage() {
       </section>
 
       <footer className="text-xs text-muted-foreground">
-        <code className="font-mono">getHealth()</code> from the server fn returned{' '}
+        <code className="font-mono">getHealth()</code> server fn → Query cache key{' '}
+        <code className="font-mono">["health"]</code> → loader prefetch →{' '}
+        <code className="font-mono">useSuspenseQuery</code> read. Returned{' '}
         <code className="font-mono">env={health.env}</code> at{' '}
-        <time dateTime={health.timestamp}>{health.timestamp}</time>. This line proves the server-fn
-        pattern is wired; delete it once you have your own routes.
+        <time dateTime={health.timestamp}>{health.timestamp}</time>. Delete this footer once you
+        have your own routes.
       </footer>
     </div>
   )

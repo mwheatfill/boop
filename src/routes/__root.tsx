@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { createRootRouteWithContext, HeadContent, Link, Scripts } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import type { ReactNode } from 'react'
@@ -44,7 +45,12 @@ function RootDocument({ children }: { children: ReactNode }) {
             </div>
           </header>
           <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
-          {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
+          {import.meta.env.DEV && (
+            <>
+              <TanStackRouterDevtools position="bottom-right" />
+              <ReactQueryDevtools buttonPosition="bottom-left" />
+            </>
+          )}
           <Scripts />
         </ThemeProvider>
       </body>

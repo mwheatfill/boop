@@ -1,7 +1,6 @@
-// Router context shape. Empty by default; recipes augment via TypeScript
-// module declaration merging so they can inject services (auth client,
-// query client, db handle, etc.) into route loaders and beforeLoad
-// without forking this file.
+// Router context shape. Recipes augment via TypeScript module declaration
+// merging so they can inject services (auth client, db handle, etc.) into
+// route loaders and beforeLoad without forking this file.
 //
 // Example (an auth recipe would add):
 //
@@ -18,10 +17,12 @@
 //   beforeLoad: ({ context }) => {
 //     if (!context.auth.user) throw redirect({ to: '/login' })
 //   }
-//
-// The empty interface here is intentional: it gives recipes a stable
-// merge target. Don't replace it with `type MyRouterContext = {}` — the
-// interface form is what enables module augmentation.
-//
-// biome-ignore lint/suspicious/noEmptyInterface: intentional augmentation seam
-export interface MyRouterContext {}
+import type { QueryClient } from '@tanstack/react-query'
+
+export interface MyRouterContext {
+  // queryClient is required because the template ships TanStack Query.
+  // setupRouterSsrQueryIntegration in src/router.tsx ties it to the
+  // SSR dehydration boundary; route loaders use it via
+  //   `context.queryClient.ensureQueryData(myQueryOptions)`.
+  queryClient: QueryClient
+}
