@@ -115,7 +115,7 @@ Full conventions in `agent-rules/conventions.md`.
 
 ## Compatibility notes
 
-- `CLAUDE.md` is a thin shim pointing at this file. Older Claude Code versions look for `CLAUDE.md`; newer versions read `AGENTS.md` directly.
+- `CLAUDE.md` is a one-line `@AGENTS.md` import. Claude Code reads `CLAUDE.md` natively (not `AGENTS.md`); the import loads this file's content into every Claude Code session without duplicating it. Per [Anthropic's memory docs](https://code.claude.com/docs/en/memory).
 - `.cursorrules` is a thin shim pointing at this file with high-priority rules inlined for Cursor's fallback parsing.
 - `.claude/settings.json` carries Claude Code-specific permission gates. MCP servers are configured in repo-root `.mcp.json` (portable across harnesses that read it). Codex users replicate the same three servers under `[mcp_servers.<name>]` in `~/.codex/config.toml`.
 
