@@ -1,12 +1,16 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "template-cf-fullstack-dev",
   "compatibility_date": "2026-05-09",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "logs": {
+      "head_sampling_rate": 1
+    }
   },
+  // vars are non-inheritable; repeat per env block.
   "vars": {
     "PUBLIC_APP_NAME": "template-cf-fullstack-dev",
     "PUBLIC_ENV": "dev"

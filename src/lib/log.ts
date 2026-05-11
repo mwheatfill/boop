@@ -1,13 +1,6 @@
-// Structured logging wrapper. Workers Logs auto-indexes the JSON object
-// passed as `console.*`'s argument, so a thin shape-enforcing wrapper
-// gives us all the queryability of a real logger without the dep weight
-// of one. Recipes (monitoring/sentry, monitoring/otel-export, etc.)
-// overlay this module to add `Sentry.captureException`, OTel spans, etc.,
-// without touching call sites.
-//
-// Convention: the first arg is a dotted event name (`domain.action.outcome`);
-// the second is structured fields. Errors are passed as a separate arg so
-// normalization happens in one place.
+// First arg is a dotted event name (`domain.action.outcome`); the
+// monitoring recipes overlay this module to add Sentry / App Insights /
+// OTel without touching call sites.
 
 type LogFields = Record<string, unknown>
 

@@ -17,11 +17,53 @@ DEFAULT_NAME="template-cf-fullstack"
 echo "▶ template-cf-fullstack bootstrap"
 echo ""
 
-# 1. App rename — find/replace the template name across configs and docs.
-#
-# The template ships hardcoded as "template-cf-fullstack". Forks that
-# stay on this name skip the rename. Forks that pick a new name run the
-# substitution across every file we know hardcodes it.
+# macOS sed needs '' after -i; GNU sed does not. Detect and adapt.
+if sed --version >/dev/null 2>&1; then
+  SED_INPLACE=(sed -i)
+else
+  SED_INPLACE=(sed -i '')
+fi
+
+files_to_rename=(
+  "wrangler.jsonc"
+  "package.json"
+  "README.md"
+  "AGENTS.md"
+  "docs/adr/README.md"
+  "docs/roadmap.md"
+  "scripts/openapi-document.ts"
+  "src/routes/index.tsx"
+  "src/routes/__root.tsx"
+)
+
+# 1a. GitHub owner/repo rewrite. The template self-refs to
+# "mwheatfill/template-cf-fullstack" in the homepage cards and a few
+# README links. Auto-detect from git remote; prompt to override.
+
+default_gh_repo=""
+if git_remote=$(git remote get-url origin 2>/dev/null); then
+  default_gh_repo=$(echo "$git_remote" | sed -E 's|^.*github\.com[:/]([^/]+/[^/.]+)(\.git)?$|\1|')
+fi
+
+prompt_default="${default_gh_repo:-skip}"
+read -r -p "▶ GitHub repo for self-refs (OWNER/REPO) [${prompt_default}]: " gh_repo
+gh_repo="${gh_repo:-$prompt_default}"
+
+if [[ "$gh_repo" != "skip" && "$gh_repo" != "mwheatfill/template-cf-fullstack" ]]; then
+  if [[ ! "$gh_repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+    echo "  ✗ Expected OWNER/REPO format."
+    exit 1
+  fi
+  echo "▶ Rewriting mwheatfill/template-cf-fullstack -> ${gh_repo}..."
+  for f in "${files_to_rename[@]}"; do
+    if [[ -f "$f" ]]; then
+      "${SED_INPLACE[@]}" "s|mwheatfill/template-cf-fullstack|${gh_repo}|g" "$f"
+    fi
+  done
+  echo "  ✓ Self-refs rewritten. The recipes repo (mwheatfill/app-platform-recipes) is unchanged."
+fi
+
+# 1b. App rename: find/replace the template name across configs and docs.
 
 read -r -p "▶ App name (alphanumeric + dashes) [${DEFAULT_NAME}]: " app_name
 app_name="${app_name:-$DEFAULT_NAME}"
@@ -35,24 +77,6 @@ if [[ "$app_name" != "$DEFAULT_NAME" ]]; then
   echo ""
   echo "▶ Renaming $DEFAULT_NAME -> $app_name across the repo..."
 
-  # macOS sed needs '' after -i; GNU sed does not. Detect and adapt.
-  if sed --version >/dev/null 2>&1; then
-    SED_INPLACE=(sed -i)
-  else
-    SED_INPLACE=(sed -i '')
-  fi
-
-  files_to_rename=(
-    "wrangler.jsonc"
-    "package.json"
-    "README.md"
-    "AGENTS.md"
-    "docs/adr/README.md"
-    "scripts/openapi-document.ts"
-    "src/routes/index.tsx"
-    "src/routes/__root.tsx"
-  )
-
   for f in "${files_to_rename[@]}"; do
     if [[ -f "$f" ]]; then
       "${SED_INPLACE[@]}" "s/${DEFAULT_NAME}/${app_name}/g" "$f"
@@ -60,12 +84,10 @@ if [[ "$app_name" != "$DEFAULT_NAME" ]]; then
     fi
   done
 
-  # Also bootstrap.sh's own DEFAULT_NAME (so subsequent runs match)
   "${SED_INPLACE[@]}" "s/^DEFAULT_NAME=\"${DEFAULT_NAME}\"/DEFAULT_NAME=\"${app_name}\"/" \
     "scripts/bootstrap.sh" || true
   echo "  ~ scripts/bootstrap.sh (DEFAULT_NAME)"
 
-  # And openapi:generate output
   pnpm openapi:generate >/dev/null 2>&1 || true
   echo "  ~ public/openapi.json (regenerated)"
 
@@ -165,7 +187,7 @@ echo "  1. Edit .dev.vars with values for any recipes you plan to install."
 echo "  2. Configure GitHub Secrets for CI/CD:"
 echo "     - CLOUDFLARE_API_TOKEN"
 echo "     - CLOUDFLARE_ACCOUNT_ID"
-echo "     (See README → CI/CD for what these need.)"
+echo "     (See README, CI/CD section, for what these need.)"
 echo "  3. Install capabilities from https://github.com/mwheatfill/app-platform-recipes"
 echo "     For example:"
 echo "       curl -sSL https://raw.githubusercontent.com/mwheatfill/app-platform-recipes/main/install.sh \\"

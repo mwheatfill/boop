@@ -1,7 +1,3 @@
-// Contract for auth provider recipes. All implementations of getCurrentUser
-// must return a User shape conforming to UserSchema. The OpenAPI pipeline
-// references this schema as the canonical user representation.
-
 import { z } from './openapi'
 
 export const UserSchema = z
@@ -14,6 +10,9 @@ export const UserSchema = z
       .array(z.string())
       .meta({ description: 'Group claims for in-app RBAC', example: ['admins'] }),
   })
-  .meta({ id: 'User' })
+  .meta({
+    id: 'User',
+    description: 'Authenticated user as returned by getCurrentUser(request).',
+  })
 
 export type User = z.infer<typeof UserSchema>

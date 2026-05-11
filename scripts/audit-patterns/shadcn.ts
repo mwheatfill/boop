@@ -1,7 +1,6 @@
-// shadcn drift audit: structural-diff every src/components/ui/*.tsx
-// against the live shadcn registry. The audit refetches on every run so
-// that when shadcn changes a canonical primitive, the next run flags
-// us automatically.
+// Structural-diff every src/components/ui/*.tsx against the live
+// shadcn registry: imports, named exports, and data-slot attributes.
+// Class names and expression bodies are not currently diffed.
 
 import { readdirSync } from 'node:fs'
 import { relative } from 'node:path'
@@ -32,7 +31,7 @@ type Allowlist = Record<string, string[]>
 
 function getStyle(): string {
   const componentsJson = readJson<{ style?: string }>('components.json', {})
-  return componentsJson.style ?? 'new-york'
+  return componentsJson.style ?? 'base-vega'
 }
 
 const FETCH_TIMEOUT_MS = 10_000

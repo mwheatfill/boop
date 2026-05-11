@@ -38,6 +38,10 @@
       "style": {
         "useImportType": "warn",
         "useNodejsImportProtocol": "error"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "error",
+        "noGlobalEval": "error"
       }
     }
   },

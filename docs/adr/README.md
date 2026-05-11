@@ -1,11 +1,3 @@
----
-title: "Architecture Decision Records"
-type: "ADR Index"
-status: Active
-author: "Michael Wheatfill, Cloud & Collaboration Architect"
-description: "Index of architecture decisions for template-cf-fullstack."
----
-
 # Architecture Decision Records
 
 These ADRs capture the rationale behind the major platform, framework, and library choices in this template. Read one when you're asking "why was X chosen?" or contemplating an override.

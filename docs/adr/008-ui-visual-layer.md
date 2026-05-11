@@ -8,14 +8,14 @@ The visual layer spans every UI surface in the template (primitives, headless, c
 
 ## Decision
 
-[shadcn/ui](https://ui.shadcn.com/docs) (style `base-vega`) is the center. Every other UI choice is either shipped by shadcn, used by shadcn examples, or the React-ecosystem default that integrates with shadcn's CSS-variable theming. Tailwind v4 is the substrate this layer renders into; its choice belongs to a future "Styling" ADR. Detailed base-vega vs radix-* rationale: [ADR-009 Notable §3](009-opinionated-stack-and-pattern-enforcement.md#notable).
+[shadcn/ui](https://ui.shadcn.com/docs) (style `base-vega`) is the center. Every other UI choice is either shipped by shadcn, used by shadcn examples, or the React-ecosystem default that integrates with shadcn's CSS-variable theming. Tailwind v4 is the substrate this layer renders into; its choice belongs to a future "Styling" ADR. Detailed base-vega vs radix-* rationale: [ADR-009 Neutral / trade-off](009-opinionated-stack-and-pattern-enforcement.md#consequences).
 
 | Concern | Choice | Over |
 |---|---|---|
 | Primitives | shadcn/ui (`base-vega`), CLI-vendored via `npx shadcn@latest add <component>` | Material UI, Mantine, Chakra (each duplicates theme plumbing; no live-registry source for the audit to ground in) |
 | Headless | [Base UI](https://base-ui.com/) (`@base-ui/react`); compose via `render` prop, not `asChild`/`Slot` | Radix, Headless UI (locked downstream of base-vega style) |
 | Charts | [shadcn Chart](https://ui.shadcn.com/docs/components/chart) on Recharts v3, via [`charts/setup`](https://github.com/mwheatfill/app-platform-recipes/tree/main/recipes/charts/setup) recipe | Chart.js (canvas, no React composition); Victory (stagnant); Plotly (scientific viz, heavy); Nivo (no shadcn integration); ECharts (Apache, not React-native) |
-| Animation | `motion` (formerly Framer Motion), planned [`motion/setup`](https://github.com/mwheatfill/app-platform-recipes/tree/main/recipes/motion/setup) recipe; CSS / Tailwind transitions for simple cases | react-spring (post-rebrand maintenance slowing); GSAP (paid-tier license, not React-idiomatic) |
+| Animation | `motion`, planned [`motion/setup`](https://github.com/mwheatfill/app-platform-recipes/tree/main/recipes/motion/setup) recipe; CSS / Tailwind transitions for simple cases | react-spring; GSAP (paid-tier license, not React-idiomatic) |
 | Toasts | shadcn Sonner; template ships `<Toaster />` in `__root.tsx`; app code calls `toast.success(...)` from `'sonner'` | react-toastify, react-hot-toast, notistack (re-implement theme plumbing) |
 | Icons | `lucide-react` | Heroicons (smaller set); react-icons (aggregator bloat); Tabler (not the shadcn default) |
 | Dashboard | planned [`dashboard/scaffold`](https://github.com/mwheatfill/app-platform-recipes/tree/main/recipes/dashboard/scaffold) recipe (`npx shadcn@latest add dashboard-01`) | Hand-rolled sidebar + chart layouts |

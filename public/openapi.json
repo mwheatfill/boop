@@ -2,8 +2,54 @@
   "openapi": "3.1.0",
   "info": {
     "title": "template-cf-fullstack",
-    "version": "0.0.0",
+    "version": "0.0.2",
     "description": "Generated from Zod schemas. Single source of truth for the API contract. The template ships no endpoints; add paths here as your app grows."
   },
-  "paths": {}
+  "paths": {},
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable user ID",
+            "example": "usr_abc123"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+            "example": "user@example.com"
+          },
+          "name": {
+            "example": "Alex Doe",
+            "type": "string"
+          },
+          "image": {
+            "example": "https://example.com/avatar.png",
+            "type": "string",
+            "format": "uri"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Group claims for in-app RBAC",
+            "example": [
+              "admins"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "groups"
+        ],
+        "additionalProperties": false,
+        "description": "Authenticated user as returned by getCurrentUser(request)."
+      }
+    }
+  }
 }

@@ -6,13 +6,14 @@
   "type": "module",
   "packageManager": "pnpm@11.0.9",
   "engines": {
-    "node": ">=24.0.0 <25"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "preview": "vite preview",
-    "deploy": "vite build && wrangler deploy",
+    "deploy:dev": "vite build && wrangler deploy",
+    "deploy:prod": "CLOUDFLARE_ENV=production vite build && wrangler deploy --env production",
     "cf-typegen": "wrangler types",
     "check": "biome check .",
     "check:fix": "biome check --write .",
@@ -31,7 +32,7 @@
     "intent:list:json": "intent list --json",
     "intent:stale": "intent stale",
     "prepare": "husky",
-    "postinstall": "wrangler types || true"
+    "postinstall": "wrangler types 2>/dev/null || echo 'wrangler types skipped: run pnpm cf-typegen after wrangler login'"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -71,7 +72,6 @@
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.11",
-    "vite-tsconfig-paths": "^6.0.4",
     "vitest": "^4.1.5",
     "wrangler": "^4.90.0"
   },

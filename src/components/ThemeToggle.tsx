@@ -10,10 +10,7 @@ const themes = [
 ] as const
 
 export function ThemeToggle() {
-  // No mount-gate: React 19 + next-themes handle hydration via the
-  // `suppressHydrationWarning` on <html> in __root.tsx. Adding a
-  // `useState(false)` + `useEffect(() => setMounted(true))` is the
-  // React 18-era reflex; it just adds a frame of placeholder flash.
+  // No mount-gate: <html suppressHydrationWarning> in __root.tsx covers it.
   const { theme, setTheme } = useTheme()
 
   return (

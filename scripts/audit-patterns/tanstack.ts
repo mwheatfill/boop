@@ -1,7 +1,5 @@
-// TanStack pattern audit. Structural assertions for the canonical
-// patterns the version-locked Intent skills declare. Add a check here
-// whenever an agent is caught producing a canonical-deviation pattern;
-// each finding cites the source SKILL so a reviewer can dig in.
+// Structural assertions for the canonical patterns the version-locked
+// TanStack Intent skills declare.
 
 import { readFileSync } from 'node:fs'
 import { relative } from 'node:path'
@@ -12,10 +10,6 @@ const AUDIT = 'tanstack' as const
 
 type CheckResult = Omit<Finding, 'audit' | 'file'> | null
 
-/**
- * A check that scans one fixed file. Skips silently if the file is
- * missing (so the audit gracefully handles forks that delete pieces).
- */
 interface SingleFileCheck {
   kind: 'single'
   name: string
@@ -23,11 +17,6 @@ interface SingleFileCheck {
   check: (source: string) => CheckResult
 }
 
-/**
- * A check that scans every TypeScript file under `dir`. Findings carry
- * the actual file path that matched (and a 1-based line number when
- * `check` returns one).
- */
 interface MultiFileCheck {
   kind: 'multi'
   name: string
@@ -100,22 +89,46 @@ const checks: Check[] = [
     },
   },
   {
+    kind: 'multi',
+    name: 'mutating-server-fn-needs-input-validator',
+    dir: 'src/routes',
+    check: (src) => {
+      const re =
+        /createServerFn\s*\(\s*\{[^}]*method\s*:\s*['"](?:POST|PUT|PATCH|DELETE)['"][^}]*\}\s*\)([\s\S]*?)\.handler\s*\(/g
+      let m = re.exec(src)
+      while (m !== null) {
+        const between = m[1] ?? ''
+        if (!/\.inputValidator\s*\(/.test(between)) {
+          const line = src.slice(0, m.index).split('\n').length
+          return {
+            severity: 'error',
+            line,
+            message:
+              'Mutating server fn (POST/PUT/PATCH/DELETE) is missing `.inputValidator(...)`. ADR-013 requires validation on every server-fn input.',
+          }
+        }
+        m = re.exec(src)
+      }
+      return null
+    },
+  },
+  {
     kind: 'single',
-    name: 'vite-config-uses-tsconfig-paths-plugin',
+    name: 'vite-config-uses-native-tsconfig-paths',
     file: 'vite.config.ts',
     check: (src) => {
-      if (/resolve\s*:\s*\{[^}]*tsconfigPaths\s*:\s*true/.test(src)) {
+      if (/from\s+['"]vite-tsconfig-paths['"]/.test(src)) {
         return {
           severity: 'error',
           message:
-            '`resolve.tsconfigPaths: true` is not a Vite option. Use the `vite-tsconfig-paths` plugin instead.',
+            'Remove the `vite-tsconfig-paths` plugin. Vite 8 resolves tsconfig paths natively via `resolve.tsconfigPaths: true` (https://vite.dev/config/shared-options.html#resolve-tsconfigpaths).',
         }
       }
-      if (!/from\s+['"]vite-tsconfig-paths['"]/.test(src)) {
+      if (!/resolve\s*:\s*\{[^}]*tsconfigPaths\s*:\s*true/.test(src)) {
         return {
           severity: 'warn',
           message:
-            'vite.config.ts does not import vite-tsconfig-paths. The plugin is the documented Vite-canonical mechanism for tsconfig path aliases.',
+            'vite.config.ts does not enable `resolve.tsconfigPaths: true`. Path aliases from tsconfig.json will not resolve at build time.',
         }
       }
       return null

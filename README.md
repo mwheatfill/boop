@@ -1,11 +1,3 @@
----
-title: "template-cf-fullstack"
-type: "Template"
-status: Active
-author: "Michael Wheatfill, Cloud & Collaboration Architect"
-description: "Cloudflare Workers + TanStack Start template. Skeleton plus agent-ready governance; capabilities (auth, AI, email, MCP, more) layer on via recipes."
----
-
 # template-cf-fullstack
 
 Starter for great apps on Cloudflare. Ships only what every app needs: framework wiring, an empty data layer, an agent-ready governance layer, and the build/deploy infrastructure. Capabilities (auth, AI, email, MCP, more) install on demand via [app-platform-recipes](https://github.com/mwheatfill/app-platform-recipes).
@@ -56,6 +48,40 @@ pnpm dev
 
 Then open `http://localhost:3000`.
 
+## First steps
+
+The canonical "first move" for each layer:
+
+**Add a route.** Create `src/routes/about.tsx`. TanStack Router picks it up on save.
+
+```tsx
+import { createFileRoute } from '@tanstack/react-router'
+
+export const Route = createFileRoute('/about')({
+  component: () => <h1>About</h1>,
+})
+```
+
+**Add a DB table.** Edit `src/lib/db/schema.ts`, then `pnpm db:generate && pnpm db:migrate:local`.
+
+```ts
+import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+
+export const todos = sqliteTable('todos', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+})
+```
+
+**Add a server fn with validation.** Mutating server fns (POST/PUT/PATCH/DELETE) require `.inputValidator(schema)` per [ADR-013](docs/adr/013-forms-and-validation.md). The audit catches missing validators. See [`src/routes/index.tsx`](src/routes/index.tsx) for the GET shape; ADR-013 has the mutating shape.
+
+**Install your first recipe.** Auth, AI, email, monitoring, charts, etc. install from [app-platform-recipes](https://github.com/mwheatfill/app-platform-recipes). Example:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/mwheatfill/app-platform-recipes/main/install.sh \
+  | bash -s -- auth/better-auth
+```
+
 ## Deploy
 
 GitHub Actions handles deploys. Two workflows in [`.github/workflows/`](.github/workflows/):
@@ -65,7 +91,7 @@ GitHub Actions handles deploys. Two workflows in [`.github/workflows/`](.github/
 
 Both workflows share their setup (checkout, pnpm, Node, install) through a composite action at [`.github/actions/setup`](.github/actions/setup/action.yml). Update the install pipeline in one place.
 
-Quality gates: Biome lint/format, build, vitest, `openapi:check`. `intent:stale` runs as a soft warning on the check job. Migrations run via `pnpm exec wrangler d1 migrations apply` against the target env before deploy.
+Quality gates: Biome lint/format, build, vitest, `openapi:check`, `audit:patterns`. `intent:stale` runs as a soft warning on the check job. Migrations run via `pnpm exec wrangler d1 migrations apply` against the target env before deploy.
 
 ### Required GitHub Secrets
 
@@ -126,4 +152,4 @@ This template is built to be evolved by AI coding agents (Claude Code, Codex, Cu
 
 ## License
 
-UNLICENSED. See [`LICENSE`](LICENSE).
+Proprietary to SwitchThink. Apps you fork from this template should replace [`LICENSE`](LICENSE) and the `license` field in `package.json` with terms that match the consuming app.

@@ -8,13 +8,13 @@ Forms, input validation, and the OpenAPI contract are entangled: the same shape 
 
 ## Decision
 
-Forms and validation share a single canonical chain: TanStack Form for rich state-laden forms, React 19's `<form action>` + `useActionState` for simple ones, and Zod 4 through the OpenAPI side-effect import for validation everywhere (forms, server functions, and the `openapi.json` emission). Schemas live in `src/shared/schemas/<domain>.ts` and are imported from `@/shared/schemas/openapi`, not directly from `zod`.
+Forms and validation share a single canonical chain: TanStack Form for rich state-laden forms, React 19's `<form action>` + `useActionState` for simple ones, and Zod 4 through the `@/shared/schemas/openapi` re-export for validation everywhere (forms, server functions, and the `openapi.json` emission). Schemas live in `src/shared/schemas/<domain>.ts` and are imported from `@/shared/schemas/openapi`, not directly from `zod`.
 
 | Concern | Choice | Over |
 |---|---|---|
 | Forms (rich) | [TanStack Form](https://tanstack.com/form/latest); state, validation, async submission, multi-step | React Hook Form, Formik (lose family coherence with the rest of the TanStack stack per [ADR-002](002-tanstack-start-framework.md)) |
 | Forms (simple) | React 19 `<form action={fn}>` + `useActionState` | Controlled-component `onSubmit` + `useState` chains (more code for less behavior) |
-| Validation | [Zod 4](https://zod.dev/) imported from `@/shared/schemas/openapi` (loads the zod-openapi 5.x side effect) | Yup, Joi (no first-class TS inference); Valibot (smaller bundle but no zod-openapi adapter); Superstruct (smaller community) |
+| Validation | [Zod 4](https://zod.dev/) imported from `@/shared/schemas/openapi` (the type-augmentation seam for zod-openapi 5.x) | Yup, Joi (no first-class TS inference); Valibot (smaller bundle but no zod-openapi adapter); Superstruct (smaller community) |
 | Schema location | `src/shared/schemas/<domain>.ts` | Ad-hoc inline schemas (don't make it into `openapi.json`) |
 | Schema metadata | `.meta({ description, example, id })` per zod-openapi 5.x | `.openapi()` (the older zod-openapi syntax) |
 | Server fn input | `createServerFn({ method }).inputValidator((data) => schema.parse(data)).handler(...)` | No-op validators, manual parsing inside the handler |

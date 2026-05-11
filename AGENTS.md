@@ -1,11 +1,3 @@
----
-title: "AGENTS.md"
-type: "Repo Instructions"
-status: Active
-author: "Michael Wheatfill, Cloud & Collaboration Architect"
-description: "Canonical instructions for AI coding agents working in this repo. Cross-harness; read first."
----
-
 # AGENTS.md
 
 You're an AI coding agent (Claude Code, Codex, Cursor, Aider, or similar) working in a Cloudflare Workers + TanStack Start application built from `template-cf-fullstack`. This file is the canonical entry point. Read it first.
@@ -23,7 +15,7 @@ At session start: skim [`docs/adr/README.md`](docs/adr/README.md) for the archit
 | AI | Recipe-only. Install `ai/chat-route` + a provider recipe (e.g. `microsoft-foundry/chat-completion`); template ships nothing AI-related |
 | Email | Recipe-only. Install `email/send-pipeline` + a transport recipe (e.g. `email/graph-shared-mailbox`); template ships nothing email-related |
 | UI | shadcn/ui style `base-vega` (Base UI primitives via `@base-ui/react` + the "vega" visual theme), Tailwind v4, `next-themes` for theme provider |
-| Validation | Zod 4 imported from `@/shared/schemas/openapi` (loads zod-openapi side effect); `openapi.json` is the CI-enforced contract |
+| Validation | Zod 4 imported from `@/shared/schemas/openapi` (the type-augmentation seam for zod-openapi 5.x); `openapi.json` is the CI-enforced contract |
 | Logging | `logInfo` / `logWarn` / `logError` from `@/lib/log` (a `console.*` wrapper; Workers Logs auto-indexes JSON fields). Recipes overlay Sentry / App Insights / OTel without touching call sites |
 | Testing | Vitest + Testing Library |
 | Tooling | Biome, Husky, lint-staged, Renovate, TanStack Intent |

@@ -1,10 +1,10 @@
+import { env } from 'cloudflare:workers'
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 const getHealth = createServerFn({ method: 'GET' }).handler(async () => {
-  const { env } = await import('cloudflare:workers')
   return {
     env: env.PUBLIC_ENV,
     appName: env.PUBLIC_APP_NAME,
@@ -32,11 +32,6 @@ const docLinks = [
     title: 'Architecture Decision Records',
     description: 'Why each platform, framework, and library choice was made.',
     href: 'https://github.com/mwheatfill/template-cf-fullstack/tree/main/docs/adr',
-  },
-  {
-    title: 'Agent rules',
-    description: 'Cross-harness governance: lookup order, dependencies, conventions.',
-    href: 'https://github.com/mwheatfill/template-cf-fullstack/tree/main/agent-rules',
   },
   {
     title: 'Recipes',
@@ -95,8 +90,8 @@ function HomePage() {
       </section>
 
       <footer className="text-xs text-muted-foreground">
-        <code className="font-mono">getHealth()</code> server fn → Query cache key{' '}
-        <code className="font-mono">["health"]</code> → loader prefetch →{' '}
+        <code className="font-mono">getHealth()</code> server fn, Query cache key{' '}
+        <code className="font-mono">["health"]</code>, loader prefetch,{' '}
         <code className="font-mono">useSuspenseQuery</code> read. Returned{' '}
         <code className="font-mono">env={health.env}</code> at{' '}
         <time dateTime={health.timestamp}>{health.timestamp}</time>. Delete this footer once you

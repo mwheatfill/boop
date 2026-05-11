@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-// Audit-patterns runner. See ADR-0011 for the rationale.
+// Audit-patterns runner. See ADR-009 for the rationale.
 
 import { writeFileSync } from 'node:fs'
 import { runPreferencesAudit } from './preferences'
@@ -60,7 +60,7 @@ function renderMarkdown(results: AuditResult[], summary: Summary): string {
   lines.push(
     '---',
     '',
-    'Audit-patterns is the mechanical enforcement of the canonical-choice list defined in `scripts/audit-patterns/preferences.ts`. See ADR-009 for the rationale.',
+    'Audit-patterns is a structural backstop for architectural seams (auth, logging, primitives, CI config) and canonical-pattern drift (shadcn registry, TanStack Intent skills). See ADR-009.',
   )
   return lines.join('\n')
 }

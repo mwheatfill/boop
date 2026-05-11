@@ -1,8 +1,7 @@
-// Side-effect import that wires zod-openapi 5.x into Zod 4. With this
-// loaded, decorate schemas using the built-in `.meta({ description, example,
-// id, ... })` API and the OpenAPI generator picks it up. Import `z` from
-// this module everywhere instead of directly from 'zod' so the side effect
-// is loaded before any schema is defined.
+// Bare import activates zod-openapi's TypeScript module augmentation,
+// which adds OpenAPI keys (description, example, id, ...) to Zod's
+// `.meta()` parameter type. Zero runtime effect; import `z` from here
+// so the augmentation is in scope at every schema definition.
 import 'zod-openapi'
 import { z } from 'zod'
 

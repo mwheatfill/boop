@@ -3,5 +3,8 @@
   "_examples": {
     "_button-comment": "Example: skip the Slot import drift if we forked Button to use a different slot lib.",
     "_button-skip": ["import:radix-ui"]
+  },
+  "sonner": {
+    "_comment": "The canonical sonner.tsx casts `theme` as `ToasterProps['theme']`, which includes `undefined`. The template's tsconfig sets `exactOptionalPropertyTypes: true`, which rejects `undefined` for an optional prop. We narrow to the literal union `'light' | 'dark' | 'system'` instead. The structural diff doesn't currently inspect class names or expression bodies, so this is documentary; the entry is here so a future class-name diff doesn't surface it as drift."
   }
 }
