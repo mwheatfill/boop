@@ -30,7 +30,6 @@ files_to_rename=(
   "README.md"
   "AGENTS.md"
   "docs/adr/README.md"
-  "docs/roadmap.md"
   "scripts/openapi-document.ts"
   "src/routes/index.tsx"
   "src/routes/__root.tsx"

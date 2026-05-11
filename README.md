@@ -148,7 +148,6 @@ This template is built to be evolved by AI coding agents (Claude Code, Codex, Cu
 
 - [`AGENTS.md`](AGENTS.md): canonical agent instructions (stack, locked decisions, doc resolution, file naming, things to avoid)
 - [`docs/adr/`](docs/adr/): Architecture Decision Records (why each major choice)
-- [`docs/roadmap.md`](docs/roadmap.md): open work and milestones
 
 ## License
 

@@ -160,7 +160,7 @@ Check against `AGENTS.md` "File naming" + "Things to avoid" + general senior-eng
 
 ### 9. `docs` — AGENTS.md, ADRs, README, recipe-link integrity
 
-Files: `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/adr/*`, `docs/roadmap.md`.
+Files: `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/adr/*`.
 
 Check against the practices established in this template (Anthropic best practices for CLAUDE.md, the agents.md convention):
 - `AGENTS.md` is concise (target <100 lines). Anything Claude can figure out from code → cut.
