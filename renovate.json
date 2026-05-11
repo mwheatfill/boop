@@ -20,10 +20,6 @@
       "schedule": ["before 6am on monday"]
     },
     {
-      "matchPackageNames": ["@ai-sdk/**", "ai"],
-      "groupName": "Vercel AI SDK"
-    },
-    {
       "matchPackageNames": ["biomejs/biome", "typescript", "vite", "wrangler", "vitest"],
       "groupName": "build tooling",
       "rangeStrategy": "pin"

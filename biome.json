@@ -17,7 +17,8 @@
       "!**/drizzle/meta",
       "!**/routeTree.gen.ts",
       "!**/openapi.json",
-      "!**/worker-configuration.d.ts"
+      "!**/worker-configuration.d.ts",
+      "!**/.claude/settings.local.json"
     ]
   },
   "formatter": {

@@ -1,4 +1,4 @@
-import type { User } from '@/shared/types/auth'
+import type { User } from '@/shared/schemas/auth'
 
 export type { User }
 

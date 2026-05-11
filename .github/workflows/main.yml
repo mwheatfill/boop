@@ -37,16 +37,9 @@ jobs:
       - name: OpenAPI contract in sync
         run: pnpm openapi:check
 
-      - name: Audit patterns (canonical-stack enforcement)
-        # Runs the three audits in scripts/audit-patterns/:
-        #   - shadcn: structural-diff src/components/ui against the live
-        #     shadcn registry; catches hand-rolled drift.
-        #   - tanstack: structural assertions for canonical TSS / Router /
-        #     Query patterns (verbatimModuleSyntax off, root uses with-
-        #     context, server fns have real validators, etc.).
-        #   - preferences: grep src/ for forbidden imports declared in
-        #     agent-rules/preferences.md.
-        # See ADR-0011 for the why.
+      - name: Audit patterns (structural backstop)
+        # shadcn registry diff, TanStack canonical-pattern assertions,
+        # architectural-seam guards. See ADR-009.
         run: pnpm audit:patterns
 
       - name: Upload audit-patterns report
