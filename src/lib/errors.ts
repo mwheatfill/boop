@@ -10,17 +10,26 @@ export class FieldValidationError extends Error {
   }
 }
 
+export type ArchiveBlockedEntityKind = 'customer' | 'target' | 'channel'
+
+function archiveBlockedMessage(entityKind: ArchiveBlockedEntityKind, count: number): string {
+  if (entityKind === 'channel') {
+    return count === 1
+      ? 'This Channel is referenced by 1 active alert rule. Update that rule before archiving this Channel.'
+      : `This Channel is referenced by ${count} active alert rules. Update those rules before archiving this Channel.`
+  }
+  const noun = entityKind === 'customer' ? 'Customer' : 'Target'
+  return count === 1
+    ? `${noun} has 1 active Job. Archive it first.`
+    : `${noun} has ${count} active Jobs. Archive them first.`
+}
+
 export class ArchiveBlockedError extends Error {
   readonly blockingCount: number
-  readonly entityKind: 'customer' | 'target'
+  readonly entityKind: ArchiveBlockedEntityKind
 
-  constructor(blockingCount: number, entityKind: 'customer' | 'target') {
-    const noun = entityKind === 'customer' ? 'Customer' : 'Target'
-    super(
-      blockingCount === 1
-        ? `${noun} has 1 active Job. Archive it first.`
-        : `${noun} has ${blockingCount} active Jobs. Archive them first.`,
-    )
+  constructor(blockingCount: number, entityKind: ArchiveBlockedEntityKind) {
+    super(archiveBlockedMessage(entityKind, blockingCount))
     this.name = 'ArchiveBlockedError'
     this.blockingCount = blockingCount
     this.entityKind = entityKind

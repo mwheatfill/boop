@@ -1,10 +1,10 @@
 import { and, eq, ne } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
-import { jobs } from '@/lib/db/schema'
+import { alertRules, channels, jobs } from '@/lib/db/schema'
 
 export type ArchiveCheck =
   | { ok: true }
-  | { ok: false; reason: 'has_active_jobs'; blockingCount: number }
+  | { ok: false; reason: 'has_active_jobs' | 'has_active_alert_rules'; blockingCount: number }
 
 export async function canArchiveCustomer(db: Database, customerId: string): Promise<ArchiveCheck> {
   const rows = await db
@@ -22,4 +22,25 @@ export async function canArchiveTarget(db: Database, targetId: string): Promise<
     .where(and(eq(jobs.targetId, targetId), ne(jobs.status, 'archived')))
   if (rows.length === 0) return { ok: true }
   return { ok: false, reason: 'has_active_jobs', blockingCount: rows.length }
+}
+
+function ruleReferencesChannel(channelIdsJson: string, channelId: string): boolean {
+  try {
+    const parsed = JSON.parse(channelIdsJson)
+    return Array.isArray(parsed) && parsed.includes(channelId)
+  } catch {
+    return false
+  }
+}
+
+export async function canArchiveChannel(db: Database, channelId: string): Promise<ArchiveCheck> {
+  const channel = (await db.select().from(channels).where(eq(channels.id, channelId)).limit(1))[0]
+  if (!channel) return { ok: true }
+  const rules = await db
+    .select({ id: alertRules.id, channelIds: alertRules.channelIds })
+    .from(alertRules)
+    .where(and(eq(alertRules.customerId, channel.customerId), eq(alertRules.status, 'active')))
+  const blocking = rules.filter((r) => ruleReferencesChannel(r.channelIds, channelId))
+  if (blocking.length === 0) return { ok: true }
+  return { ok: false, reason: 'has_active_alert_rules', blockingCount: blocking.length }
 }
