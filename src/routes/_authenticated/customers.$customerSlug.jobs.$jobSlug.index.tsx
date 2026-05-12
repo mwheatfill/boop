@@ -9,6 +9,7 @@ import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { triggerSummary } from '@/lib/jobs/format'
 import {
   archiveJobFn,
   getJobFn,
@@ -17,7 +18,6 @@ import {
   resumeJobFn,
   runJobNowFn,
 } from '@/lib/jobs/server-fns'
-import type { Job } from '@/shared/schemas/job'
 
 const jobOptions = (customerSlug: string, jobSlug: string) =>
   queryOptions({
@@ -30,12 +30,6 @@ export const Route = createFileRoute('/_authenticated/customers/$customerSlug/jo
     context.queryClient.ensureQueryData(jobOptions(params.customerSlug, params.jobSlug)),
   component: JobDetailPage,
 })
-
-function triggerSummary(job: Job): string {
-  if (job.triggerKind === 'cron') return `cron ${job.cronExpression} (${job.triggerTimezone})`
-  if (job.triggerKind === 'interval') return `every ${job.intervalSeconds}s`
-  return 'webhook'
-}
 
 function JobDetailPage() {
   const { customerSlug, jobSlug } = Route.useParams()

@@ -13,16 +13,11 @@ interface UseEntityModalGuardResult {
 export function useEntityModalGuard({
   isDirty,
 }: UseEntityModalGuardInput): UseEntityModalGuardResult {
+  // withResolver: true guarantees proceed/reset are defined.
   const { status, proceed, reset } = useBlocker({
     shouldBlockFn: () => isDirty,
     withResolver: true,
     enableBeforeUnload: isDirty,
   })
-  return {
-    status,
-    proceed: proceed ?? noop,
-    reset: reset ?? noop,
-  }
+  return { status, proceed: proceed as () => void, reset: reset as () => void }
 }
-
-function noop() {}

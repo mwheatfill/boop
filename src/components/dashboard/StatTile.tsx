@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { Area, AreaChart } from 'recharts'
 import { ChartContainer } from '@/components/ui/chart'
 import { cn } from '@/lib/utils'
@@ -17,6 +18,7 @@ interface StatTileProps {
 }
 
 export function StatTile({ label, value, sparkline, trend, trendSuffix }: StatTileProps) {
+  const gradientId = `spark-${useId().replace(/:/g, '')}`
   const trendColor =
     trend == null || trend === 0
       ? 'text-muted-foreground'
@@ -46,7 +48,7 @@ export function StatTile({ label, value, sparkline, trend, trendSuffix }: StatTi
         >
           <AreaChart data={sparkline} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
             <defs>
-              <linearGradient id={`spark-${label}`} x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--color-v)" stopOpacity={0.4} />
                 <stop offset="100%" stopColor="var(--color-v)" stopOpacity={0} />
               </linearGradient>
@@ -56,7 +58,7 @@ export function StatTile({ label, value, sparkline, trend, trendSuffix }: StatTi
               dataKey="v"
               stroke="var(--color-v)"
               strokeWidth={1.5}
-              fill={`url(#spark-${label})`}
+              fill={`url(#${gradientId})`}
               isAnimationActive={false}
             />
           </AreaChart>

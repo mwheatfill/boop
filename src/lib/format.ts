@@ -23,3 +23,23 @@ export function formatPercent(ratio: number, locale = 'en-US', fractionDigits = 
     maximumFractionDigits: fractionDigits,
   }).format(ratio)
 }
+
+export function relativeAgo(ms: number, now = Date.now()): string {
+  const diff = now - ms
+  const m = Math.floor(diff / 60_000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
+}
+
+export function relativeIn(ms: number, now = Date.now()): string {
+  const diff = ms - now
+  if (diff <= 0) return 'now'
+  const m = Math.floor(diff / 60_000)
+  if (m < 60) return `in ${m}m`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `in ${h}h`
+  return `in ${Math.floor(h / 24)}d`
+}

@@ -37,38 +37,38 @@ async function computeStats(db: Database, now: Date): Promise<Stats> {
   const dayAgo = new Date(now.getTime() - DAY_MS)
   const sevenDaysAgo = new Date(now.getTime() - 7 * DAY_MS)
 
-  const [activeRow] = await db.select({ n: count() }).from(jobs).where(eq(jobs.status, 'active'))
-  const activeJobs = activeRow?.n ?? 0
+  const [[activeRow], [runsTodayRow], [failingTodayRow], [success7d], [total7d]] =
+    await Promise.all([
+      db.select({ n: count() }).from(jobs).where(eq(jobs.status, 'active')),
+      db.select({ n: count() }).from(runs).where(gte(runs.startedAt, dayAgo)),
+      db
+        .select({ n: sql<number>`count(distinct ${runs.jobId})` })
+        .from(runs)
+        .where(and(gte(runs.completedAt, dayAgo), inArray(runs.outcome, ['failure', 'timeout']))),
+      db
+        .select({ n: count() })
+        .from(runs)
+        .where(and(gte(runs.completedAt, sevenDaysAgo), eq(runs.outcome, 'success'))),
+      db
+        .select({ n: count() })
+        .from(runs)
+        .where(
+          and(
+            gte(runs.completedAt, sevenDaysAgo),
+            inArray(runs.outcome, ['success', 'failure', 'timeout']),
+          ),
+        ),
+    ])
 
-  const [runsTodayRow] = await db
-    .select({ n: count() })
-    .from(runs)
-    .where(gte(runs.startedAt, dayAgo))
-  const runsToday = runsTodayRow?.n ?? 0
-
-  const [failingTodayRow] = await db
-    .select({ n: sql<number>`count(distinct ${runs.jobId})` })
-    .from(runs)
-    .where(and(gte(runs.completedAt, dayAgo), inArray(runs.outcome, ['failure', 'timeout'])))
-  const failingToday = failingTodayRow?.n ?? 0
-
-  const [success7d] = await db
-    .select({ n: count() })
-    .from(runs)
-    .where(and(gte(runs.completedAt, sevenDaysAgo), eq(runs.outcome, 'success')))
-  const [total7d] = await db
-    .select({ n: count() })
-    .from(runs)
-    .where(
-      and(
-        gte(runs.completedAt, sevenDaysAgo),
-        inArray(runs.outcome, ['success', 'failure', 'timeout']),
-      ),
-    )
   const successRate7d =
     total7d?.n && total7d.n > 0 ? Math.round(((success7d?.n ?? 0) / total7d.n) * 1000) / 10 : 0
 
-  return { activeJobs, failingToday, runsToday, successRate7d }
+  return {
+    activeJobs: activeRow?.n ?? 0,
+    failingToday: failingTodayRow?.n ?? 0,
+    runsToday: runsTodayRow?.n ?? 0,
+    successRate7d,
+  }
 }
 
 async function computeSparklines(db: Database, now: Date): Promise<Sparklines> {

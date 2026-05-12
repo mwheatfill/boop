@@ -1,10 +1,11 @@
 import { useForm, useStore } from '@tanstack/react-form'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { EntityModal } from '@/components/forms/EntityModal'
 import { PillButton } from '@/components/forms/PillPicker'
+import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Textarea } from '@/components/ui/textarea'
@@ -48,7 +49,7 @@ type TargetModalProps = CreateProps | EditProps
 export function TargetModal(props: TargetModalProps) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const slugManuallyEdited = useRef(props.variant === 'edit')
+  const slug = useSlugAutoFill(props.variant === 'edit')
 
   const initial: TargetFormValues =
     props.variant === 'edit'
@@ -157,7 +158,7 @@ export function TargetModal(props: TargetModalProps) {
           name="name"
           listeners={{
             onChange: ({ value }) => {
-              if (slugManuallyEdited.current) return
+              if (slug.isManual()) return
               form.setFieldValue('slug', slugify(value))
             },
           }}
@@ -179,7 +180,7 @@ export function TargetModal(props: TargetModalProps) {
                     value={slugField.state.value}
                     readOnly={props.variant === 'edit'}
                     onChange={(e) => {
-                      slugManuallyEdited.current = true
+                      slug.markManual()
                       slugField.handleChange(e.currentTarget.value)
                     }}
                     aria-label="Slug"

@@ -1,9 +1,9 @@
 import { useForm, useStore } from '@tanstack/react-form'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useRef } from 'react'
 import { toast } from 'sonner'
 import { EntityModal } from '@/components/forms/EntityModal'
+import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
 import { Input } from '@/components/ui/input'
 import { createCustomerFn, updateCustomerFn } from '@/lib/customers/server-fns'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
@@ -33,7 +33,7 @@ type CustomerModalProps = CreateProps | EditProps
 export function CustomerModal(props: CustomerModalProps) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const slugManuallyEdited = useRef(props.variant === 'edit')
+  const slug = useSlugAutoFill(props.variant === 'edit')
 
   const initial: CustomerFormValues =
     props.variant === 'edit'
@@ -115,7 +115,7 @@ export function CustomerModal(props: CustomerModalProps) {
           name="name"
           listeners={{
             onChange: ({ value }) => {
-              if (slugManuallyEdited.current) return
+              if (slug.isManual()) return
               form.setFieldValue('slug', slugify(value))
             },
           }}
@@ -137,7 +137,7 @@ export function CustomerModal(props: CustomerModalProps) {
                     value={slugField.state.value}
                     readOnly={props.variant === 'edit'}
                     onChange={(e) => {
-                      slugManuallyEdited.current = true
+                      slug.markManual()
                       slugField.handleChange(e.currentTarget.value)
                     }}
                     aria-label="Slug"

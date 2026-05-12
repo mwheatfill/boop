@@ -2,16 +2,18 @@ import { useForm, useStore } from '@tanstack/react-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { EntityModal } from '@/components/forms/EntityModal'
-import { PillButton, type PillState } from '@/components/forms/PillPicker'
+import { PillButton } from '@/components/forms/PillPicker'
 import { TargetModal } from '@/components/forms/TargetModal'
 import { TemplateEditor } from '@/components/forms/TemplateEditor'
 import { TriggerPicker } from '@/components/forms/TriggerPicker'
+import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { triggerSummary } from '@/lib/jobs/format'
 import { createJobFn, updateJobFn } from '@/lib/jobs/server-fns'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
@@ -72,7 +74,7 @@ export function JobModal({
   }, [initialJob, presetCustomer])
 
   const startSlug = initialJob?.slug ?? ''
-  const slugManuallyEdited = useRef(variant === 'edit')
+  const slug = useSlugAutoFill(variant === 'edit')
   const [createAnother, setCreateAnother] = useState(false)
   const [nestedTargetOpen, setNestedTargetOpen] = useState(false)
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false)
@@ -152,7 +154,7 @@ export function JobModal({
           form.setFieldValue('name', '')
           form.setFieldValue('slug', '')
           form.setFieldValue('bodyTemplate', '')
-          slugManuallyEdited.current = false
+          slug.reset()
           form.reset({ ...form.state.values, name: '', slug: '', bodyTemplate: '' })
           return null
         }
@@ -222,7 +224,7 @@ export function JobModal({
           name="name"
           listeners={{
             onChange: ({ value }) => {
-              if (slugManuallyEdited.current) return
+              if (slug.isManual()) return
               form.setFieldValue('slug', slugify(value))
             },
           }}
@@ -245,7 +247,7 @@ export function JobModal({
                     value={slugField.state.value}
                     readOnly={variant === 'edit'}
                     onChange={(e) => {
-                      slugManuallyEdited.current = true
+                      slug.markManual()
                       slugField.handleChange(e.currentTarget.value)
                     }}
                     aria-label="Slug"
@@ -273,7 +275,7 @@ export function JobModal({
                 <PillButton
                   label="Customer"
                   value={selectedCustomer?.name}
-                  state={pillState(!!selectedCustomer, false)}
+                  state={selectedCustomer ? 'filled' : 'empty'}
                   required
                   disabled={variant === 'edit'}
                 />
@@ -307,7 +309,7 @@ export function JobModal({
                 <PillButton
                   label="Target"
                   value={selectedTarget?.name}
-                  state={pillState(!!selectedTarget, false)}
+                  state={selectedTarget ? 'filled' : 'empty'}
                   required
                   disabled={!customerSlug}
                 />
@@ -356,7 +358,12 @@ export function JobModal({
 
           <PillButton
             label="Trigger"
-            value={summarizeTrigger({ triggerKind, cronExpression, intervalSeconds })}
+            value={triggerSummary({
+              triggerKind,
+              cronExpression,
+              intervalSeconds,
+              triggerTimezone: null,
+            })}
             state="filled"
             expanded
             aria-controls="trigger-section"
@@ -428,19 +435,4 @@ export function JobModal({
       ) : null}
     </EntityModal>
   )
-}
-
-function pillState(filled: boolean, invalid: boolean): PillState {
-  if (invalid) return 'invalid'
-  return filled ? 'filled' : 'empty'
-}
-
-function summarizeTrigger(t: {
-  triggerKind: TriggerKind
-  cronExpression: string
-  intervalSeconds: number
-}): string {
-  if (t.triggerKind === 'cron') return t.cronExpression || 'Cron'
-  if (t.triggerKind === 'interval') return `every ${t.intervalSeconds}s`
-  return 'webhook'
 }
