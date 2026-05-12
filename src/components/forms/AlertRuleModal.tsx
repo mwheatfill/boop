@@ -1,18 +1,18 @@
 import { useForm, useStore } from '@tanstack/react-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ChannelModal } from '@/components/forms/ChannelModal'
 import { EntityModal } from '@/components/forms/EntityModal'
-import { MultiSelectPill } from '@/components/forms/MultiSelectPill'
+import { MultiSearchableCombobox } from '@/components/forms/MultiSearchableCombobox'
 import { SingleSelectPill } from '@/components/forms/SingleSelectPill'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createAlertRuleFn, updateAlertRuleFn } from '@/lib/alert-rules/server-fns'
 import { listChannelsQueryOptions } from '@/lib/channels/query-options'
+import { PICKER_KEYS, PICKER_RECENT_LIMITS } from '@/lib/forms/picker-keys'
+import { usePickerRecents } from '@/lib/forms/use-picker-recents'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
 import {
@@ -21,6 +21,7 @@ import {
   CONSECUTIVE_FAILURES_DEFAULT_COUNT,
   SLOW_RUN_DEFAULT_MS,
 } from '@/shared/schemas/alert-rule'
+import type { Channel } from '@/shared/schemas/channel'
 
 interface KindOption {
   kind: AlertRuleKind
@@ -92,13 +93,17 @@ interface AlertRuleModalProps {
   variant: 'create' | 'edit'
   customerSlug: string
   initialRule?: AlertRule
+  isAdmin: boolean
   onClose: () => void
 }
+
+const ADMIN_ONLY_REASON = 'Admin only'
 
 export function AlertRuleModal({
   variant,
   customerSlug,
   initialRule,
+  isAdmin,
   onClose,
 }: AlertRuleModalProps) {
   const queryClient = useQueryClient()
@@ -108,6 +113,13 @@ export function AlertRuleModal({
 
   const channelsQuery = useQuery({ ...listChannelsQueryOptions(customerSlug, false) })
   const activeChannels = (channelsQuery.data ?? []).filter((c) => c.status === 'active')
+
+  const channelRecents = usePickerRecents<Channel>(
+    PICKER_KEYS.recentChannels(customerSlug),
+    activeChannels,
+    (c) => c.id,
+    PICKER_RECENT_LIMITS.channels,
+  )
 
   const form = useForm({
     defaultValues: initialValues(initialRule),
@@ -142,6 +154,10 @@ export function AlertRuleModal({
         await queryClient.invalidateQueries({
           queryKey: ['customers', customerSlug, 'alert-rules'],
         })
+        for (const id of value.channelIds) {
+          const channel = activeChannels.find((c) => c.id === id)
+          if (channel) channelRecents.recordUse(channel)
+        }
         toast.success(variant === 'create' ? `Alert rule ${result.data.name} created` : 'Saved')
         await navigate({ to: '/customers/$customerSlug', params: { customerSlug } })
         return null
@@ -155,16 +171,11 @@ export function AlertRuleModal({
   const channelIds = useStore(form.store, (s) => s.values.channelIds)
   const formError = useStore(form.store, (s) => s.errorMap.onSubmit)
   const selectedKindOption = KIND_OPTIONS.find((o) => o.kind === kind) ?? KIND_OPTIONS[0]
+  const selectedChannels = activeChannels.filter((c) => channelIds.includes(c.id))
 
-  function toggleChannel(channelId: string) {
-    const current = form.state.values.channelIds
-    form.setFieldValue(
-      'channelIds',
-      current.includes(channelId)
-        ? current.filter((id) => id !== channelId)
-        : [...current, channelId],
-    )
-  }
+  const channelCreateAffordance = isAdmin
+    ? { enabled: true, onCreate: () => setNestedChannelOpen(true) }
+    : { enabled: false, disabledReason: ADMIN_ONLY_REASON, onCreate: () => {} }
 
   return (
     <EntityModal
@@ -241,31 +252,24 @@ export function AlertRuleModal({
             getSecondary={(o) => o.description}
             onSelect={(o) => form.setFieldValue('kind', o.kind)}
           />
-          <MultiSelectPill
+          <MultiSearchableCombobox<Channel>
             label="Channels"
             required
             items={activeChannels}
-            selectedKeys={channelIds}
-            getKey={(c) => c.id}
-            getPrimary={(c) => c.name}
+            recents={channelRecents.recents}
+            value={selectedChannels}
+            onValueChange={(next) =>
+              form.setFieldValue(
+                'channelIds',
+                next.map((c) => c.id),
+              )
+            }
+            getId={(c) => c.id}
+            getLabel={(c) => c.name}
             getSecondary={(c) => c.kind}
-            onToggle={(c) => toggleChannel(c.id)}
+            searchKeywords={(c) => [c.slug, c.kind]}
+            createAffordance={channelCreateAffordance}
             emptyMessage="No active Channels yet."
-            popoverWidthClass="w-80"
-            footer={(close) => (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-                onClick={() => {
-                  close()
-                  setNestedChannelOpen(true)
-                }}
-              >
-                <Plus aria-hidden /> New Channel
-              </Button>
-            )}
           />
         </div>
 

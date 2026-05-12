@@ -1,6 +1,7 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { JobModal } from '@/components/forms/JobModal'
+import { isAdmin } from '@/lib/auth/is-admin'
 import { getCustomerFn, listCustomersFn } from '@/lib/customers/server-fns'
 import { listTargetsForCustomerFn } from '@/lib/targets/server-fns'
 
@@ -34,6 +35,7 @@ export const Route = createFileRoute('/_authenticated/customers/$customerSlug/jo
 function NewJobRoute() {
   const { customerSlug } = Route.useParams()
   const navigate = useNavigate()
+  const { currentUser } = Route.useRouteContext()
   const { data: customer } = useSuspenseQuery(customerOptions(customerSlug))
   const { data: customers } = useSuspenseQuery(customersOptions)
   const { data: targets } = useSuspenseQuery(targetsOptions(customerSlug))
@@ -44,6 +46,7 @@ function NewJobRoute() {
       presetCustomer={customer}
       customers={customers}
       initialTargets={targets}
+      isAdmin={isAdmin(currentUser)}
       onClose={() => navigate({ to: '/customers/$customerSlug', params: { customerSlug } })}
     />
   )

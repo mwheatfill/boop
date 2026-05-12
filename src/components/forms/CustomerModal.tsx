@@ -1,10 +1,13 @@
 import { useForm, useStore } from '@tanstack/react-form'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { EntityModal } from '@/components/forms/EntityModal'
+import { TimezoneCombobox } from '@/components/forms/TimezoneCombobox'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { orgTimezoneQueryOptions } from '@/lib/customers/query-options'
 import { createCustomerFn, updateCustomerFn } from '@/lib/customers/server-fns'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
@@ -19,7 +22,9 @@ interface CustomerFormValues {
 
 interface CreateProps {
   variant: 'create'
+  initialName?: string
   onClose: () => void
+  onCreated?: (customer: Customer) => void | Promise<void>
 }
 
 interface EditProps {
@@ -30,10 +35,14 @@ interface EditProps {
 
 type CustomerModalProps = CreateProps | EditProps
 
+const FALLBACK_TIMEZONE = 'America/Phoenix'
+
 export function CustomerModal(props: CustomerModalProps) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const slug = useSlugAutoFill(props.variant === 'edit')
+  const orgTimezoneQuery = useQuery(orgTimezoneQueryOptions)
+  const orgTimezone = orgTimezoneQuery.data?.timezone ?? FALLBACK_TIMEZONE
 
   const initial: CustomerFormValues =
     props.variant === 'edit'
@@ -43,7 +52,12 @@ export function CustomerModal(props: CustomerModalProps) {
           timezone: props.initialCustomer.timezone,
           autotaskCompanyId: props.initialCustomer.autotaskCompanyId ?? '',
         }
-      : { name: '', slug: '', timezone: 'America/New_York', autotaskCompanyId: '' }
+      : {
+          name: props.initialName ?? '',
+          slug: props.initialName ? slugify(props.initialName) : '',
+          timezone: orgTimezone,
+          autotaskCompanyId: '',
+        }
 
   const form = useForm({
     defaultValues: initial,
@@ -77,8 +91,13 @@ export function CustomerModal(props: CustomerModalProps) {
         }
 
         await queryClient.invalidateQueries({ queryKey: ['customers'] })
-        toast.success(props.variant === 'create' ? `Customer ${result.data.name} created` : 'Saved')
 
+        if (props.variant === 'create' && props.onCreated) {
+          await props.onCreated(result.data)
+          return null
+        }
+
+        toast.success(props.variant === 'create' ? `Customer ${result.data.name} created` : 'Saved')
         await navigate({
           to: '/customers/$customerSlug',
           params: { customerSlug: result.data.slug },
@@ -90,6 +109,7 @@ export function CustomerModal(props: CustomerModalProps) {
 
   const isDirty = useStore(form.store, (s) => s.isDirty)
   const isSubmitting = useStore(form.store, (s) => s.isSubmitting)
+  const timezone = useStore(form.store, (s) => s.values.timezone)
   const formError = useStore(form.store, (s) => s.errorMap.onSubmit)
 
   return (
@@ -155,25 +175,19 @@ export function CustomerModal(props: CustomerModalProps) {
           )}
         </form.Field>
 
-        <form.Field name="timezone">
-          {(field) => (
-            <div className="flex flex-col gap-2">
-              <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground">
-                Timezone
-              </label>
-              <Input
-                id={field.name}
-                value={field.state.value}
-                placeholder="America/New_York"
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-              />
-              <p className="text-xs text-muted-foreground">IANA timezone identifier.</p>
-              {field.state.meta.errors[0] ? (
-                <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
-              ) : null}
-            </div>
-          )}
-        </form.Field>
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs font-medium text-muted-foreground">Timezone</Label>
+          <div>
+            <TimezoneCombobox
+              value={timezone}
+              onValueChange={(v) => form.setFieldValue('timezone', v)}
+              required
+            />
+          </div>
+          <p className="text-xs text-muted-foreground/70">
+            The Customer's local timezone for cron schedules and report rendering.
+          </p>
+        </div>
 
         <form.Field name="autotaskCompanyId">
           {(field) => (
