@@ -1,6 +1,12 @@
 # Design direction
 
-The brief for the future design-language session. Not an ADR (no decision yet), not domain language (so not in `CONTEXT.md`), not an agent operating instruction (so not in `AGENTS.md`). A standing reference that the next session can pick up from.
+The brief for the design-language session. Not an ADR for the principle itself (which is directional, not decisional), not domain language (so not in `CONTEXT.md`), not an agent operating instruction (so not in `AGENTS.md`). A standing reference that each session picks up from.
+
+The session has started. The principle frames the aesthetic; the queued surfaces define the remaining scope; the "Landed" section is the audit trail for what's been settled.
+
+## Landed
+
+- **Pass 2 — Design language baseline.** Dark-first default, three-anchor theme system (`--theme-base`, `--theme-accent`, `--theme-contrast`) with OKLCH relative-color derivations, cool-blue UI accent at hue 240, Linear-orthodox semantic states at low chroma, warm orange brand identity retreats to the chart palette (`--chart-1..3`) plus dashboard accents. See [ADR-022](adr/022-design-language-pass-2.md). Supersedes the warm-orange-as-primary decisions from PR #34 / ADR-021.
 
 ## Principle
 
