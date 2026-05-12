@@ -2,19 +2,11 @@ import { eq } from 'drizzle-orm'
 import { buildAlertContext, buildSyntheticTestContext } from '@/lib/alert-context/build'
 import { adapterFor } from '@/lib/channel-adapters/registry'
 import type { AdapterResult } from '@/lib/channel-adapters/types'
+import { rowToChannel } from '@/lib/channels/row-mapper'
 import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
-import {
-  alertRules,
-  attempts,
-  channels,
-  customers,
-  jobs,
-  runs,
-  targets,
-} from '@/lib/db/schema'
+import { alertRules, attempts, channels, customers, jobs, runs, targets } from '@/lib/db/schema'
 import { logError, logInfo } from '@/lib/log'
-import { rowToChannel } from '@/lib/channels/row-mapper'
 import type { AlertQueueMessage } from './types'
 
 const RETRY_BASE_SECONDS = 60
@@ -150,11 +142,7 @@ async function processRealMessage(
     attemptNumber: message.attempts,
   }
   if (!channel || !bundle) {
-    logError(
-      'alert.failed',
-      new Error(!channel ? 'channel_missing' : 'run_missing'),
-      fields,
-    )
+    logError('alert.failed', new Error(!channel ? 'channel_missing' : 'run_missing'), fields)
     message.ack()
     return
   }

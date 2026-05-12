@@ -1,12 +1,12 @@
 import { createDocument } from 'zod-openapi'
 import pkg from '../package.json' with { type: 'json' }
+import { AlertContextSchema } from '../src/shared/schemas/alert-context'
 import {
   AlertRuleConfigSchema,
   AlertRuleCreateInput,
   AlertRuleSchema,
   AlertRuleUpdateInput,
 } from '../src/shared/schemas/alert-rule'
-import { AlertContextSchema } from '../src/shared/schemas/alert-context'
 import { UserSchema } from '../src/shared/schemas/auth'
 import {
   ChannelConfigSchema,

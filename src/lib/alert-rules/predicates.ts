@@ -19,10 +19,7 @@ export function firstFailure(history: readonly PredicateRun[]): boolean {
   return prior.outcome === 'success'
 }
 
-export function consecutiveFailures(
-  history: readonly PredicateRun[],
-  count: number,
-): boolean {
+export function consecutiveFailures(history: readonly PredicateRun[], count: number): boolean {
   if (count < 1) return false
   const filtered = relevantRunHistory(history)
   if (filtered.length < count) return false

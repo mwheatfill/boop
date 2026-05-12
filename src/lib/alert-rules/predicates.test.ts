@@ -85,8 +85,6 @@ describe('slowRun', () => {
     expect(slowRun(run('failure', 50_000), 30_000)).toBe(true)
   })
   it('does not fire when start or completion is null', () => {
-    expect(
-      slowRun({ outcome: 'success', startedAt: null, completedAt: new Date() }, 1),
-    ).toBe(false)
+    expect(slowRun({ outcome: 'success', startedAt: null, completedAt: new Date() }, 1)).toBe(false)
   })
 })

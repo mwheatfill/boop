@@ -1,5 +1,5 @@
 import type { channels } from '@/lib/db/schema'
-import { type Channel, type ChannelKind, ChannelConfigSchema } from '@/shared/schemas/channel'
+import { type Channel, ChannelConfigSchema, type ChannelKind } from '@/shared/schemas/channel'
 
 type ChannelRow = typeof channels.$inferSelect
 
