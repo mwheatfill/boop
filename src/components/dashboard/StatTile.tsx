@@ -28,7 +28,7 @@ export function StatTile({ label, value, sparkline, trend, trendSuffix }: StatTi
   const trendGlyph = trend == null || trend === 0 ? '·' : trend > 0 ? '↑' : '↓'
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-4">
+    <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-(--tile-p)">
       <div className="flex items-start justify-between gap-2">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {label}

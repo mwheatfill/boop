@@ -125,6 +125,35 @@
   --chart-5: oklch(0.55 0.12 150);
 }
 
+/* Density tokens. See PRD #44, DESIGN.md § 11. Compact is the default for
+ * power-user scanning; spacious adds ~50% vertical room for stakeholder
+ * demos and accessibility. Chrome (sidebar, top bar, breadcrumbs) is
+ * unaffected — only content surfaces consume these. */
+:root {
+  --row-py-compact: 0.5rem;
+  --row-py-spacious: 0.75rem;
+  --tile-p-compact: 1rem;
+  --tile-p-spacious: 1.25rem;
+  --form-row-py-compact: 0.5rem;
+  --form-row-py-spacious: 0.75rem;
+  /* Compact is the unattributed default. */
+  --row-py: var(--row-py-compact);
+  --tile-p: var(--tile-p-compact);
+  --form-row-py: var(--form-row-py-compact);
+}
+
+html[data-density="compact"] {
+  --row-py: var(--row-py-compact);
+  --tile-p: var(--tile-p-compact);
+  --form-row-py: var(--form-row-py-compact);
+}
+
+html[data-density="spacious"] {
+  --row-py: var(--row-py-spacious);
+  --tile-p: var(--tile-p-spacious);
+  --form-row-py: var(--form-row-py-spacious);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

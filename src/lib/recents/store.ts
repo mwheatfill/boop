@@ -1,6 +1,9 @@
 const STORAGE_KEY = 'boop.recents'
 const MAX = 5
 
+export const RECENTS_STORAGE_KEY = STORAGE_KEY
+export const RECENTS_EVENT = 'boop:recents-changed'
+
 export interface RecentEntry {
   id: string
   entity: 'customer' | 'job'
@@ -37,6 +40,12 @@ function writeStorage(entries: RecentEntry[]): void {
   if (typeof localStorage === 'undefined') return
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, MAX)))
+    // Same-tab notification: storage events only fire cross-tab. The sidebar
+    // and palette share this key; emit a custom event so they re-read after a
+    // visit in the current tab.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(RECENTS_EVENT))
+    }
   } catch {
     // Quota or disabled storage; degrade silently.
   }
