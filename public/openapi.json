@@ -403,6 +403,264 @@
           "revokedAt"
         ]
       },
+      "DashboardStats": {
+        "type": "object",
+        "properties": {
+          "activeJobs": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "failingToday": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "runsToday": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "successRate7d": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "activeJobs",
+          "failingToday",
+          "runsToday",
+          "successRate7d"
+        ]
+      },
+      "DashboardSparklines": {
+        "type": "object",
+        "properties": {
+          "activeJobs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "t": {
+                  "type": "number"
+                },
+                "v": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "t",
+                "v"
+              ]
+            }
+          },
+          "failingToday": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "t": {
+                  "type": "number"
+                },
+                "v": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "t",
+                "v"
+              ]
+            }
+          },
+          "runsToday": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "t": {
+                  "type": "number"
+                },
+                "v": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "t",
+                "v"
+              ]
+            }
+          },
+          "successRate7d": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "t": {
+                  "type": "number"
+                },
+                "v": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "t",
+                "v"
+              ]
+            }
+          }
+        },
+        "required": [
+          "activeJobs",
+          "failingToday",
+          "runsToday",
+          "successRate7d"
+        ]
+      },
+      "RunsDailyBucket": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string"
+          },
+          "success": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "failure": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "day",
+          "success",
+          "failure"
+        ]
+      },
+      "NeedsAttentionRow": {
+        "type": "object",
+        "properties": {
+          "customerSlug": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "jobSlug": {
+            "type": "string"
+          },
+          "jobName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "paused",
+              "failing"
+            ]
+          },
+          "lastFailureAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "customerSlug",
+          "customerName",
+          "jobSlug",
+          "jobName",
+          "status",
+          "lastFailureAt"
+        ]
+      },
+      "UpcomingFireRow": {
+        "type": "object",
+        "properties": {
+          "customerSlug": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "jobSlug": {
+            "type": "string"
+          },
+          "jobName": {
+            "type": "string"
+          },
+          "triggerSummary": {
+            "type": "string"
+          },
+          "nextFireAt": {
+            "type": "number"
+          },
+          "timezone": {
+            "$ref": "#/components/schemas/Timezone"
+          }
+        },
+        "required": [
+          "customerSlug",
+          "customerName",
+          "jobSlug",
+          "jobName",
+          "triggerSummary",
+          "nextFireAt",
+          "timezone"
+        ]
+      },
+      "RecentFailureRow": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "customerSlug": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "jobSlug": {
+            "type": "string"
+          },
+          "jobName": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "failure",
+              "timeout"
+            ]
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "runId",
+          "customerSlug",
+          "customerName",
+          "jobSlug",
+          "jobName",
+          "outcome",
+          "completedAt"
+        ]
+      },
       "RunOutput": {
         "type": "object",
         "properties": {
@@ -771,6 +1029,274 @@
           "createdAt",
           "expiresAt",
           "revokedAt"
+        ],
+        "additionalProperties": false
+      },
+      "DashboardStatsOutput": {
+        "type": "object",
+        "properties": {
+          "activeJobs": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "failingToday": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "runsToday": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "successRate7d": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "activeJobs",
+          "failingToday",
+          "runsToday",
+          "successRate7d"
+        ],
+        "additionalProperties": false
+      },
+      "DashboardSparklinesOutput": {
+        "type": "object",
+        "properties": {
+          "activeJobs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "t": {
+                  "type": "number"
+                },
+                "v": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "t",
+                "v"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "failingToday": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "t": {
+                  "type": "number"
+                },
+                "v": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "t",
+                "v"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "runsToday": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "t": {
+                  "type": "number"
+                },
+                "v": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "t",
+                "v"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "successRate7d": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "t": {
+                  "type": "number"
+                },
+                "v": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "t",
+                "v"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "activeJobs",
+          "failingToday",
+          "runsToday",
+          "successRate7d"
+        ],
+        "additionalProperties": false
+      },
+      "RunsDailyBucketOutput": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string"
+          },
+          "success": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "failure": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "day",
+          "success",
+          "failure"
+        ],
+        "additionalProperties": false
+      },
+      "NeedsAttentionRowOutput": {
+        "type": "object",
+        "properties": {
+          "customerSlug": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "jobSlug": {
+            "type": "string"
+          },
+          "jobName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "paused",
+              "failing"
+            ]
+          },
+          "lastFailureAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "customerSlug",
+          "customerName",
+          "jobSlug",
+          "jobName",
+          "status",
+          "lastFailureAt"
+        ],
+        "additionalProperties": false
+      },
+      "UpcomingFireRowOutput": {
+        "type": "object",
+        "properties": {
+          "customerSlug": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "jobSlug": {
+            "type": "string"
+          },
+          "jobName": {
+            "type": "string"
+          },
+          "triggerSummary": {
+            "type": "string"
+          },
+          "nextFireAt": {
+            "type": "number"
+          },
+          "timezone": {
+            "$ref": "#/components/schemas/Timezone"
+          }
+        },
+        "required": [
+          "customerSlug",
+          "customerName",
+          "jobSlug",
+          "jobName",
+          "triggerSummary",
+          "nextFireAt",
+          "timezone"
+        ],
+        "additionalProperties": false
+      },
+      "RecentFailureRowOutput": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "customerSlug": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "jobSlug": {
+            "type": "string"
+          },
+          "jobName": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "failure",
+              "timeout"
+            ]
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "runId",
+          "customerSlug",
+          "customerName",
+          "jobSlug",
+          "jobName",
+          "outcome",
+          "completedAt"
         ],
         "additionalProperties": false
       },
@@ -1929,6 +2455,50 @@
         },
         "required": [
           "overlapHours"
+        ],
+        "additionalProperties": false
+      },
+      "DashboardSummary": {
+        "type": "object",
+        "properties": {
+          "stats": {
+            "$ref": "#/components/schemas/DashboardStatsOutput"
+          },
+          "sparklines": {
+            "$ref": "#/components/schemas/DashboardSparklinesOutput"
+          },
+          "runsSeries7d": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunsDailyBucketOutput"
+            }
+          },
+          "needsAttention": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NeedsAttentionRowOutput"
+            }
+          },
+          "upcomingFires": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpcomingFireRowOutput"
+            }
+          },
+          "recentFailures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentFailureRowOutput"
+            }
+          }
+        },
+        "required": [
+          "stats",
+          "sparklines",
+          "runsSeries7d",
+          "needsAttention",
+          "upcomingFires",
+          "recentFailures"
         ],
         "additionalProperties": false
       }

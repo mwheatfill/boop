@@ -7,6 +7,15 @@ import {
   CustomerUpdateInput,
 } from '../src/shared/schemas/customer'
 import {
+  DashboardSummarySchema,
+  NeedsAttentionRowSchema,
+  RecentFailureRowSchema,
+  RunsDailyBucketSchema,
+  SparklinesSchema,
+  StatsSchema,
+  UpcomingFireRowSchema,
+} from '../src/shared/schemas/dashboard'
+import {
   JobCreateInput,
   JobSchema,
   JobSummarySchema,
@@ -65,6 +74,13 @@ export const document = createDocument({
       WebhookSecretCreatedResponse: WebhookSecretCreatedResponseSchema,
       WebhookSecretsState: WebhookSecretsStateSchema,
       WebhookSecretRotateInput: RotateInputSchema,
+      DashboardStats: StatsSchema,
+      DashboardSparklines: SparklinesSchema,
+      RunsDailyBucket: RunsDailyBucketSchema,
+      NeedsAttentionRow: NeedsAttentionRowSchema,
+      UpcomingFireRow: UpcomingFireRowSchema,
+      RecentFailureRow: RecentFailureRowSchema,
+      DashboardSummary: DashboardSummarySchema,
     },
   },
 })
