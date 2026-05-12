@@ -1,12 +1,14 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
+import { Plus } from 'lucide-react'
 import { z } from 'zod'
 import { ContentChrome } from '@/components/ContentChrome'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
+import { listCustomersFn } from '@/lib/customers/server-fns'
 import { listAllJobsFn } from '@/lib/jobs/server-fns'
 import type { JobSummary } from '@/shared/schemas/job'
 
@@ -18,6 +20,11 @@ const allJobsQueryOptions = (filters: {
     queryKey: ['jobs', filters],
     queryFn: () => listAllJobsFn({ data: filters }),
   })
+
+const customersListQueryOptions = queryOptions({
+  queryKey: ['customers', { includeArchived: false }],
+  queryFn: () => listCustomersFn({ data: { includeArchived: false } }),
+})
 
 const searchSchema = z.object({
   customer: z.string().optional(),
@@ -31,12 +38,15 @@ export const Route = createFileRoute('/_authenticated/jobs')({
     status: search.status,
   }),
   loader: ({ context, deps }) =>
-    context.queryClient.ensureQueryData(
-      allJobsQueryOptions({
-        ...(deps.customerSlug ? { customerSlug: deps.customerSlug } : {}),
-        ...(deps.status ? { status: deps.status } : {}),
-      }),
-    ),
+    Promise.all([
+      context.queryClient.ensureQueryData(
+        allJobsQueryOptions({
+          ...(deps.customerSlug ? { customerSlug: deps.customerSlug } : {}),
+          ...(deps.status ? { status: deps.status } : {}),
+        }),
+      ),
+      context.queryClient.ensureQueryData(customersListQueryOptions),
+    ]),
   component: JobsPage,
 })
 
@@ -101,7 +111,9 @@ function JobsPage() {
     ...(search.status ? { status: search.status } : {}),
   }
   const { data: jobs } = useSuspenseQuery(allJobsQueryOptions(filters))
+  const { data: customers } = useSuspenseQuery(customersListQueryOptions)
   const filtered = Boolean(search.customer || search.status)
+  const newJobCustomerSlug = search.customer ?? customers[0]?.slug
 
   return (
     <div className="flex flex-col gap-6">
@@ -116,6 +128,19 @@ function JobsPage() {
           <Button render={<Link to="/" />} variant="outline" size="sm">
             ← Dashboard
           </Button>
+          {newJobCustomerSlug ? (
+            <Button
+              render={
+                <Link
+                  to="/customers/$customerSlug/jobs/new"
+                  params={{ customerSlug: newJobCustomerSlug }}
+                  mask={{ to: '/jobs' }}
+                />
+              }
+            >
+              <Plus aria-hidden /> New Job
+            </Button>
+          ) : null}
           <ContentChrome />
         </div>
       </header>
@@ -163,7 +188,22 @@ function JobsPage() {
         ) : (
           <EmptyState
             title="No Jobs yet."
-            description="Create a Job from a Customer hub or from the dashboard."
+            description="Create a Job to schedule HTTP calls to a Target."
+            action={
+              newJobCustomerSlug ? (
+                <Button
+                  render={
+                    <Link
+                      to="/customers/$customerSlug/jobs/new"
+                      params={{ customerSlug: newJobCustomerSlug }}
+                      mask={{ to: '/jobs' }}
+                    />
+                  }
+                >
+                  <Plus aria-hidden /> New Job
+                </Button>
+              ) : undefined
+            }
           />
         )
       ) : (
