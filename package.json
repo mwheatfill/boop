@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "deploy:dev": "vite build && wrangler deploy",
     "deploy:prod": "CLOUDFLARE_ENV=production vite build && wrangler deploy --env production",

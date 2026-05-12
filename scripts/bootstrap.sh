@@ -100,6 +100,7 @@ echo ""
 if [[ ! -f .dev.vars ]]; then
   echo "▶ Generating .dev.vars from .dev.vars.example..."
   cp .dev.vars.example .dev.vars
+  "${SED_INPLACE[@]}" "s/${DEFAULT_NAME}/${app_name}/g" .dev.vars
   echo "  + .dev.vars (edit to fill in env values for any recipes you install)"
 else
   echo "▶ .dev.vars already exists; leaving as-is"
