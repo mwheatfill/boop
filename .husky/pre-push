@@ -1,2 +1,2 @@
-pnpm check
+pnpm exec biome check src scripts tests
 pnpm typecheck
