@@ -33,6 +33,8 @@ Ordered foundation → data → auth → AI → product surface → meta.
 | [020](020-current-by-default-third-party-pins.md) | Proposed | Current-by-default for third-party version pins (Renovate + audit + agent-side rule) |
 | [022](022-design-language-pass-2.md) | Proposed | Design language pass 2 (dark-first, three-anchor theme, cool-blue UI accent, warm orange brand retreats to chart palette) |
 | [023](023-modal-with-pills-crud-convention.md) | Proposed | Modal-with-pills as the create + edit convention (Base UI Dialog, route masking, nested dialogs, `useBlocker` discard) |
+| [024](024-auth-surfaces-api-tokens-and-oauth-for-mcp.md) | Proposed | Auth surfaces (API tokens for CLI/SDK, OAuth 2.1 recipe-handled for MCP, Cloudflare Access for browser) |
+| [025](025-workspace-scope-on-channels-and-alert-rules.md) | Proposed | Workspace scope on Channels + AlertRules; additive override hierarchy |
 
 ## How to add an ADR
 
