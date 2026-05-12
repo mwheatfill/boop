@@ -18,6 +18,158 @@
         "description": "Five-field cron expression with one-minute granularity. Seconds and year fields not supported.",
         "example": "0 9 * * MON-FRI"
       },
+      "ChannelConfigTeams": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "teams"
+          },
+          "webhook_url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "kind",
+          "webhook_url"
+        ]
+      },
+      "ChannelConfigEmail": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "email"
+          },
+          "recipients": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            }
+          },
+          "subject_template": {
+            "default": "[boop] {{ customer_name }} - {{ job_name }} {{ outcome }}",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "body_template": {
+            "default": "Job {{ job_name }} ({{ customer_name }}) {{ outcome }}.\n\nStarted: {{ started_at }}\nCompleted: {{ completed_at }}\nDuration: {{ duration_ms }}ms\nAttempts: {{ attempt_count }}\n\nRun details: {{ run_url }}",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "kind",
+          "recipients"
+        ]
+      },
+      "ChannelConfigWebhook": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "webhook"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "method": {
+            "default": "POST",
+            "type": "string",
+            "enum": [
+              "POST",
+              "PUT"
+            ]
+          },
+          "headers": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "body_template": {
+            "default": "{{ alert_context_json }}",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "kind",
+          "url"
+        ]
+      },
+      "AlertRuleConfigFirstFailure": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "first_failure"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "AlertRuleConfigConsecutiveFailures": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "consecutive_failures"
+          },
+          "count": {
+            "default": 3,
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "AlertRuleConfigRecovery": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "recovery"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "AlertRuleConfigSlowRun": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "slow_run"
+          },
+          "threshold_ms": {
+            "default": 30000,
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
       "Run": {
         "type": "object",
         "properties": {
@@ -661,6 +813,220 @@
           "completedAt"
         ]
       },
+      "ChannelConfig": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ChannelConfigTeams"
+          },
+          {
+            "$ref": "#/components/schemas/ChannelConfigEmail"
+          },
+          {
+            "$ref": "#/components/schemas/ChannelConfigWebhook"
+          }
+        ],
+        "type": "object",
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "teams": "#/components/schemas/ChannelConfigTeams",
+            "email": "#/components/schemas/ChannelConfigEmail",
+            "webhook": "#/components/schemas/ChannelConfigWebhook"
+          }
+        }
+      },
+      "AlertRuleConfig": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/AlertRuleConfigFirstFailure"
+          },
+          {
+            "$ref": "#/components/schemas/AlertRuleConfigConsecutiveFailures"
+          },
+          {
+            "$ref": "#/components/schemas/AlertRuleConfigRecovery"
+          },
+          {
+            "$ref": "#/components/schemas/AlertRuleConfigSlowRun"
+          }
+        ],
+        "type": "object",
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "first_failure": "#/components/schemas/AlertRuleConfigFirstFailure",
+            "consecutive_failures": "#/components/schemas/AlertRuleConfigConsecutiveFailures",
+            "recovery": "#/components/schemas/AlertRuleConfigRecovery",
+            "slow_run": "#/components/schemas/AlertRuleConfigSlowRun"
+          }
+        }
+      },
+      "ChannelConfigTeamsOutput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "teams"
+          },
+          "webhook_url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "kind",
+          "webhook_url"
+        ],
+        "additionalProperties": false
+      },
+      "ChannelConfigEmailOutput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "email"
+          },
+          "recipients": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            }
+          },
+          "subject_template": {
+            "default": "[boop] {{ customer_name }} - {{ job_name }} {{ outcome }}",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "body_template": {
+            "default": "Job {{ job_name }} ({{ customer_name }}) {{ outcome }}.\n\nStarted: {{ started_at }}\nCompleted: {{ completed_at }}\nDuration: {{ duration_ms }}ms\nAttempts: {{ attempt_count }}\n\nRun details: {{ run_url }}",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "kind",
+          "recipients",
+          "subject_template",
+          "body_template"
+        ],
+        "additionalProperties": false
+      },
+      "ChannelConfigWebhookOutput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "webhook"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "method": {
+            "default": "POST",
+            "type": "string",
+            "enum": [
+              "POST",
+              "PUT"
+            ]
+          },
+          "headers": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "body_template": {
+            "default": "{{ alert_context_json }}",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "kind",
+          "url",
+          "method",
+          "headers",
+          "body_template"
+        ],
+        "additionalProperties": false
+      },
+      "AlertRuleConfigFirstFailureOutput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "first_failure"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "additionalProperties": false
+      },
+      "AlertRuleConfigConsecutiveFailuresOutput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "consecutive_failures"
+          },
+          "count": {
+            "default": 3,
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "kind",
+          "count"
+        ],
+        "additionalProperties": false
+      },
+      "AlertRuleConfigRecoveryOutput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "recovery"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "additionalProperties": false
+      },
+      "AlertRuleConfigSlowRunOutput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "slow_run"
+          },
+          "threshold_ms": {
+            "default": 30000,
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "kind",
+          "threshold_ms"
+        ],
+        "additionalProperties": false
+      },
       "RunOutput": {
         "type": "object",
         "properties": {
@@ -1299,6 +1665,54 @@
           "completedAt"
         ],
         "additionalProperties": false
+      },
+      "ChannelConfigOutput": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ChannelConfigTeamsOutput"
+          },
+          {
+            "$ref": "#/components/schemas/ChannelConfigEmailOutput"
+          },
+          {
+            "$ref": "#/components/schemas/ChannelConfigWebhookOutput"
+          }
+        ],
+        "type": "object",
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "teams": "#/components/schemas/ChannelConfigTeamsOutput",
+            "email": "#/components/schemas/ChannelConfigEmailOutput",
+            "webhook": "#/components/schemas/ChannelConfigWebhookOutput"
+          }
+        }
+      },
+      "AlertRuleConfigOutput": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/AlertRuleConfigFirstFailureOutput"
+          },
+          {
+            "$ref": "#/components/schemas/AlertRuleConfigConsecutiveFailuresOutput"
+          },
+          {
+            "$ref": "#/components/schemas/AlertRuleConfigRecoveryOutput"
+          },
+          {
+            "$ref": "#/components/schemas/AlertRuleConfigSlowRunOutput"
+          }
+        ],
+        "type": "object",
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "first_failure": "#/components/schemas/AlertRuleConfigFirstFailureOutput",
+            "consecutive_failures": "#/components/schemas/AlertRuleConfigConsecutiveFailuresOutput",
+            "recovery": "#/components/schemas/AlertRuleConfigRecoveryOutput",
+            "slow_run": "#/components/schemas/AlertRuleConfigSlowRunOutput"
+          }
+        }
       },
       "User": {
         "type": "object",
@@ -2501,6 +2915,412 @@
           "recentFailures"
         ],
         "additionalProperties": false
+      },
+      "Channel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "chn_abc123"
+          },
+          "customerId": {
+            "type": "string",
+            "example": "cust_abc123"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "teams",
+              "email",
+              "webhook"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "example": "SwitchThink ops Teams"
+          },
+          "slug": {
+            "type": "string",
+            "example": "switchthink-ops-teams"
+          },
+          "config": {
+            "$ref": "#/components/schemas/ChannelConfigOutput"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastTestAlertAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastTestAlertStatus": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "delivered",
+                  "failed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastTestAlertReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "customerId",
+          "kind",
+          "name",
+          "slug",
+          "config",
+          "status",
+          "lastUsedAt",
+          "lastTestAlertAt",
+          "lastTestAlertStatus",
+          "lastTestAlertReason",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "description": "A reusable outbound destination for alerts, owned by a Customer."
+      },
+      "ChannelCreateInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "config": {
+            "$ref": "#/components/schemas/ChannelConfigOutput"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          }
+        },
+        "required": [
+          "name",
+          "config",
+          "slug"
+        ],
+        "additionalProperties": false
+      },
+      "ChannelUpdateInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "config": {
+            "$ref": "#/components/schemas/ChannelConfigOutput"
+          }
+        },
+        "required": [
+          "name",
+          "config"
+        ],
+        "additionalProperties": false
+      },
+      "AlertRule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "rul_abc123"
+          },
+          "customerId": {
+            "type": "string",
+            "example": "cust_abc123"
+          },
+          "jobId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "first_failure",
+              "consecutive_failures",
+              "recovery",
+              "slow_run"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "example": "Alert on first failure"
+          },
+          "slug": {
+            "type": "string",
+            "example": "alert-on-first-failure"
+          },
+          "config": {
+            "$ref": "#/components/schemas/AlertRuleConfigOutput"
+          },
+          "channelIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "lastFiredAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "customerId",
+          "jobId",
+          "kind",
+          "name",
+          "slug",
+          "config",
+          "channelIds",
+          "status",
+          "lastFiredAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "description": "A predicate that decides when a terminal Run produces an alert, and where it fans out."
+      },
+      "AlertRuleCreateInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "config": {
+            "$ref": "#/components/schemas/AlertRuleConfigOutput"
+          },
+          "channelIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          }
+        },
+        "required": [
+          "name",
+          "config",
+          "channelIds",
+          "slug"
+        ],
+        "additionalProperties": false
+      },
+      "AlertRuleUpdateInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "config": {
+            "$ref": "#/components/schemas/AlertRuleConfigOutput"
+          },
+          "channelIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "name",
+          "config",
+          "channelIds"
+        ],
+        "additionalProperties": false
+      },
+      "AlertContext": {
+        "type": "object",
+        "properties": {
+          "customer_name": {
+            "type": "string"
+          },
+          "customer_slug": {
+            "type": "string"
+          },
+          "job_name": {
+            "type": "string"
+          },
+          "job_slug": {
+            "type": "string"
+          },
+          "target_name": {
+            "type": "string"
+          },
+          "target_url": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "run_url": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "completed_at": {
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "attempt_count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "trigger_source": {
+            "type": "string"
+          },
+          "failure_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rule_name": {
+            "type": "string"
+          },
+          "rule_kind": {
+            "type": "string"
+          },
+          "test": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "customer_name",
+          "customer_slug",
+          "job_name",
+          "job_slug",
+          "target_name",
+          "target_url",
+          "run_id",
+          "run_url",
+          "outcome",
+          "started_at",
+          "completed_at",
+          "duration_ms",
+          "attempt_count",
+          "trigger_source",
+          "failure_kind",
+          "rule_name",
+          "rule_kind",
+          "test"
+        ],
+        "additionalProperties": false,
+        "description": "Synthetic context handed to Channel adapters for template rendering."
       }
     }
   }

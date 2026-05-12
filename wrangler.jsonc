@@ -13,7 +13,8 @@
   // vars are non-inheritable; repeat per env block.
   "vars": {
     "PUBLIC_APP_NAME": "boop-dev",
-    "PUBLIC_ENV": "dev"
+    "PUBLIC_ENV": "dev",
+    "PUBLIC_APP_ORIGIN": "http://localhost:5173"
   },
   "triggers": {
     "crons": ["* * * * *"]
@@ -37,6 +38,10 @@
       {
         "binding": "DISPATCH_QUEUE",
         "queue": "boop-dispatch-dev"
+      },
+      {
+        "binding": "ALERT_QUEUE",
+        "queue": "boop-alerts-dev"
       }
     ],
     "consumers": [
@@ -46,6 +51,13 @@
         "max_batch_timeout": 5,
         "max_retries": 3,
         "dead_letter_queue": "boop-dispatch-dlq-dev"
+      },
+      {
+        "queue": "boop-alerts-dev",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 5,
+        "dead_letter_queue": "boop-alerts-dlq-dev"
       }
     ]
   },
@@ -75,7 +87,8 @@
       "name": "boop-prod",
       "vars": {
         "PUBLIC_APP_NAME": "boop-prod",
-        "PUBLIC_ENV": "production"
+        "PUBLIC_ENV": "production",
+        "PUBLIC_APP_ORIGIN": "https://boop.example.com"
       },
       "triggers": {
         "crons": ["* * * * *"]
@@ -99,6 +112,10 @@
           {
             "binding": "DISPATCH_QUEUE",
             "queue": "boop-dispatch-prod"
+          },
+          {
+            "binding": "ALERT_QUEUE",
+            "queue": "boop-alerts-prod"
           }
         ],
         "consumers": [
@@ -108,6 +125,13 @@
             "max_batch_timeout": 5,
             "max_retries": 3,
             "dead_letter_queue": "boop-dispatch-dlq-prod"
+          },
+          {
+            "queue": "boop-alerts-prod",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 5,
+            "dead_letter_queue": "boop-alerts-dlq-prod"
           }
         ]
       },

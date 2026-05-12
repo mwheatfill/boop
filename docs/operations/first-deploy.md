@@ -21,6 +21,8 @@ pnpm exec wrangler r2 bucket create boop-bodies-prod
 
 pnpm exec wrangler queues create boop-dispatch-prod
 pnpm exec wrangler queues create boop-dispatch-dlq-prod
+pnpm exec wrangler queues create boop-alerts-prod
+pnpm exec wrangler queues create boop-alerts-dlq-prod
 ```
 
 Durable Object class registration happens automatically on the first `wrangler deploy --env production`.

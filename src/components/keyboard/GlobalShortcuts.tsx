@@ -79,5 +79,43 @@ export function GlobalShortcuts({ currentUser }: GlobalShortcutsProps) {
     { description: 'New Target (Admin, current Customer)', section: 'navigation' },
   )
 
+  useShortcut(
+    'n h',
+    () => {
+      if (!isAdmin) {
+        toast.error('Admin only.')
+        return
+      }
+      const match = pathname.match(/^\/customers\/([^/]+)/)
+      const customerSlug = match?.[1]
+      if (!customerSlug) {
+        toast.error('Open a Customer hub first to add a Channel.')
+        return
+      }
+      void navigate({
+        to: '/customers/$customerSlug/channels/new',
+        params: { customerSlug },
+      })
+    },
+    { description: 'New Channel (Admin, current Customer)', section: 'navigation' },
+  )
+
+  useShortcut(
+    'n a',
+    () => {
+      const match = pathname.match(/^\/customers\/([^/]+)/)
+      const customerSlug = match?.[1]
+      if (!customerSlug) {
+        toast.error('Open a Customer hub first to add an Alert Rule.')
+        return
+      }
+      void navigate({
+        to: '/customers/$customerSlug/alert-rules/new',
+        params: { customerSlug },
+      })
+    },
+    { description: 'New Alert Rule (current Customer)', section: 'navigation' },
+  )
+
   return null
 }

@@ -159,6 +159,8 @@ export const attempts = sqliteTable(
   (table) => [uniqueIndex('attempts_run_idx').on(table.runId, table.attemptNumber)],
 )
 
+const TEST_ALERT_STATUSES = ['pending', 'delivered', 'failed'] as const
+
 export const channels = sqliteTable(
   'channels',
   {
@@ -168,11 +170,17 @@ export const channels = sqliteTable(
       .references(() => customers.id, { onDelete: 'cascade' }),
     kind: enumColumn('kind', CHANNEL_KINDS).notNull(),
     name: text('name').notNull(),
+    slug: text('slug').notNull(),
     config: text('config').notNull().default('{}'),
     status: enumColumn('status', LIFECYCLE_STATUSES).notNull().default('active'),
+    lastUsedAt: integer('last_used_at', { mode: 'timestamp_ms' }),
+    lastTestAlertAt: integer('last_test_alert_at', { mode: 'timestamp_ms' }),
+    lastTestAlertStatus: enumColumn('last_test_alert_status', TEST_ALERT_STATUSES),
+    lastTestAlertReason: text('last_test_alert_reason'),
     ...timestamps(),
   },
   (table) => [
+    uniqueIndex('channels_customer_slug_idx').on(table.customerId, table.slug),
     index('channels_customer_status_idx').on(table.customerId, table.status),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
     lifecycleCheck(table.kind, CHANNEL_KINDS),
@@ -188,12 +196,16 @@ export const alertRules = sqliteTable(
       .references(() => customers.id, { onDelete: 'cascade' }),
     jobId: text('job_id').references(() => jobs.id, { onDelete: 'cascade' }),
     kind: enumColumn('kind', ALERT_RULE_KINDS).notNull(),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
     config: text('config').notNull().default('{}'),
     channelIds: text('channel_ids').notNull().default('[]'),
     status: enumColumn('status', LIFECYCLE_STATUSES).notNull().default('active'),
+    lastFiredAt: integer('last_fired_at', { mode: 'timestamp_ms' }),
     ...timestamps(),
   },
   (table) => [
+    uniqueIndex('alert_rules_customer_slug_idx').on(table.customerId, table.slug),
     index('alert_rules_customer_status_idx').on(table.customerId, table.status),
     index('alert_rules_job_idx').on(table.jobId),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),

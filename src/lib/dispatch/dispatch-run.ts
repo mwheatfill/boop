@@ -1,4 +1,7 @@
 import { eq } from 'drizzle-orm'
+import { enqueueAlertBatch } from '@/lib/alert-queue/producer'
+import type { AlertQueueMessage } from '@/lib/alert-queue/types'
+import { evaluateRulesForRun } from '@/lib/alert-rules/evaluator'
 import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
@@ -22,6 +25,7 @@ import { renderTemplate } from './render'
 export interface DispatchEnv {
   DB: D1Database
   BODIES: R2Bucket
+  ALERT_QUEUE?: Queue<AlertQueueMessage>
 }
 
 export interface DispatchDeps {
@@ -29,6 +33,41 @@ export interface DispatchDeps {
   bodies: R2Bucket
   sleep?: (ms: number) => Promise<void>
   preCreatedRunId?: string
+  alertQueue?: Queue<AlertQueueMessage>
+}
+
+async function evaluateAndEnqueueAlerts(
+  db: Database,
+  alertQueue: Queue<AlertQueueMessage>,
+  customerId: string,
+  jobId: string,
+  runId: string,
+): Promise<void> {
+  try {
+    const firing = await evaluateRulesForRun({ db, customerId, jobId, runId })
+    if (firing.length === 0) {
+      logInfo('alert.evaluated', { jobId, runId, firingCount: 0 })
+      return
+    }
+    const messages = firing.flatMap((pair) =>
+      pair.channelIds.map((channelId) => ({
+        runId,
+        ruleId: pair.ruleId,
+        channelId,
+        ruleName: pair.ruleName,
+        ruleKind: pair.ruleKind,
+      })),
+    )
+    await enqueueAlertBatch(alertQueue, messages)
+    logInfo('alert.evaluated', {
+      jobId,
+      runId,
+      firingCount: firing.length,
+      enqueueCount: messages.length,
+    })
+  } catch (err) {
+    logError('alert.evaluation_failed', err, { jobId, runId })
+  }
 }
 
 type Job = typeof jobs.$inferSelect
@@ -148,7 +187,7 @@ async function cancelPreCreatedRun(db: Database, runId: string, reason: string):
 }
 
 export async function runDispatch(
-  { db, bodies, sleep = defaultSleep, preCreatedRunId }: DispatchDeps,
+  { db, bodies, sleep = defaultSleep, preCreatedRunId, alertQueue }: DispatchDeps,
   jobId: string,
   scheduledAt: Date,
   triggerSource: TriggerSource = 'cron',
@@ -317,6 +356,10 @@ export async function runDispatch(
       lastFailureKind,
     })
 
+    if (alertQueue) {
+      await evaluateAndEnqueueAlerts(db, alertQueue, customer.id, job.id, runId)
+    }
+
     if (lastError !== null && isRetryableDispatchError(lastError)) {
       throw lastError
     }
@@ -332,7 +375,11 @@ export async function dispatchRun(
   triggerSource: TriggerSource = 'cron',
 ): Promise<void> {
   return runDispatch(
-    { db: createDb(env.DB), bodies: env.BODIES },
+    {
+      db: createDb(env.DB),
+      bodies: env.BODIES,
+      ...(env.ALERT_QUEUE ? { alertQueue: env.ALERT_QUEUE } : {}),
+    },
     jobId,
     scheduledAt,
     triggerSource,

@@ -1,6 +1,19 @@
 import { createDocument } from 'zod-openapi'
 import pkg from '../package.json' with { type: 'json' }
+import { AlertContextSchema } from '../src/shared/schemas/alert-context'
+import {
+  AlertRuleConfigSchema,
+  AlertRuleCreateInput,
+  AlertRuleSchema,
+  AlertRuleUpdateInput,
+} from '../src/shared/schemas/alert-rule'
 import { UserSchema } from '../src/shared/schemas/auth'
+import {
+  ChannelConfigSchema,
+  ChannelCreateInput,
+  ChannelSchema,
+  ChannelUpdateInput,
+} from '../src/shared/schemas/channel'
 import {
   CustomerCreateInput,
   CustomerSchema,
@@ -81,6 +94,15 @@ export const document = createDocument({
       UpcomingFireRow: UpcomingFireRowSchema,
       RecentFailureRow: RecentFailureRowSchema,
       DashboardSummary: DashboardSummarySchema,
+      ChannelConfig: ChannelConfigSchema,
+      Channel: ChannelSchema,
+      ChannelCreateInput,
+      ChannelUpdateInput,
+      AlertRuleConfig: AlertRuleConfigSchema,
+      AlertRule: AlertRuleSchema,
+      AlertRuleCreateInput,
+      AlertRuleUpdateInput,
+      AlertContext: AlertContextSchema,
     },
   },
 })
