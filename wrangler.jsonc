@@ -23,6 +23,12 @@
       "migrations_dir": "drizzle"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "BODIES",
+      "bucket_name": "boop-bodies-dev"
+    }
+  ],
   "env": {
     "production": {
       "name": "boop-prod",
@@ -36,6 +42,12 @@
           "database_name": "boop-prod",
           "database_id": "2b612221-7684-4af3-be8d-6f8ef098079d",
           "migrations_dir": "drizzle"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "BODIES",
+          "bucket_name": "boop-bodies-prod"
         }
       ]
     }

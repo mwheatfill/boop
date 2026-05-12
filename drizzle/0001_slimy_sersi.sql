@@ -1,0 +1,1 @@
+ALTER TABLE `attempts` ADD `request_body_r2_key` text;
