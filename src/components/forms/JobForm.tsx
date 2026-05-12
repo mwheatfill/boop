@@ -213,14 +213,12 @@ export function JobForm({
               className="flex flex-wrap gap-4"
             >
               {(['cron', 'interval', 'webhook'] as TriggerKind[]).map((kind) => (
-                <label
-                  key={kind}
-                  htmlFor={`trigger-${kind}`}
-                  className="flex items-center gap-2 text-sm"
-                >
+                <div key={kind} className="flex items-center gap-2">
                   <RadioGroupItem id={`trigger-${kind}`} value={kind} />
-                  <span className="capitalize">{kind}</span>
-                </label>
+                  <Label htmlFor={`trigger-${kind}`} className="capitalize">
+                    {kind}
+                  </Label>
+                </div>
               ))}
             </RadioGroup>
           )}

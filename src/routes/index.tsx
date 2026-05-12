@@ -155,7 +155,7 @@ function HomePage() {
         <Button
           variant={search.status ? 'outline' : 'default'}
           size="xs"
-          onClick={() => navigate({ search: { ...search, status: undefined } })}
+          onClick={() => navigate({ search: (prev) => ({ ...prev, status: undefined }) })}
         >
           All
         </Button>
@@ -164,7 +164,7 @@ function HomePage() {
             key={status}
             variant={search.status === status ? 'default' : 'outline'}
             size="xs"
-            onClick={() => navigate({ search: { ...search, status } })}
+            onClick={() => navigate({ search: (prev) => ({ ...prev, status }) })}
           >
             {status}
           </Button>
@@ -173,7 +173,7 @@ function HomePage() {
           <Button
             variant="ghost"
             size="xs"
-            onClick={() => navigate({ search: { ...search, customer: undefined } })}
+            onClick={() => navigate({ search: (prev) => ({ ...prev, customer: undefined }) })}
           >
             Clear customer filter
           </Button>

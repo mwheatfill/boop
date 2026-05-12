@@ -1,5 +1,4 @@
-import { queryOptions, useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { infiniteQueryOptions, useInfiniteQuery } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { listRecentRunsForJobFn } from '@/lib/jobs/server-fns'
@@ -7,12 +6,16 @@ import type { Run } from '@/shared/schemas/run'
 
 const PAGE_SIZE = 25
 
-const recentRunsOptions = (jobId: string, limit: number) =>
-  queryOptions({
-    queryKey: ['jobs', jobId, 'runs', { limit }],
-    queryFn: () => listRecentRunsForJobFn({ data: { jobId, limit } }),
+const recentRunsOptions = (jobId: string) =>
+  infiniteQueryOptions({
+    queryKey: ['jobs', jobId, 'runs'],
+    queryFn: ({ pageParam }) =>
+      listRecentRunsForJobFn({ data: { jobId, limit: PAGE_SIZE, offset: pageParam } }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: Run[], _all, lastPageParam) =>
+      lastPage.length === PAGE_SIZE ? lastPageParam + PAGE_SIZE : undefined,
     refetchInterval: (query) => {
-      const runs = query.state.data
+      const runs = query.state.data?.pages.flat()
       if (!runs) return false
       return runs.some((r) => r.status === 'running') ? 5_000 : false
     },
@@ -48,10 +51,13 @@ function relativeTime(iso: string | null): string {
 }
 
 export function RecentRunsPanel({ jobId }: RecentRunsPanelProps) {
-  const [limit, setLimit] = useState(PAGE_SIZE)
-  const { data: runs } = useQuery(recentRunsOptions(jobId, limit))
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery(
+    recentRunsOptions(jobId),
+  )
 
-  if (!runs) return null
+  if (!data) return null
+
+  const runs = data.pages.flat()
 
   if (runs.length === 0) {
     return (
@@ -82,15 +88,16 @@ export function RecentRunsPanel({ jobId }: RecentRunsPanelProps) {
           </li>
         ))}
       </ul>
-      {runs.length >= limit ? (
+      {hasNextPage ? (
         <Button
           type="button"
           variant="outline"
           size="sm"
           className="self-start"
-          onClick={() => setLimit(limit + PAGE_SIZE)}
+          onClick={() => fetchNextPage()}
+          disabled={isFetchingNextPage}
         >
-          Load more
+          {isFetchingNextPage ? 'Loading…' : 'Load more'}
         </Button>
       ) : null}
     </div>
