@@ -1,0 +1,198 @@
+import { and, desc, eq, inArray, type SQL, sql } from 'drizzle-orm'
+import type { Database } from '@/lib/db/client'
+import { attempts, customers, jobs, runs, targets } from '@/lib/db/schema'
+import { NotFoundError } from '@/lib/errors'
+import type { Job, JobSummary, TriggerKind } from '@/shared/schemas/job'
+import type {
+  AttemptSummary,
+  FAILURE_KINDS,
+  RUN_OUTCOMES,
+  RUN_STATUSES,
+  Run,
+} from '@/shared/schemas/run'
+
+interface ListFilters {
+  customerId?: string
+  status?: 'active' | 'paused' | 'archived'
+  includeArchived?: boolean
+}
+
+type JobRow = typeof jobs.$inferSelect
+
+interface JoinedJobRow extends JobRow {
+  customer: typeof customers.$inferSelect
+  target: typeof targets.$inferSelect
+}
+
+function effectiveTz(job: { triggerTimezone: string | null }, customerTimezone: string): string {
+  return job.triggerTimezone ?? customerTimezone
+}
+
+function toJobSummary(row: JoinedJobRow, lastRun?: typeof runs.$inferSelect): JobSummary {
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    customerSlug: row.customer.slug,
+    customerName: row.customer.name,
+    triggerKind: row.triggerKind as TriggerKind,
+    cronExpression: row.cronExpression,
+    intervalSeconds: row.intervalSeconds,
+    triggerTimezone: row.triggerTimezone,
+    nextFireAt: row.nextFireAt?.toISOString() ?? null,
+    lastFireAt: row.lastFireAt?.toISOString() ?? null,
+    status: row.status as JobSummary['status'],
+    lastRunOutcome: (lastRun?.outcome as JobSummary['lastRunOutcome']) ?? null,
+    lastRunStartedAt: lastRun?.startedAt?.toISOString() ?? null,
+  }
+}
+
+function toJob(row: JoinedJobRow): Job {
+  return {
+    id: row.id,
+    customerId: row.customerId,
+    customerSlug: row.customer.slug,
+    customerName: row.customer.name,
+    customerTimezone: row.customer.timezone,
+    targetId: row.targetId,
+    targetSlug: row.target.slug,
+    targetName: row.target.name,
+    name: row.name,
+    slug: row.slug,
+    triggerKind: row.triggerKind as TriggerKind,
+    cronExpression: row.cronExpression,
+    intervalSeconds: row.intervalSeconds,
+    triggerTimezone: row.triggerTimezone,
+    bodyTemplate: row.bodyTemplate,
+    headersTemplate: row.headersTemplate,
+    maxAttempts: row.maxAttempts,
+    overallDeadlineMs: row.overallDeadlineMs,
+    lastFireAt: row.lastFireAt?.toISOString() ?? null,
+    nextFireAt: row.nextFireAt?.toISOString() ?? null,
+    status: row.status as Job['status'],
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  }
+}
+
+async function loadLatestRunsByJobId(
+  db: Database,
+  jobIds: string[],
+): Promise<Map<string, typeof runs.$inferSelect>> {
+  if (jobIds.length === 0) return new Map()
+  const allRuns = await db
+    .select()
+    .from(runs)
+    .where(inArray(runs.jobId, jobIds))
+    .orderBy(desc(runs.startedAt))
+  const map = new Map<string, typeof runs.$inferSelect>()
+  for (const run of allRuns) {
+    if (!map.has(run.jobId)) map.set(run.jobId, run)
+  }
+  return map
+}
+
+async function selectJoinedJobs(db: Database, where: SQL | undefined): Promise<JoinedJobRow[]> {
+  const base = db
+    .select({ job: jobs, customer: customers, target: targets })
+    .from(jobs)
+    .innerJoin(customers, eq(customers.id, jobs.customerId))
+    .innerJoin(targets, eq(targets.id, jobs.targetId))
+  const rows = where ? await base.where(where).orderBy(jobs.name) : await base.orderBy(jobs.name)
+  return rows.map((r) => ({ ...r.job, customer: r.customer, target: r.target }))
+}
+
+export async function listAllJobs(db: Database, filters: ListFilters = {}): Promise<JobSummary[]> {
+  const conditions: SQL[] = []
+  if (filters.customerId) conditions.push(eq(jobs.customerId, filters.customerId))
+  if (filters.status) conditions.push(eq(jobs.status, filters.status))
+  else if (!filters.includeArchived) conditions.push(sql`${jobs.status} != 'archived'`)
+  const joined = await selectJoinedJobs(db, conditions.length > 0 ? and(...conditions) : undefined)
+  const latest = await loadLatestRunsByJobId(
+    db,
+    joined.map((j) => j.id),
+  )
+  return joined.map((j) => toJobSummary(j, latest.get(j.id)))
+}
+
+export async function listJobsForCustomer(
+  db: Database,
+  customerSlug: string,
+  { includeArchived = false }: { includeArchived?: boolean } = {},
+): Promise<JobSummary[]> {
+  const customer = (
+    await db.select().from(customers).where(eq(customers.slug, customerSlug)).limit(1)
+  )[0]
+  if (!customer) throw new NotFoundError('Customer', customerSlug)
+  return listAllJobs(db, { customerId: customer.id, includeArchived })
+}
+
+export async function getJobDetail(
+  db: Database,
+  customerSlug: string,
+  jobSlug: string,
+): Promise<Job> {
+  const customer = (
+    await db.select().from(customers).where(eq(customers.slug, customerSlug)).limit(1)
+  )[0]
+  if (!customer) throw new NotFoundError('Customer', customerSlug)
+  const joined = await selectJoinedJobs(
+    db,
+    and(eq(jobs.customerId, customer.id), eq(jobs.slug, jobSlug)),
+  )
+  const row = joined[0]
+  if (!row) throw new NotFoundError('Job', `${customerSlug}/${jobSlug}`)
+  return toJob(row)
+}
+
+export async function listRecentRunsForJob(
+  db: Database,
+  jobId: string,
+  { limit = 25, offset = 0 }: { limit?: number; offset?: number } = {},
+): Promise<Run[]> {
+  const rows = await db
+    .select()
+    .from(runs)
+    .where(eq(runs.jobId, jobId))
+    .orderBy(desc(runs.startedAt))
+    .limit(limit)
+    .offset(offset)
+  return rows.map(
+    (r): Run => ({
+      id: r.id,
+      jobId: r.jobId,
+      customerId: r.customerId,
+      scheduledAt: r.scheduledAt.toISOString(),
+      startedAt: r.startedAt?.toISOString() ?? null,
+      completedAt: r.completedAt?.toISOString() ?? null,
+      status: r.status as (typeof RUN_STATUSES)[number],
+      outcome: (r.outcome as (typeof RUN_OUTCOMES)[number]) ?? null,
+      skippedReason: r.skippedReason,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    }),
+  )
+}
+
+export async function listAttemptsForRun(db: Database, runId: string): Promise<AttemptSummary[]> {
+  const rows = await db
+    .select()
+    .from(attempts)
+    .where(eq(attempts.runId, runId))
+    .orderBy(attempts.attemptNumber)
+  return rows.map(
+    (r): AttemptSummary => ({
+      id: r.id,
+      runId: r.runId,
+      attemptNumber: r.attemptNumber,
+      startedAt: r.startedAt.toISOString(),
+      completedAt: r.completedAt?.toISOString() ?? null,
+      httpStatus: r.httpStatus,
+      failureKind: (r.failureKind as (typeof FAILURE_KINDS)[number]) ?? null,
+    }),
+  )
+}
+
+export function effectiveTimezone(job: Pick<Job, 'triggerTimezone' | 'customerTimezone'>): string {
+  return effectiveTz(job, job.customerTimezone)
+}

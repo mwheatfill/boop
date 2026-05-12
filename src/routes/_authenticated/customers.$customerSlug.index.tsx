@@ -8,7 +8,9 @@ import { EmptyState } from '@/components/EmptyState'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { getCustomerFn } from '@/lib/customers/server-fns'
+import { listAllJobsFn } from '@/lib/jobs/server-fns'
 import { listTargetsForCustomerFn } from '@/lib/targets/server-fns'
+import type { JobSummary } from '@/shared/schemas/job'
 import type { Target } from '@/shared/schemas/target'
 
 const searchSchema = z.object({
@@ -27,6 +29,52 @@ const targetsQueryOptions = (customerSlug: string, includeArchived: boolean) =>
     queryFn: () => listTargetsForCustomerFn({ data: { customerSlug, includeArchived } }),
   })
 
+const jobsQueryOptions = (customerSlug: string) =>
+  queryOptions({
+    queryKey: ['customers', customerSlug, 'jobs'],
+    queryFn: () => listAllJobsFn({ data: { customerSlug } }),
+  })
+
+function jobsColumns(customerSlug: string): ColumnDef<JobSummary>[] {
+  return [
+    {
+      accessorKey: 'name',
+      header: 'Name',
+      cell: ({ row }) => (
+        <Link
+          to="/customers/$customerSlug/jobs/$jobSlug"
+          params={{ customerSlug, jobSlug: row.original.slug }}
+          className="font-medium text-foreground hover:underline"
+        >
+          {row.original.name}
+        </Link>
+      ),
+    },
+    {
+      accessorKey: 'triggerKind',
+      header: 'Trigger',
+      cell: ({ row }) => row.original.triggerKind,
+    },
+    {
+      accessorKey: 'nextFireAt',
+      header: 'Next run',
+      cell: ({ row }) =>
+        row.original.nextFireAt ? new Date(row.original.nextFireAt).toLocaleString() : '—',
+    },
+    {
+      accessorKey: 'lastFireAt',
+      header: 'Last run',
+      cell: ({ row }) =>
+        row.original.lastFireAt ? new Date(row.original.lastFireAt).toLocaleString() : '—',
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+  ]
+}
+
 export const Route = createFileRoute('/_authenticated/customers/$customerSlug/')({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => ({ archived: Boolean(search.archived) }),
@@ -34,6 +82,7 @@ export const Route = createFileRoute('/_authenticated/customers/$customerSlug/')
     await Promise.all([
       context.queryClient.ensureQueryData(customerQueryOptions(params.customerSlug)),
       context.queryClient.ensureQueryData(targetsQueryOptions(params.customerSlug, deps.archived)),
+      context.queryClient.ensureQueryData(jobsQueryOptions(params.customerSlug)),
     ])
   },
   component: CustomerHubPage,
@@ -76,6 +125,7 @@ function CustomerHubPage() {
   const isAdmin = currentUser.role === 'admin'
   const { data: customer } = useSuspenseQuery(customerQueryOptions(customerSlug))
   const { data: targets } = useSuspenseQuery(targetsQueryOptions(customerSlug, archived))
+  const { data: jobs } = useSuspenseQuery(jobsQueryOptions(customerSlug))
 
   return (
     <div className="flex flex-col gap-8">
@@ -149,6 +199,33 @@ function CustomerHubPage() {
           />
         ) : (
           <DataTable columns={targetColumns(customerSlug, isAdmin)} data={targets} />
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-medium">Jobs</h2>
+          <Button
+            size="sm"
+            render={<Link to="/customers/$customerSlug/jobs/new" params={{ customerSlug }} />}
+          >
+            <Plus aria-hidden /> New Job
+          </Button>
+        </div>
+        {jobs.length === 0 ? (
+          <EmptyState
+            title="No Jobs yet."
+            description="Create one to schedule HTTP calls against this Customer's Targets."
+            action={
+              <Button
+                render={<Link to="/customers/$customerSlug/jobs/new" params={{ customerSlug }} />}
+              >
+                <Plus aria-hidden /> New Job
+              </Button>
+            }
+          />
+        ) : (
+          <DataTable columns={jobsColumns(customerSlug)} data={jobs} />
         )}
       </section>
     </div>
