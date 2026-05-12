@@ -9,7 +9,7 @@ A user-created scheduler entry that fires HTTP requests against a target on a de
 _Avoid_: Schedule, Monitor, Cronjob, Task
 
 **Run**:
-One execution of a Job. Has a single start, a single outcome, and one or more Attempts.
+One execution of a Job. Has a single start, a single outcome, and one or more Attempts. The verb form ("run") is also the UI's word for the manual-fire action — the button reads "Run now", history reads "Last run 4m ago".
 _Avoid_: Execution, Invocation, Fire, Tick
 
 **Attempt**:
@@ -52,8 +52,8 @@ _Avoid_: Functions, Capabilities
 A summarization view that turns recent Run/Attempt history into a short prose status report. Runs on a daily cron ("morning briefing") and on-demand via a button in the Job detail view. Read-only — does not propose changes.
 _Avoid_: Report, Digest
 
-**boop** (verb / brand):
-The act of firing. Used in UI copy ("boop fired", "next boop in 4m") but never as a noun in code or schema.
+**boop** (brand):
+The product name. Brand-only — not used as a verb or noun in UI copy, code, or schema. The UI verb for one execution is "run" (see **Run**).
 
 **Customer**:
 A real-world organization whose endpoints boop fires against. SwitchThink itself is one Customer; the ~270 client organizations are the rest. Owns Jobs. Maps 1:1 to an Autotask company for alerting/ticketing.

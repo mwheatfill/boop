@@ -28,6 +28,8 @@ Ordered foundation → data → auth → AI → product surface → meta.
 | [015](015-ai-authoring-stack.md) | Proposed | AI authoring stack (Vercel AI SDK, Cloudflare Agents, Code Mode, MCP server) |
 | [016](016-operator-authz.md) | Proposed | Operator authorization (Access JWT, Admin/Operator roles, double-bound AI authz) |
 | [017](017-cron-and-time.md) | Proposed | Cron parser (`croner`), date/time approach (native `Intl.*`), timezone on the data model |
+| [018](018-navigation-ia.md) | Proposed | Navigation IA (Customer-nested URLs, Jobs-first navigation surfaces) |
+| [019](019-soft-delete-policy.md) | Proposed | Soft-delete policy (archive blocks on active dependents) |
 
 ## How to add an ADR
 
