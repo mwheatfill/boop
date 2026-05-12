@@ -45,7 +45,12 @@ if git_remote=$(git remote get-url origin 2>/dev/null); then
 fi
 
 prompt_default="${default_gh_repo:-skip}"
-read -r -p "▶ GitHub repo for self-refs (OWNER/REPO) [${prompt_default}]: " gh_repo
+if [[ -n "${BOOTSTRAP_GH_REPO:-}" ]]; then
+  gh_repo="$BOOTSTRAP_GH_REPO"
+  echo "▶ GitHub repo for self-refs: $gh_repo (from BOOTSTRAP_GH_REPO)"
+else
+  read -r -p "▶ GitHub repo for self-refs (OWNER/REPO) [${prompt_default}]: " gh_repo
+fi
 gh_repo="${gh_repo:-$prompt_default}"
 
 if [[ "$gh_repo" != "skip" && "$gh_repo" != "mwheatfill/template-cf-fullstack" ]]; then
@@ -64,7 +69,12 @@ fi
 
 # 1b. App rename: find/replace the template name across configs and docs.
 
-read -r -p "▶ App name (alphanumeric + dashes) [${DEFAULT_NAME}]: " app_name
+if [[ -n "${BOOTSTRAP_APP_NAME:-}" ]]; then
+  app_name="$BOOTSTRAP_APP_NAME"
+  echo "▶ App name: $app_name (from BOOTSTRAP_APP_NAME)"
+else
+  read -r -p "▶ App name (alphanumeric + dashes) [${DEFAULT_NAME}]: " app_name
+fi
 app_name="${app_name:-$DEFAULT_NAME}"
 
 if [[ ! "$app_name" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
@@ -126,36 +136,48 @@ echo "  production under env.production). To use your own (typical for a"
 echo "  fresh fork), create them now."
 echo "  (You'll need 'wrangler login' completed first.)"
 echo ""
-read -r -p "  Create your own D1 databases? [y/N] " create_d1
+if [[ -n "${BOOTSTRAP_CREATE_D1:-}" ]]; then
+  create_d1="$BOOTSTRAP_CREATE_D1"
+  echo "  Create your own D1 databases? $create_d1 (from BOOTSTRAP_CREATE_D1)"
+else
+  read -r -p "  Create your own D1 databases? [y/N] " create_d1
+fi
+
+create_d1_and_patch() {
+  local label="$1"
+  local db_name="$2"
+  local existing_id="$3"
+
+  echo ""
+  echo "▶ Creating ${label} D1 (${db_name})..."
+  local output
+  if ! output=$("${WRANGLER[@]}" d1 create "$db_name" 2>&1); then
+    echo "$output"
+    echo "  ✗ Failed to create ${db_name}. Common causes: not logged in, name taken, quota."
+    exit 1
+  fi
+  echo "$output"
+
+  local new_id
+  new_id=$(echo "$output" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -1)
+  if [[ -z "$new_id" ]]; then
+    echo "  ✗ Could not parse new database_id from wrangler output."
+    exit 1
+  fi
+  "${SED_INPLACE[@]}" "s/${existing_id}/${new_id}/" wrangler.jsonc
+  echo "  ✓ Patched ${label} database_id in wrangler.jsonc: ${new_id}"
+}
 
 case "${create_d1:-N}" in
   [Yy]*)
-    echo ""
-    echo "▶ Creating dev D1..."
-    if "${WRANGLER[@]}" d1 create "${app_name}-dev"; then
-      echo "  ✓ Created (or existing). Copy the database_id printed above."
-    else
-      cmd_status=$?
-      echo "  ✗ Failed (exit $cmd_status). Common causes: not logged in, name taken, quota."
-      echo "    Run 'pnpm exec wrangler login' and retry."
-      exit "$cmd_status"
+    existing_dev_id=$(grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' wrangler.jsonc | sed -n '1p')
+    existing_prod_id=$(grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' wrangler.jsonc | sed -n '2p')
+    if [[ -z "$existing_dev_id" || -z "$existing_prod_id" ]]; then
+      echo "  ✗ Could not locate the two database_id values in wrangler.jsonc."
+      exit 1
     fi
-
-    echo ""
-    echo "▶ Creating production D1..."
-    if "${WRANGLER[@]}" d1 create "${app_name}-prod"; then
-      echo "  ✓ Created (or existing)."
-    else
-      cmd_status=$?
-      echo "  ✗ Failed (exit $cmd_status)."
-      exit "$cmd_status"
-    fi
-
-    echo ""
-    echo "  ⚠ Patch the two database_id fields in wrangler.jsonc with the IDs"
-    echo "    printed above:"
-    echo "    - top-level d1_databases[0].database_id          (dev DB)"
-    echo "    - env.production.d1_databases[0].database_id     (prod DB)"
+    create_d1_and_patch "dev" "${app_name}-dev" "$existing_dev_id"
+    create_d1_and_patch "production" "${app_name}-prod" "$existing_prod_id"
     ;;
   *)
     echo ""
