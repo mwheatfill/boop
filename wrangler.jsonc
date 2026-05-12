@@ -49,6 +49,20 @@
       }
     ]
   },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "JOB_ALARM",
+        "class_name": "JobAlarm"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["JobAlarm"]
+    }
+  ],
   "env": {
     "production": {
       "name": "boop-prod",
@@ -89,7 +103,21 @@
             "dead_letter_queue": "boop-dispatch-dlq-prod"
           }
         ]
-      }
+      },
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "JOB_ALARM",
+            "class_name": "JobAlarm"
+          }
+        ]
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["JobAlarm"]
+        }
+      ]
     }
   }
 }
