@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "template-cf-fullstack",
+    "title": "boop",
     "version": "0.0.2",
     "description": "Generated from Zod schemas. Single source of truth for the API contract. The template ships no endpoints; add paths here as your app grows."
   },

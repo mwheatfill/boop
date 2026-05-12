@@ -12,9 +12,9 @@ set -euo pipefail
 trap 'echo ""; echo "✗ Bootstrap interrupted."; exit 130' INT TERM
 
 WRANGLER=(pnpm exec wrangler)
-DEFAULT_NAME="template-cf-fullstack"
+DEFAULT_NAME="boop"
 
-echo "▶ template-cf-fullstack bootstrap"
+echo "▶ boop bootstrap"
 echo ""
 
 # macOS sed needs '' after -i; GNU sed does not. Detect and adapt.

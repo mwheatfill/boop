@@ -14,7 +14,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'template-cf-fullstack' },
+      { title: 'boop' },
       {
         name: 'description',
         content: 'Cloudflare Workers + TanStack Start template.',
@@ -40,7 +40,7 @@ function RootDocument({ children }: { children: ReactNode }) {
                 className="text-sm font-semibold tracking-tight"
                 activeProps={{ className: 'text-primary' }}
               >
-                template-cf-fullstack
+                boop
               </Link>
               <ThemeToggle />
             </div>

@@ -26,12 +26,12 @@ const docLinks = [
   {
     title: 'AGENTS.md',
     description: 'Canonical entry for AI coding agents working in this repo.',
-    href: 'https://github.com/mwheatfill/template-cf-fullstack/blob/main/AGENTS.md',
+    href: 'https://github.com/mwheatfill/boop/blob/main/AGENTS.md',
   },
   {
     title: 'Architecture Decision Records',
     description: 'Why each platform, framework, and library choice was made.',
-    href: 'https://github.com/mwheatfill/template-cf-fullstack/tree/main/docs/adr',
+    href: 'https://github.com/mwheatfill/boop/tree/main/docs/adr',
   },
   {
     title: 'Recipes',

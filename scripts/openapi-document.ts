@@ -5,7 +5,7 @@ import { UserSchema } from '../src/shared/schemas/auth'
 export const document = createDocument({
   openapi: '3.1.0',
   info: {
-    title: 'template-cf-fullstack',
+    title: 'boop',
     version: pkg.version,
     description:
       'Generated from Zod schemas. Single source of truth for the API contract. ' +

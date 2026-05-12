@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "template-cf-fullstack-dev",
+  "name": "boop-dev",
   "compatibility_date": "2026-05-09",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
@@ -12,29 +12,29 @@
   },
   // vars are non-inheritable; repeat per env block.
   "vars": {
-    "PUBLIC_APP_NAME": "template-cf-fullstack-dev",
+    "PUBLIC_APP_NAME": "boop-dev",
     "PUBLIC_ENV": "dev"
   },
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "template-cf-fullstack-dev",
-      "database_id": "18db1684-4240-4fa5-a185-d54d58fac67b",
+      "database_name": "boop-dev",
+      "database_id": "45d84867-7a4d-4119-9108-f80278c459c3",
       "migrations_dir": "drizzle"
     }
   ],
   "env": {
     "production": {
-      "name": "template-cf-fullstack-prod",
+      "name": "boop-prod",
       "vars": {
-        "PUBLIC_APP_NAME": "template-cf-fullstack-prod",
+        "PUBLIC_APP_NAME": "boop-prod",
         "PUBLIC_ENV": "production"
       },
       "d1_databases": [
         {
           "binding": "DB",
-          "database_name": "template-cf-fullstack-prod",
-          "database_id": "8e91e4d7-25a1-43a7-aa2a-68dc36d4b21c",
+          "database_name": "boop-prod",
+          "database_id": "2b612221-7684-4af3-be8d-6f8ef098079d",
           "migrations_dir": "drizzle"
         }
       ]

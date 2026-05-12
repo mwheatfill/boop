@@ -1,4 +1,4 @@
-# template-cf-fullstack
+# boop
 
 Starter for great apps on Cloudflare. Ships only what every app needs: framework wiring, an empty data layer, an agent-ready governance layer, and the build/deploy infrastructure. Capabilities (auth, AI, email, MCP, more) install on demand via [app-platform-recipes](https://github.com/mwheatfill/app-platform-recipes).
 
@@ -122,7 +122,7 @@ The Cloudflare Vite plugin flattens the wrangler config into `dist/server/wrangl
 Some non-obvious bits:
 
 - **Bindings (`vars`, `d1_databases`, etc.) are non-inheritable.** The `env.production` block must redefine them in full, even when the values mostly match the top level. Compatibility date, compatibility flags, `main`, and `observability` *are* inheritable.
-- **Worker names:** the env.production block sets its own explicit `name` (`template-cf-fullstack-prod`) instead of relying on the `<top>-<env>` auto-suffix. That keeps the prod worker named `-prod` rather than the awkward `template-cf-fullstack-dev-production` that auto-suffixing would produce on top of an already-suffixed top-level name.
+- **Worker names:** the env.production block sets its own explicit `name` (`boop-prod`) instead of relying on the `<top>-<env>` auto-suffix. That keeps the prod worker named `-prod` rather than the awkward `boop-dev-production` that auto-suffixing would produce on top of an already-suffixed top-level name.
 - **`wrangler deploy`** reads `dist/server/wrangler.json` directly. No flag needed because the plugin already wrote the right env into the dist config at build time.
 - **`wrangler d1 migrations apply`** reads `wrangler.jsonc` directly, not the dist version, so it needs `--env production` when applying to prod. Dev is the top-level config and needs no flag.
 
