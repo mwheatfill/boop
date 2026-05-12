@@ -54,12 +54,12 @@ jobs:
           fi
 
       - name: Deploy to production
-        # cloudflare/wrangler-action@v3 is Cloudflare's canonical CI deploy
+        # cloudflare/wrangler-action is Cloudflare's canonical CI deploy
         # action. The Quality gates step already built with
         # CLOUDFLARE_ENV=production, so .wrangler/deploy/config.json
         # redirects wrangler to a dist config where env.production has
         # been merged into the top level — plain `deploy` is enough.
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
