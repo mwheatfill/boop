@@ -37,6 +37,7 @@ jobs:
           pnpm build
           pnpm test
           pnpm openapi:check
+          pnpm audit:patterns
 
       - name: Apply D1 migrations to production
         # `wrangler d1` reads wrangler.jsonc directly (not the dist
