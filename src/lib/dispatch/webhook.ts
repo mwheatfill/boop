@@ -1,25 +1,44 @@
 import { and, eq } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
-import { customers, jobs } from '@/lib/db/schema'
-import { logInfo } from '@/lib/log'
+import { newId } from '@/lib/db/ids'
+import { customers, jobs, runs } from '@/lib/db/schema'
+import { logInfo, logWarn } from '@/lib/log'
+import { listActiveSecrets } from '@/lib/webhook-secrets/queries'
+import { verifyWebhook } from '@/lib/webhook-signing/verify'
 import type { DispatchMessage } from './scheduled'
 
 export interface WebhookDeps {
   db: Database
   dispatchQueue: Queue<DispatchMessage>
+  rateLimit: Pick<RateLimit, 'limit'>
   now?: () => Date
 }
 
 const NOT_FOUND_MESSAGE = 'not found'
+const SIGNATURE_HEADER = 'X-Boop-Signature'
+
+function clientIp(request: Request): string | null {
+  return request.headers.get('cf-connecting-ip') ?? request.headers.get('x-forwarded-for')
+}
 
 export async function handleWebhook(
-  { db, dispatchQueue, now = () => new Date() }: WebhookDeps,
+  { db, dispatchQueue, rateLimit, now = () => new Date() }: WebhookDeps,
+  request: Request,
   customerSlug: string,
   jobSlug: string,
 ): Promise<Response> {
+  const ip = clientIp(request)
+
+  const { success: allowed } = await rateLimit.limit({ key: customerSlug })
+  if (!allowed) {
+    logWarn('webhook.rate_limited', { customerSlug, jobSlug, ip })
+    return Response.json({ error: 'rate_limit_exceeded' }, { status: 429 })
+  }
+
   const [row] = await db
     .select({
       jobId: jobs.id,
+      customerId: customers.id,
       jobStatus: jobs.status,
       triggerKind: jobs.triggerKind,
     })
@@ -56,8 +75,52 @@ export async function handleWebhook(
     )
   }
 
+  const body = await request.text()
+  const header = request.headers.get(SIGNATURE_HEADER)
+  const activeSecrets = await listActiveSecrets(db, row.jobId, now())
+  const verification = await verifyWebhook({
+    secrets: activeSecrets.map((s) => s.secret),
+    header,
+    body,
+    now: now().getTime(),
+  })
+  if (!verification.valid) {
+    logWarn('webhook.rejected', {
+      customerSlug,
+      jobSlug,
+      reason: verification.reason,
+      ip,
+    })
+    const status =
+      verification.reason === 'missing_header' || verification.reason === 'bad_format' ? 401 : 403
+    return Response.json({ error: verification.reason }, { status })
+  }
+
   const scheduledAt = now()
-  await dispatchQueue.send({ jobId: row.jobId, scheduledAt })
-  logInfo('webhook.received', { customerSlug, jobSlug, accepted: true, jobId: row.jobId })
-  return Response.json({ accepted: true, runId: null }, { status: 202 })
+  const runId = newId('run')
+  await db.insert(runs).values({
+    id: runId,
+    jobId: row.jobId,
+    customerId: row.customerId,
+    scheduledAt,
+    status: 'scheduled',
+    triggerSource: 'webhook',
+  })
+  await dispatchQueue.send({
+    jobId: row.jobId,
+    scheduledAt,
+    triggerSource: 'webhook',
+    runId,
+  })
+  logInfo('webhook.received', {
+    customerSlug,
+    jobSlug,
+    accepted: true,
+    jobId: row.jobId,
+    runId,
+  })
+  return Response.json(
+    { accepted: true, runId, scheduledAt: scheduledAt.toISOString() },
+    { status: 200 },
+  )
 }

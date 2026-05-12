@@ -11,6 +11,7 @@ export interface DispatchMessage {
   jobId: string
   scheduledAt: Date
   triggerSource?: 'cron' | 'webhook' | 'manual'
+  runId?: string
 }
 
 export interface ScheduledEnv {

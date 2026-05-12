@@ -201,6 +201,25 @@ export const alertRules = sqliteTable(
   ],
 )
 
+// Stored plaintext: HMAC verification of inbound webhooks requires the
+// same key the caller signed with, so a one-way hash is incompatible with
+// the scheme. Envelope encryption with a Wrangler master key is the
+// queued hardening (see PRD #24 follow-up).
+export const webhookSecrets = sqliteTable(
+  'webhook_secrets',
+  {
+    id: text('id').primaryKey(),
+    jobId: text('job_id')
+      .notNull()
+      .references(() => jobs.id, { onDelete: 'cascade' }),
+    secret: text('secret').notNull(),
+    revokedAt: integer('revoked_at', { mode: 'timestamp_ms' }),
+    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }),
+    ...timestamps(),
+  },
+  (table) => [index('webhook_secrets_job_active_idx').on(table.jobId, table.revokedAt)],
+)
+
 export const authoringSessions = sqliteTable(
   'authoring_sessions',
   {
