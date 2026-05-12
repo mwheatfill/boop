@@ -14,6 +14,7 @@ import {
   recovery,
   slowRun,
 } from './predicates'
+import { parseChannelIdsColumn } from './queries'
 
 export interface FiringPair {
   ruleId: string
@@ -35,20 +36,10 @@ interface LoadedRule {
   channelIds: string[]
 }
 
-function parseChannelIds(raw: string): string[] {
-  try {
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter((v): v is string => typeof v === 'string' && v.length > 0)
-  } catch {
-    return []
-  }
-}
-
 function parseRuleRow(row: typeof alertRules.$inferSelect): LoadedRule | null {
   try {
     const config = AlertRuleConfigSchema.parse({ kind: row.kind, ...JSON.parse(row.config) })
-    const channelIds = parseChannelIds(row.channelIds)
+    const channelIds = parseChannelIdsColumn(row.channelIds)
     if (channelIds.length === 0) return null
     return {
       id: row.id,

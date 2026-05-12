@@ -11,7 +11,7 @@ import {
 
 type AlertRuleRow = typeof alertRules.$inferSelect
 
-function parseChannelIds(raw: string): string[] {
+export function parseChannelIdsColumn(raw: string): string[] {
   try {
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
@@ -34,7 +34,7 @@ export function rowToAlertRule(row: AlertRuleRow): AlertRule {
     name: row.name,
     slug: row.slug,
     config,
-    channelIds: parseChannelIds(row.channelIds),
+    channelIds: parseChannelIdsColumn(row.channelIds),
     status: row.status as AlertRule['status'],
     lastFiredAt: row.lastFiredAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
