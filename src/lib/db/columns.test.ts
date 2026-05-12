@@ -1,6 +1,8 @@
-import { getTableConfig, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { getTableConfig, SQLiteSyncDialect, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { describe, expect, it } from 'vitest'
 import { enumColumn, lifecycleCheck, timestamps } from './columns'
+
+const dialect = new SQLiteSyncDialect()
 
 describe('timestamps()', () => {
   it('adds created_at and updated_at columns', () => {
@@ -24,13 +26,35 @@ describe('enumColumn()', () => {
 })
 
 describe('lifecycleCheck()', () => {
+  const tbl = sqliteTable(
+    'demo',
+    { id: text('id').primaryKey(), status: text('status').notNull() },
+    (table) => [lifecycleCheck(table.status, ['active', 'archived'] as const)],
+  )
+
   it('registers a CHECK constraint named <column>_check', () => {
-    const tbl = sqliteTable(
-      'demo',
-      { id: text('id').primaryKey(), status: text('status').notNull() },
-      (table) => [lifecycleCheck(table.status, ['active', 'archived'] as const)],
-    )
     expect(getTableConfig(tbl).checks).toHaveLength(1)
     expect(getTableConfig(tbl).checks[0]?.name).toBe('status_check')
+  })
+
+  it('produces an IN-list constraint with literal values', () => {
+    const check = getTableConfig(tbl).checks[0]
+    expect(check).toBeDefined()
+    if (!check) return
+    const { sql } = dialect.sqlToQuery(check.value)
+    expect(sql).toContain(`"status" IN ('active', 'archived')`)
+  })
+
+  it('escapes single quotes in values', () => {
+    const escaped = sqliteTable(
+      'demo2',
+      { id: text('id').primaryKey(), kind: text('kind').notNull() },
+      (table) => [lifecycleCheck(table.kind, ["o'reilly", 'normal'] as const)],
+    )
+    const check = getTableConfig(escaped).checks[0]
+    expect(check).toBeDefined()
+    if (!check) return
+    const { sql } = dialect.sqlToQuery(check.value)
+    expect(sql).toContain(`'o''reilly'`)
   })
 })

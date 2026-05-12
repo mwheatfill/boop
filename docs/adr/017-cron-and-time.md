@@ -39,7 +39,7 @@ The heartbeat evaluator (ADR-014) reads `(jobs.cron_expression, effective_tz, jo
 
 **Negative:**
 
-- Native `Intl` in workerd carries an undocumented edge: I could not get `cloudflare-docs` MCP to surface explicit confirmation that `Intl.DateTimeFormat({ timeZone: 'America/New_York' })` works in workerd. A one-line smoke test in a Worker is the planned verification before the schema PRD merges; if it fails, the escape is `@date-fns/tz` (tree-shakeable, modular). **Flagged as NO-SOURCE for reviewer awareness.**
+- Native `Intl` in workerd: documentation did not surface explicit confirmation, so a throwaway probe Worker was run against `wrangler dev --local` on 2026-05-11 (compat date `2026-04-17`, wrangler `4.82.2`). Result: `new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York' })` formats correctly and `resolvedOptions().timeZone` round-trips; `Intl.supportedValuesOf('timeZone')` returns 418 zones; bogus zones (`'NYC'`) throw `RangeError`. One ICU quirk: aliases like `Asia/Kolkata` are not in `supportedValuesOf` (canonicalized to `Asia/Calcutta`) but are still accepted by `DateTimeFormat`, so the fallback try/catch path in `tzSchema` is load-bearing for those.
 - "No date library yet" is a posture, not a permanent ban. If a downstream PRD shows a real need for date math beyond `Date` and `Intl`, that's the trigger to add `@date-fns/tz` (preferred over Luxon for bundle reasons, preferred over Temporal for workerd-compat reasons in 2026).
 - Two columns (`customers.timezone` and `jobs.trigger_timezone`) instead of one. The resolution rule (`override ?? default`) must be applied consistently; encapsulating it in a single helper (`effectiveTimezone(job)`) is the suggested mitigation.
 
