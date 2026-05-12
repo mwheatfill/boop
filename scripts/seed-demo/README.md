@@ -27,6 +27,20 @@ pnpm seed:demo --reset                      # delete all demo rows, then insert 
 pnpm seed:demo --reset --profile=stress --confirm   # required for stress cleanup
 ```
 
+## Pushing the seeded data to remote D1
+
+`pnpm seed:remote` exports the locally-seeded data and imports it into a remote D1 binding via `wrangler d1 export` + `wrangler d1 execute --remote --file`, split by table in FK-dependency order.
+
+```bash
+pnpm db:migrate:prod                  # ensure remote has the latest migrations
+pnpm seed:demo                        # populate local D1 first
+pnpm seed:remote                      # push to the top-level (dev) D1 binding
+pnpm seed:remote --env=production     # push to env.production's D1 binding
+pnpm seed:remote --reset              # delete every seed_tag = demo-v1 row on remote first
+```
+
+Caveats: `wrangler d1 export --local` includes *every* row in your local D1, not just demo rows. If you have unrelated local data, it gets pushed too. `--reset` only clears demo rows on remote, not whatever you're about to push. The wrapper splits the dump by table and imports in FK order because `wrangler d1 export` emits inserts alphabetically (so `alert_rules` lands before `customers`, and a one-shot import fails on FK constraints).
+
 ## Properties
 
 - **Idempotent.** IDs are derived from a stable hash of `boop:demo:<kind>:<segments>`; re-runs upsert by id. Run history insertions use `ON CONFLICT (id) DO NOTHING`, so repeat passes are no-ops.
