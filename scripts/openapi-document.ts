@@ -23,6 +23,12 @@ import {
   TriggerSourceSchema,
 } from '../src/shared/schemas/run'
 import { TargetCreateInput, TargetSchema, TargetUpdateInput } from '../src/shared/schemas/target'
+import {
+  RotateInputSchema,
+  WebhookSecretCreatedResponseSchema,
+  WebhookSecretSummarySchema,
+  WebhookSecretsStateSchema,
+} from '../src/shared/schemas/webhook-secret'
 
 export const document = createDocument({
   openapi: '3.1.0',
@@ -55,6 +61,10 @@ export const document = createDocument({
       RunDetailResponse: RunDetailResponseSchema,
       RunSummaryRow: RunSummaryRowSchema,
       RunsListResponse: RunsListResponseSchema,
+      WebhookSecretSummary: WebhookSecretSummarySchema,
+      WebhookSecretCreatedResponse: WebhookSecretCreatedResponseSchema,
+      WebhookSecretsState: WebhookSecretsStateSchema,
+      WebhookSecretRotateInput: RotateInputSchema,
     },
   },
 })

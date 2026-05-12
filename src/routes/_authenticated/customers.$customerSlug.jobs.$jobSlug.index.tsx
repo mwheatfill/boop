@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { JobActionsMenu } from '@/components/forms/JobActionsMenu'
 import { RecentRunsPanel } from '@/components/forms/RecentRunsPanel'
-import { WebhookUrlPanel } from '@/components/forms/WebhookUrlPanel'
+import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -165,7 +165,7 @@ function JobDetailPage() {
       </Card>
 
       {job.triggerKind === 'webhook' ? (
-        <WebhookUrlPanel customerSlug={customerSlug} jobSlug={jobSlug} />
+        <WebhookSecretPanel customerSlug={customerSlug} jobSlug={jobSlug} />
       ) : null}
 
       <Card>

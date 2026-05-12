@@ -28,6 +28,7 @@ export interface DispatchDeps {
   db: Database
   bodies: R2Bucket
   sleep?: (ms: number) => Promise<void>
+  preCreatedRunId?: string
 }
 
 type Job = typeof jobs.$inferSelect
@@ -138,41 +139,60 @@ async function performAttempt(
   }
 }
 
+async function cancelPreCreatedRun(db: Database, runId: string, reason: string): Promise<void> {
+  const now = new Date()
+  await db
+    .update(runs)
+    .set({ status: 'canceled', skippedReason: reason, completedAt: now, updatedAt: now })
+    .where(eq(runs.id, runId))
+}
+
 export async function runDispatch(
-  { db, bodies, sleep = defaultSleep }: DispatchDeps,
+  { db, bodies, sleep = defaultSleep, preCreatedRunId }: DispatchDeps,
   jobId: string,
   scheduledAt: Date,
   triggerSource: TriggerSource = 'cron',
 ): Promise<void> {
   const claimed = await claimJob(db, jobId)
   if (claimed === null) {
+    if (preCreatedRunId) await cancelPreCreatedRun(db, preCreatedRunId, 'claim_failed')
     throw new ClaimFailedError(jobId)
   }
   try {
     const joined = await readJoined(db, jobId)
     if (!joined) {
+      if (preCreatedRunId) await cancelPreCreatedRun(db, preCreatedRunId, 'not_found')
       throw new JobNotDispatchableError(jobId, 'not_found')
     }
     const { job, customer, target } = joined
     if (customer.status === 'archived') {
+      if (preCreatedRunId) await cancelPreCreatedRun(db, preCreatedRunId, 'customer_archived')
       throw new JobNotDispatchableError(jobId, 'customer_archived')
     }
     if (job.status === 'paused' || job.status === 'archived') {
+      if (preCreatedRunId) await cancelPreCreatedRun(db, preCreatedRunId, `job_${job.status}`)
       throw new JobNotDispatchableError(jobId, job.status)
     }
 
-    const runId = newId('run')
+    const runId = preCreatedRunId ?? newId('run')
     const startedAt = new Date()
     const deadlineAt = startedAt.getTime() + job.overallDeadlineMs
-    await db.insert(runs).values({
-      id: runId,
-      jobId: job.id,
-      customerId: customer.id,
-      scheduledAt,
-      startedAt,
-      status: 'running',
-      triggerSource,
-    })
+    if (preCreatedRunId) {
+      await db
+        .update(runs)
+        .set({ status: 'running', startedAt, updatedAt: startedAt })
+        .where(eq(runs.id, runId))
+    } else {
+      await db.insert(runs).values({
+        id: runId,
+        jobId: job.id,
+        customerId: customer.id,
+        scheduledAt,
+        startedAt,
+        status: 'running',
+        triggerSource,
+      })
+    }
 
     let renderedBody: string
     let renderedHeaders: string

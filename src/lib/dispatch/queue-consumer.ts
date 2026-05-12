@@ -59,10 +59,10 @@ export async function handleQueueMessage(
   env: { DB: D1Database; BODIES: R2Bucket },
   message: Message<DispatchMessage>,
 ): Promise<void> {
-  const { jobId, scheduledAt, triggerSource } = message.body
+  const { jobId, scheduledAt, triggerSource, runId } = message.body
   try {
     await runDispatch(
-      { db: createDb(env.DB), bodies: env.BODIES },
+      { db: createDb(env.DB), bodies: env.BODIES, ...(runId && { preCreatedRunId: runId }) },
       jobId,
       scheduledAt instanceof Date ? scheduledAt : new Date(scheduledAt),
       triggerSource ?? 'cron',

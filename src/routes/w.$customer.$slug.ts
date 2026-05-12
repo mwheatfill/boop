@@ -6,9 +6,14 @@ import { handleWebhook } from '@/lib/dispatch/webhook'
 export const Route = createFileRoute('/w/$customer/$slug')({
   server: {
     handlers: {
-      POST: async ({ params }) =>
+      POST: async ({ params, request }) =>
         handleWebhook(
-          { db: createDb(env.DB), dispatchQueue: env.DISPATCH_QUEUE },
+          {
+            db: createDb(env.DB),
+            dispatchQueue: env.DISPATCH_QUEUE,
+            rateLimit: env.WEBHOOK_RATE_LIMIT,
+          },
+          request,
           params.customer,
           params.slug,
         ),
