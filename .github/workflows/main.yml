@@ -9,11 +9,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-env:
-  # Opt into Node.js 24 for the v4 actions; removes the deprecation warning
-  # and matches the worker runtime.
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -22,7 +17,7 @@ jobs:
       pull-requests: write
       issues: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
         # Composite action handles pnpm + node + install. See
         # .github/actions/setup/action.yml. Checkout has to run first
@@ -48,7 +43,7 @@ jobs:
 
       - name: Upload audit-patterns report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: audit-report
           path: audit-report.md
@@ -97,7 +92,7 @@ jobs:
     environment:
       name: dev
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
 
       - name: Build
