@@ -4,6 +4,8 @@ import { createDb } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
 import { attempts, customers, jobs, runs, targets } from '@/lib/db/schema'
 import { logError, logInfo } from '@/lib/log'
+import { redactHeaders } from '@/lib/runs/header-redaction'
+import type { TriggerSource } from '@/shared/schemas/run'
 import { claimJob, releaseJob } from './claim'
 import {
   ClaimFailedError,
@@ -70,10 +72,14 @@ function effectiveTimezone(job: Job, customer: Customer) {
   return job.triggerTimezone ?? customer.timezone
 }
 
-function parseHeaders(rendered: string): HeadersInit {
+function parseHeaders(rendered: string): Record<string, string> {
   if (!rendered.trim()) return {}
   try {
-    return JSON.parse(rendered) as HeadersInit
+    const parsed = JSON.parse(rendered)
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, string>
+    }
+    return {}
   } catch {
     return {}
   }
@@ -83,6 +89,7 @@ interface AttemptOutcome {
   httpStatus: number | null
   failureKind: FailureKind | null
   error: TargetTimeoutError | TargetNetworkError | TargetHttpError | null
+  redactedHeaders: Record<string, string>
 }
 
 async function performAttempt(
@@ -93,28 +100,41 @@ async function performAttempt(
   responseKey: string,
 ): Promise<AttemptOutcome> {
   const hasBody = target.method !== 'GET' && target.method !== 'HEAD'
+  const rawHeaders = parseHeaders(renderedHeaders)
+  const redactedHeaders = redactHeaders(rawHeaders)
   try {
     const response = await fetch(target.url, {
       method: target.method,
-      headers: parseHeaders(renderedHeaders),
+      headers: rawHeaders,
       ...(hasBody && { body: renderedBody }),
       signal: AbortSignal.timeout(DEFAULT_ATTEMPT_TIMEOUT_MS),
     })
     await bodies.put(responseKey, response.body)
     if (response.ok) {
-      return { httpStatus: response.status, failureKind: null, error: null }
+      return { httpStatus: response.status, failureKind: null, error: null, redactedHeaders }
     }
     const httpErr = new TargetHttpError(response.status)
     return {
       httpStatus: response.status,
       failureKind: classifyHttpFailure(response.status),
       error: httpErr,
+      redactedHeaders,
     }
   } catch (err) {
     if (err instanceof DOMException && err.name === 'TimeoutError') {
-      return { httpStatus: null, failureKind: 'timeout', error: new TargetTimeoutError() }
+      return {
+        httpStatus: null,
+        failureKind: 'timeout',
+        error: new TargetTimeoutError(),
+        redactedHeaders,
+      }
     }
-    return { httpStatus: null, failureKind: 'network', error: new TargetNetworkError(err) }
+    return {
+      httpStatus: null,
+      failureKind: 'network',
+      error: new TargetNetworkError(err),
+      redactedHeaders,
+    }
   }
 }
 
@@ -122,6 +142,7 @@ export async function runDispatch(
   { db, bodies, sleep = defaultSleep }: DispatchDeps,
   jobId: string,
   scheduledAt: Date,
+  triggerSource: TriggerSource = 'cron',
 ): Promise<void> {
   const claimed = await claimJob(db, jobId)
   if (claimed === null) {
@@ -150,6 +171,7 @@ export async function runDispatch(
       scheduledAt,
       startedAt,
       status: 'running',
+      triggerSource,
     })
 
     let renderedBody: string
@@ -211,6 +233,7 @@ export async function runDispatch(
           httpStatus: result.httpStatus,
           failureKind: result.failureKind,
           responseBodyR2Key: result.httpStatus !== null ? responseKey : null,
+          requestHeadersJson: JSON.stringify(result.redactedHeaders),
           updatedAt: attemptCompletedAt,
         })
         .where(eq(attempts.id, attemptId))
@@ -286,6 +309,12 @@ export async function dispatchRun(
   env: DispatchEnv,
   jobId: string,
   scheduledAt: Date,
+  triggerSource: TriggerSource = 'cron',
 ): Promise<void> {
-  return runDispatch({ db: createDb(env.DB), bodies: env.BODIES }, jobId, scheduledAt)
+  return runDispatch(
+    { db: createDb(env.DB), bodies: env.BODIES },
+    jobId,
+    scheduledAt,
+    triggerSource,
+  )
 }

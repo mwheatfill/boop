@@ -12,7 +12,16 @@ import {
   JobSummarySchema,
   JobUpdateInput,
 } from '../src/shared/schemas/job'
-import { AttemptSummarySchema, RunSchema } from '../src/shared/schemas/run'
+import {
+  AttemptDetailSchema,
+  AttemptSummarySchema,
+  RedactedHeadersSchema,
+  RunDetailResponseSchema,
+  RunSchema,
+  RunSummaryRowSchema,
+  RunsListResponseSchema,
+  TriggerSourceSchema,
+} from '../src/shared/schemas/run'
 import { TargetCreateInput, TargetSchema, TargetUpdateInput } from '../src/shared/schemas/target'
 
 export const document = createDocument({
@@ -40,6 +49,12 @@ export const document = createDocument({
       JobUpdateInput,
       Run: RunSchema,
       AttemptSummary: AttemptSummarySchema,
+      AttemptDetail: AttemptDetailSchema,
+      TriggerSource: TriggerSourceSchema,
+      RedactedHeaders: RedactedHeadersSchema,
+      RunDetailResponse: RunDetailResponseSchema,
+      RunSummaryRow: RunSummaryRowSchema,
+      RunsListResponse: RunsListResponseSchema,
     },
   },
 })

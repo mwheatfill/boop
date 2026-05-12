@@ -10,6 +10,7 @@ const STALE_CLAIM_MS = 300_000
 export interface DispatchMessage {
   jobId: string
   scheduledAt: Date
+  triggerSource?: 'cron' | 'webhook' | 'manual'
 }
 
 export interface ScheduledEnv {
@@ -88,7 +89,11 @@ export async function runScheduled({
     if (!row.cronExpression) continue
     const fireNow = row.nextFireAt !== null
     if (fireNow) {
-      await dispatchQueue.send({ jobId: row.jobId, scheduledAt: tick })
+      await dispatchQueue.send({
+        jobId: row.jobId,
+        scheduledAt: tick,
+        triggerSource: 'cron',
+      })
       enqueued++
     }
     const next = nextRunFor(row.cronExpression, row.effectiveTz, tick)

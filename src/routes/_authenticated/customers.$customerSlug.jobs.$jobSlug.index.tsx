@@ -190,7 +190,7 @@ function JobDetailPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-medium">Recent Runs</h2>
-        <RecentRunsPanel jobId={job.id} />
+        <RecentRunsPanel jobId={job.id} customerSlug={customerSlug} jobSlug={jobSlug} />
       </section>
     </div>
   )
