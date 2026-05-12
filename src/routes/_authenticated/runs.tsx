@@ -5,6 +5,7 @@ import {
   useSuspenseQuery,
 } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { ContentChrome } from '@/components/ContentChrome'
 import { EmptyState } from '@/components/EmptyState'
 import {
   RunsFilterChips,
@@ -93,11 +94,14 @@ function RunsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Runs</h1>
-        <p className="text-sm text-muted-foreground">
-          Every Run across every Customer, sorted newest first. Filters update the URL.
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">Runs</h1>
+          <p className="text-sm text-muted-foreground">
+            Every Run across every Customer, sorted newest first. Filters update the URL.
+          </p>
+        </div>
+        <ContentChrome />
       </header>
 
       <RunsFilterChips

@@ -2,6 +2,7 @@ import { infiniteQueryOptions, useInfiniteQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { outcomeVariant } from '@/lib/runs/format'
 import { listRunsForJobFn } from '@/lib/runs/server-fns'
 import type { RunsListResponse } from '@/shared/schemas/run'
 
@@ -32,15 +33,6 @@ interface RecentRunsPanelProps {
   jobId: string
   customerSlug: string
   jobSlug: string
-}
-
-const outcomeVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  success: 'default',
-  failure: 'destructive',
-  timeout: 'destructive',
-  skipped: 'secondary',
-  running: 'default',
-  scheduled: 'outline',
 }
 
 function relativeTime(iso: string | null): string {

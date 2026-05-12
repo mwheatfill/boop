@@ -4,6 +4,7 @@ import { ArrowRight, CircleAlert, CircleCheck, Plus } from 'lucide-react'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { ContentChrome } from '@/components/ContentChrome'
 import { JobRowActions } from '@/components/dashboard/JobRowActions'
 import { RunsAreaChart } from '@/components/dashboard/RunsAreaChart'
 import { SearchHint } from '@/components/dashboard/SearchHint'
@@ -33,7 +34,7 @@ const searchSchema = z.object({
   unauthorized: z.string().optional(),
 })
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute('/_authenticated/')({
   validateSearch: searchSchema,
   loader: async ({ context }) => {
     await Promise.all([
@@ -101,6 +102,7 @@ function DashboardPage() {
               <Plus aria-hidden /> New Job
             </Button>
           ) : null}
+          <ContentChrome />
         </div>
       </header>
 

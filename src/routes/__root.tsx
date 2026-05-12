@@ -1,11 +1,11 @@
 /// <reference types="vite/client" />
 import { queryOptions } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { createRootRouteWithContext, HeadContent, Link, Scripts } from '@tanstack/react-router'
+import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import type { ReactNode } from 'react'
+import { DensityProvider } from '@/components/density/DensityProvider'
 import { ThemeProvider } from '@/components/ThemeProvider'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { Toaster } from '@/components/ui/sonner'
 import { getCurrentUserFn } from '@/lib/auth/server-fns'
 import type { MyRouterContext } from '@/router-context'
@@ -45,36 +45,17 @@ function RootDocument({ children }: { children: ReactNode }) {
       </head>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <ThemeProvider>
-          <header className="border-b border-border">
-            <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-6">
-                <Link
-                  to="/"
-                  className="text-sm font-semibold tracking-tight"
-                  activeProps={{ className: 'text-primary' }}
-                >
-                  boop
-                </Link>
-                <Link
-                  to="/customers"
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                  activeProps={{ className: 'text-foreground' }}
-                >
-                  Customers
-                </Link>
-              </div>
-              <ThemeToggle />
-            </div>
-          </header>
-          <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
-          <Toaster />
-          {import.meta.env.DEV && (
-            <>
-              <TanStackRouterDevtools position="bottom-right" />
-              <ReactQueryDevtools buttonPosition="bottom-left" />
-            </>
-          )}
-          <Scripts />
+          <DensityProvider>
+            {children}
+            <Toaster />
+            {import.meta.env.DEV && (
+              <>
+                <TanStackRouterDevtools position="bottom-right" />
+                <ReactQueryDevtools buttonPosition="bottom-left" />
+              </>
+            )}
+            <Scripts />
+          </DensityProvider>
         </ThemeProvider>
       </body>
     </html>
