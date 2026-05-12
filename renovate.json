@@ -34,7 +34,7 @@
       "matchUpdateTypes": ["major"],
       "automerge": false,
       "addLabels": ["major-update"],
-      "schedule": ["before 6am on first day of month"]
+      "schedule": ["* 0-5 1 * *"]
     },
     {
       "matchUpdateTypes": ["patch"],
