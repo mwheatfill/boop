@@ -27,6 +27,7 @@ Ordered foundation → data → auth → AI → product surface → meta.
 | [014](014-two-lane-dispatch.md) | Proposed | Two-lane dispatch (heartbeat scan for cron/webhook, per-Job DO alarm for interval) |
 | [015](015-ai-authoring-stack.md) | Proposed | AI authoring stack (Vercel AI SDK, Cloudflare Agents, Code Mode, MCP server) |
 | [016](016-operator-authz.md) | Proposed | Operator authorization (Access JWT, Admin/Operator roles, double-bound AI authz) |
+| [017](017-cron-and-time.md) | Proposed | Cron parser (`croner`), date/time approach (native `Intl.*`), timezone on the data model |
 
 ## How to add an ADR
 

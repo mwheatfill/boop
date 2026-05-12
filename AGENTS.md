@@ -64,6 +64,7 @@ ADRs in `docs/adr/`. Read the ADR before contemplating an override; deviations r
 - Skill currency protocol (Intent + MCP) ([ADR-011](docs/adr/011-skill-currency-protocol.md))
 - Discoverability surface in template ([ADR-012](docs/adr/012-discoverability-in-template.md))
 - Forms + validation (TanStack Form, React 19 actions, Zod) ([ADR-013](docs/adr/013-forms-and-validation.md))
+- Cron parser, date/time approach, timezone on the data model ([ADR-017](docs/adr/017-cron-and-time.md))
 
 ## Agent skills
 
