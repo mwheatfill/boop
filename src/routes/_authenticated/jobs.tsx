@@ -2,6 +2,7 @@ import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { z } from 'zod'
+import { ContentChrome } from '@/components/ContentChrome'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -111,9 +112,12 @@ function JobsPage() {
             Every Job across every Customer. Filter by Customer or status.
           </p>
         </div>
-        <Button render={<Link to="/" />} variant="outline" size="sm">
-          ← Dashboard
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button render={<Link to="/" />} variant="outline" size="sm">
+            ← Dashboard
+          </Button>
+          <ContentChrome />
+        </div>
       </header>
 
       <div className="flex flex-wrap items-center gap-2">

@@ -4,9 +4,11 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { ArrowRight, Bell, Pencil, Plus, SendHorizonal } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { ContentChrome } from '@/components/ContentChrome'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { useShortcut } from '@/components/keyboard/use-shortcut'
+import { PinButton } from '@/components/PinButton'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { listAlertRulesQueryOptions } from '@/lib/alert-rules/query-options'
@@ -172,6 +174,14 @@ function CustomerHubPage() {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={customer.status} />
+          <PinButton
+            entity={{
+              id: `customer:${customer.slug}`,
+              kind: 'customer',
+              label: customer.name,
+              slug: customer.slug,
+            }}
+          />
           {isAdmin ? (
             <Button
               size="sm"
@@ -181,6 +191,7 @@ function CustomerHubPage() {
               <Pencil aria-hidden /> Edit
             </Button>
           ) : null}
+          <ContentChrome />
         </div>
       </header>
 

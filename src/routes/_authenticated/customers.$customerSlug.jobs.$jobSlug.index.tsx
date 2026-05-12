@@ -4,10 +4,12 @@ import { Pencil, Play } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertsAppliedPanel } from '@/components/alerts/AlertsAppliedPanel'
+import { ContentChrome } from '@/components/ContentChrome'
 import { JobActionsMenu } from '@/components/forms/JobActionsMenu'
 import { RecentRunsPanel } from '@/components/forms/RecentRunsPanel'
 import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
 import { useShortcut } from '@/components/keyboard/use-shortcut'
+import { PinButton } from '@/components/PinButton'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -116,6 +118,15 @@ function JobDetailPage() {
           </div>
           <div className="flex items-center gap-2">
             <StatusBadge status={job.status} />
+            <PinButton
+              entity={{
+                id: `job:${job.customerSlug}:${job.slug}`,
+                kind: 'job',
+                label: job.name,
+                slug: job.slug,
+                customerSlug: job.customerSlug,
+              }}
+            />
             <Button
               size="sm"
               disabled={job.status !== 'active'}
@@ -165,6 +176,7 @@ function JobDetailPage() {
               }}
               onRestore={simpleAction(restoreJobFn, 'Restored')}
             />
+            <ContentChrome />
           </div>
         </div>
         {archiveBlock ? (

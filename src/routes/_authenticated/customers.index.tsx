@@ -3,6 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
 import { z } from 'zod'
+import { ContentChrome } from '@/components/ContentChrome'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -76,6 +77,7 @@ function CustomersListPage() {
               <Plus aria-hidden /> New Customer
             </Button>
           ) : null}
+          <ContentChrome />
         </div>
       </div>
       {customers.length === 0 ? (

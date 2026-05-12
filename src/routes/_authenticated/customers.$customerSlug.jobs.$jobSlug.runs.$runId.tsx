@@ -6,6 +6,7 @@ import { AttemptCard } from '@/components/forms/AttemptCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { runJobNowFn } from '@/lib/jobs/server-fns'
+import { formatRunDuration, outcomeVariant } from '@/lib/runs/format'
 import { getRunFn } from '@/lib/runs/server-fns'
 
 const runOptions = (customerSlug: string, jobSlug: string, runId: string) =>
@@ -25,22 +26,6 @@ export const Route = createFileRoute(
     ),
   component: RunDetailPage,
 })
-
-const outcomeVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  success: 'default',
-  failure: 'destructive',
-  timeout: 'destructive',
-  skipped: 'secondary',
-  running: 'default',
-  scheduled: 'outline',
-}
-
-function duration(startedAt: string | null, completedAt: string | null): string {
-  if (!startedAt || !completedAt) return '—'
-  const ms = new Date(completedAt).getTime() - new Date(startedAt).getTime()
-  if (ms < 1000) return `${ms}ms`
-  return `${(ms / 1000).toFixed(2)}s`
-}
 
 function RunDetailPage() {
   const { customerSlug, jobSlug, runId } = Route.useParams()
@@ -135,7 +120,7 @@ function RunDetailPage() {
         </div>
         <div>
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Duration</p>
-          <p className="text-sm">{duration(run.startedAt, run.completedAt)}</p>
+          <p className="text-sm">{formatRunDuration(run.startedAt, run.completedAt)}</p>
         </div>
       </section>
 

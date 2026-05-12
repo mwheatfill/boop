@@ -61,9 +61,7 @@ Derived tokens use OKLCH relative-color syntax: `oklch(from var(--theme-base) ca
 /w/$customerSlug/$jobSlug                                   Public webhook receiver
 ```
 
-**Current layout: top bar.** Slice 1 + slice 2 ship a slim top bar with brand mark, primary navigation links (Customers), and a theme toggle. The Operator's daily landing is the home page.
-
-**Queued: inverted-L sidebar.** Target pattern from Linear: fixed-left sidebar at ~200px, slightly lifted from the content background by tone (not gap or shadow), with nested expandable sections (workspace selector at top, then `Workspace` / `Your teams` / `Try` groups). Content area scrolls independently. Right rail (properties panel) appears contextually on detail views. Three-icon cluster top-right of list views: filter / display options / right-rail toggle. See `docs/design-direction.md` for queue state.
+**Current layout: inverted-L sidebar.** A fixed-left sidebar at ~16rem (~256px) collapses to a ~3rem icon rail. Sections from top: workspace mark, primary nav (Home, Jobs, Customers, Runs), `Recent` (shared store with the Cmd+K palette), `Pinned` (device-local, capped at 20), footer with theme toggle + user menu. Below the `md` breakpoint the sidebar becomes a slide-in drawer via the shadcn `sidebar` primitive's built-in `Sheet` integration. Content area scrolls independently. Right rail (properties panel) appears contextually on detail views — Job, Run, Customer, Target — and is hidden on list views. Three-icon cluster top-right of list / detail views: filter / display options / right-rail toggle. The brand-vs-UI-accent split holds: chrome stays monochrome with the cool-blue accent reserved for selection and primary action.
 
 **Title strategy:**
 - List views: small heading at top-left (`My Jobs`, `Customers`, `Runs`). The data is the focus, not the page name.
@@ -156,7 +154,7 @@ Pick the variant that matches whether action would help.
 
 **Compact is the default.** Operator tooling earns density.
 
-**Queued: density toggle.** `data-density="compact|spacious"` on `<html>`, toggled from user prefs. Compact = current dense values. Spacious = +50% vertical padding on list rows and form rows. No consumers yet; the density tokens land when the toggle ships. See `docs/design-direction.md`.
+**Density toggle.** `data-density="compact" | "spacious"` on `<html>`, persisted at `boop.density` and toggled from the display-options popover in the three-icon cluster (§ 4). Compact stays at the slice-1 / slice-2 dense values. Spacious adds +50% vertical padding on list rows and form rows, +25% interior padding on dashboard stat tiles. The CSS variables `--row-py`, `--tile-p`, `--form-row-py` live in `src/styles/app.css`; consumer components reference them via `py-(--row-py)` / `p-(--tile-p)` / `py-(--form-row-py)`. Chrome (sidebar, breadcrumbs, popovers) does not consume the density tokens — the workspace shell stays tight while content breathes.
 
 ## 12. Anti-patterns
 

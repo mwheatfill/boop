@@ -2,22 +2,8 @@ import { Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/DataTable'
 import { Badge } from '@/components/ui/badge'
+import { formatDurationMs, outcomeVariant } from '@/lib/runs/format'
 import type { RunSummaryRow } from '@/shared/schemas/run'
-
-const outcomeVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  success: 'default',
-  failure: 'destructive',
-  timeout: 'destructive',
-  skipped: 'secondary',
-  running: 'default',
-  scheduled: 'outline',
-}
-
-function formatDuration(ms: number | null): string {
-  if (ms === null) return '—'
-  if (ms < 1000) return `${ms}ms`
-  return `${(ms / 1000).toFixed(2)}s`
-}
 
 export function runsColumns(): ColumnDef<RunSummaryRow>[] {
   return [
@@ -59,7 +45,7 @@ export function runsColumns(): ColumnDef<RunSummaryRow>[] {
     {
       accessorKey: 'durationMs',
       header: 'Duration',
-      cell: ({ row }) => formatDuration(row.original.durationMs),
+      cell: ({ row }) => formatDurationMs(row.original.durationMs),
     },
     {
       accessorKey: 'status',

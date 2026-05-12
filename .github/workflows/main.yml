@@ -118,12 +118,12 @@ jobs:
           fi
 
       - name: Deploy to dev
-        # cloudflare/wrangler-action@v3 is Cloudflare's canonical CI deploy
+        # cloudflare/wrangler-action is Cloudflare's canonical CI deploy
         # action. It detects the existing pnpm-installed wrangler, then runs
         # `wrangler deploy`, which follows .wrangler/deploy/config.json to
         # use the resolved dist/server/wrangler.json (dev bindings baked in
         # since the build ran without CLOUDFLARE_ENV).
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
