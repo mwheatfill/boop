@@ -31,21 +31,19 @@
             "type": "string",
             "format": "uri"
           },
-          "groups": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Group claims for in-app RBAC",
-            "example": [
-              "admins"
-            ]
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "operator"
+            ],
+            "description": "Operator role per ADR-016"
           }
         },
         "required": [
           "id",
           "email",
-          "groups"
+          "role"
         ],
         "additionalProperties": false,
         "description": "Authenticated user as returned by getCurrentUser(request)."

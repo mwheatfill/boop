@@ -1,11 +1,10 @@
-# Local development environment variables.
-# Copy this file to `.dev.vars` and fill in values for the recipes you
-# install. `.dev.vars` is gitignored. For deployed environments set these
-# via `wrangler secret put` or GitHub Secrets.
-#
-# The template ships with no required runtime env vars. Each recipe you
-# install will add its own block here documenting what it needs.
+# Cloudflare Access JWT verification — per-environment values
+# Pull these from the Cloudflare Zero Trust dashboard's Access application
+TEAM_DOMAIN=https://<your-team>.cloudflareaccess.com
+POLICY_AUD=<your-application-AUD-tag>
 
-# --- Public (safe to expose to client) ---
-PUBLIC_APP_NAME=template-cf-fullstack-local
-PUBLIC_ENV=local
+# Local dev only: when set and PUBLIC_ENV=dev, getCurrentUser falls back to
+# this email when no Cf-Access-Jwt-Assertion header is present. The bypass
+# logs a warning on each use and is hard-gated to PUBLIC_ENV=dev so it
+# cannot accidentally activate in production.
+DEV_USER_EMAIL=dev@switchthink.com

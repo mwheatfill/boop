@@ -1,3 +1,4 @@
+import { USER_ROLES } from '@/lib/db/schema'
 import { z } from './openapi'
 
 export const UserSchema = z
@@ -6,9 +7,7 @@ export const UserSchema = z
     email: z.email().meta({ example: 'user@example.com' }),
     name: z.string().optional().meta({ example: 'Alex Doe' }),
     image: z.url().optional().meta({ example: 'https://example.com/avatar.png' }),
-    groups: z
-      .array(z.string())
-      .meta({ description: 'Group claims for in-app RBAC', example: ['admins'] }),
+    role: z.enum(USER_ROLES).meta({ description: 'Operator role per ADR-016' }),
   })
   .meta({
     id: 'User',
