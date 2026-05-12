@@ -101,15 +101,12 @@ function TargetDetailPage() {
           authConfig: target.authConfig ?? '',
           reachability: target.reachability,
         }}
-        onSubmit={async (value) => {
-          const result = await updateTargetFn({
-            data: { customerSlug, targetSlug, ...value } as never,
-          })
-          if (result.ok) {
-            await queryClient.invalidateQueries({ queryKey: ['customers', customerSlug] })
-            toast.success(`Saved ${result.data.name}`)
-          }
-          return result
+        mutate={(value) =>
+          updateTargetFn({ data: { customerSlug, targetSlug, ...value } as never })
+        }
+        onSuccess={async (updated) => {
+          await queryClient.invalidateQueries({ queryKey: ['customers', customerSlug] })
+          toast.success(`Saved ${updated.name}`)
         }}
       />
     </div>

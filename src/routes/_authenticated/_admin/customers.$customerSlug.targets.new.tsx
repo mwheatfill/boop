@@ -28,17 +28,14 @@ function NewTargetPage() {
           authConfig: '',
           reachability: 'public',
         }}
-        onSubmit={async (value) => {
-          const result = await createTargetFn({ data: { customerSlug, ...value } as never })
-          if (result.ok) {
-            await queryClient.invalidateQueries({ queryKey: ['customers', customerSlug] })
-            toast.success(`Target ${result.data.name} created`)
-            await navigate({
-              to: '/customers/$customerSlug/targets/$targetSlug',
-              params: { customerSlug, targetSlug: result.data.slug },
-            })
-          }
-          return result
+        mutate={(value) => createTargetFn({ data: { customerSlug, ...value } as never })}
+        onSuccess={async (target) => {
+          await queryClient.invalidateQueries({ queryKey: ['customers', customerSlug] })
+          toast.success(`Target ${target.name} created`)
+          await navigate({
+            to: '/customers/$customerSlug/targets/$targetSlug',
+            params: { customerSlug, targetSlug: target.slug },
+          })
         }}
       />
     </div>

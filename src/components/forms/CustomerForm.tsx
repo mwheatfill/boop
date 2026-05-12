@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { FieldErrors } from '@/lib/errors'
+import type { MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
-import type { CustomerCreateInput, CustomerUpdateInput } from '@/shared/schemas/customer'
+import type { Customer, CustomerCreateInput, CustomerUpdateInput } from '@/shared/schemas/customer'
 
 interface CustomerFormProps {
   variant: 'create' | 'edit'
@@ -17,44 +18,58 @@ interface CustomerFormProps {
     autotaskCompanyId: string
   }
   submitLabel: string
-  onSubmit: (
+  mutate: (
     value: CustomerCreateInput | (CustomerUpdateInput & { slug: string }),
-  ) => Promise<{ ok: true } | { ok: false; fieldErrors?: FieldErrors; message?: string }>
+  ) => Promise<MutationResult<Customer>>
+  onSuccess: (data: Customer) => Promise<void> | void
 }
 
-function firstError(errors: FieldErrors | undefined, field: string): string | undefined {
-  return errors?.[field]?.[0]
+function fieldErrorsToTanstack(fieldErrors: FieldErrors | undefined): Record<string, string> {
+  if (!fieldErrors) return {}
+  const out: Record<string, string> = {}
+  for (const [key, msgs] of Object.entries(fieldErrors)) {
+    if (msgs[0]) out[key] = msgs[0]
+  }
+  return out
 }
 
-export function CustomerForm({ variant, initialValues, submitLabel, onSubmit }: CustomerFormProps) {
+export function CustomerForm({
+  variant,
+  initialValues,
+  submitLabel,
+  mutate,
+  onSuccess,
+}: CustomerFormProps) {
   const slugManuallyEdited = useRef(variant === 'edit')
 
   const form = useForm({
-    defaultValues: {
-      ...initialValues,
-      _serverFieldErrors: undefined as FieldErrors | undefined,
-      _serverMessage: undefined as string | undefined,
-    },
-    onSubmit: async ({ value, formApi }) => {
-      const payload =
-        variant === 'create'
-          ? {
-              name: value.name,
-              slug: value.slug,
-              timezone: value.timezone,
-              ...(value.autotaskCompanyId ? { autotaskCompanyId: value.autotaskCompanyId } : {}),
-            }
-          : {
-              slug: initialValues.slug,
-              name: value.name,
-              timezone: value.timezone,
-              ...(value.autotaskCompanyId ? { autotaskCompanyId: value.autotaskCompanyId } : {}),
-            }
-      const result = await onSubmit(payload as never)
-      if (!result.ok) {
-        formApi.setFieldValue('_serverFieldErrors', result.fieldErrors)
-        formApi.setFieldValue('_serverMessage', result.message)
-      }
+    defaultValues: initialValues,
+    validators: {
+      onSubmitAsync: async ({ value }) => {
+        const payload =
+          variant === 'create'
+            ? {
+                name: value.name,
+                slug: value.slug,
+                timezone: value.timezone,
+                ...(value.autotaskCompanyId ? { autotaskCompanyId: value.autotaskCompanyId } : {}),
+              }
+            : {
+                slug: initialValues.slug,
+                name: value.name,
+                timezone: value.timezone,
+                ...(value.autotaskCompanyId ? { autotaskCompanyId: value.autotaskCompanyId } : {}),
+              }
+        const result = await mutate(payload as never)
+        if (!result.ok) {
+          return {
+            ...(result.message ? { form: result.message } : {}),
+            fields: fieldErrorsToTanstack(result.fieldErrors),
+          }
+        }
+        await onSuccess(result.data)
+        return null
+      },
     },
   })
 
@@ -84,34 +99,33 @@ export function CustomerForm({ variant, initialValues, submitLabel, onSubmit }: 
               value={field.state.value}
               onChange={(e) => field.handleChange(e.currentTarget.value)}
             />
+            {field.state.meta.errors[0] ? (
+              <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
+            ) : null}
           </div>
         )}
       </form.Field>
 
-      <form.Subscribe selector={(s) => s.values._serverFieldErrors}>
-        {(serverErrors) => (
-          <form.Field name="slug">
-            {(field) => (
-              <SlugField
-                id={field.name}
-                name={field.name}
-                value={field.state.value}
-                readOnly={variant === 'edit'}
-                error={firstError(serverErrors, 'slug')}
-                onChange={(next) => {
-                  slugManuallyEdited.current = true
-                  field.handleChange(next)
-                }}
-                helpText={
-                  variant === 'create'
-                    ? 'Auto-filled from name. Read-only after create.'
-                    : 'Slug is immutable after create.'
-                }
-              />
-            )}
-          </form.Field>
+      <form.Field name="slug">
+        {(field) => (
+          <SlugField
+            id={field.name}
+            name={field.name}
+            value={field.state.value}
+            readOnly={variant === 'edit'}
+            error={field.state.meta.errors[0] ? String(field.state.meta.errors[0]) : undefined}
+            onChange={(next) => {
+              slugManuallyEdited.current = true
+              field.handleChange(next)
+            }}
+            helpText={
+              variant === 'create'
+                ? 'Auto-filled from name. Read-only after create.'
+                : 'Slug is immutable after create.'
+            }
+          />
         )}
-      </form.Subscribe>
+      </form.Field>
 
       <form.Field name="timezone">
         {(field) => (
@@ -125,6 +139,9 @@ export function CustomerForm({ variant, initialValues, submitLabel, onSubmit }: 
               onChange={(e) => field.handleChange(e.currentTarget.value)}
             />
             <p className="text-xs text-muted-foreground">IANA timezone identifier.</p>
+            {field.state.meta.errors[0] ? (
+              <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
+            ) : null}
           </div>
         )}
       </form.Field>
@@ -143,10 +160,10 @@ export function CustomerForm({ variant, initialValues, submitLabel, onSubmit }: 
         )}
       </form.Field>
 
-      <form.Subscribe selector={(s) => [s.isSubmitting, s.values._serverMessage] as const}>
-        {([isSubmitting, serverMessage]) => (
+      <form.Subscribe selector={(s) => [s.isSubmitting, s.errorMap.onSubmit] as const}>
+        {([isSubmitting, formError]) => (
           <div className="flex flex-col gap-2">
-            {serverMessage ? <p className="text-sm text-destructive">{serverMessage}</p> : null}
+            {formError ? <p className="text-sm text-destructive">{String(formError)}</p> : null}
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Saving…' : submitLabel}
             </Button>
