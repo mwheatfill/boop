@@ -82,7 +82,7 @@ Single-context: one `CONTEXT.md` and one `docs/adr/` at the repo root. See [`doc
 
 ## Things to avoid
 
-- **Don't add dependencies without proposing.** The harness denies `pnpm add` by default and prompts the user. Propose `<package>@<version>`, why, alternatives considered, maintenance signal.
+- **Don't add dependencies casually.** Propose `<package>@<version>`, why, alternatives considered, maintenance signal in the PR description or commit body. The harness allows `pnpm add`; the protection is the `pnpm-lock.yaml` diff in PR review.
 - **Don't write code that the OpenAPI contract doesn't describe.** Server functions take Zod-validated inputs that flow into `public/openapi.json`. The CI guard (`pnpm openapi:check`) blocks deploys on drift.
 - **Don't bypass the auth abstraction.** All identity reads go through `getCurrentUser(request)`. Don't import an auth library directly from route guards or server functions.
 - **Don't import from `radix-ui` or `@radix-ui/*`.** UI uses Base UI (`@base-ui/react`, style `base-vega`). For composition, use Base UI's `render` prop: `<Button render={<Link to="/x" />}>Label</Button>`. The audit (`pnpm audit:patterns`) blocks Radix imports.

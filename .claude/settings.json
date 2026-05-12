@@ -4,6 +4,7 @@
     "allow": [
       "Bash(pnpm install)",
       "Bash(pnpm install:*)",
+      "Bash(pnpm add:*)",
       "Bash(pnpm dev)",
       "Bash(pnpm dev:*)",
       "Bash(pnpm build)",
@@ -51,7 +52,6 @@
       "Bash(wrangler d1 migrations list:*)"
     ],
     "deny": [
-      "Bash(pnpm add:*)",
       "Bash(pnpm remove:*)",
       "Bash(pnpm uninstall:*)",
       "Bash(pnpm update:*)",
