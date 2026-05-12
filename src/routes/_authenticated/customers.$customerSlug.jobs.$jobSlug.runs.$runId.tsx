@@ -140,7 +140,7 @@ function RunDetailPage() {
       </section>
 
       {run.skippedReason ? (
-        <p className="rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
+        <p className="rounded border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
           Skipped: {run.skippedReason}
         </p>
       ) : null}

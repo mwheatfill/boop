@@ -279,7 +279,7 @@ export function JobForm({
                           ≈ {fpd.toLocaleString()} fires/day
                         </p>
                         {field.state.value > 0 && field.state.value < 60 ? (
-                          <p className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs text-amber-700 dark:text-amber-300">
+                          <p className="rounded border border-warning/40 bg-warning/10 px-2 py-1 text-xs">
                             For intervals of one minute or more, prefer cron — same behavior,
                             cheaper.
                           </p>
