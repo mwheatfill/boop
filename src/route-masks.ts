@@ -51,4 +51,32 @@ export const routeMasks = [
     params: () => ({}),
     unmaskOnReload: true,
   }),
+  createRouteMask({
+    routeTree,
+    from: '/customers/$customerSlug/channels/new',
+    to: '/customers/$customerSlug/channels',
+    params: (prev) => ({ customerSlug: prev.customerSlug }),
+    unmaskOnReload: true,
+  }),
+  createRouteMask({
+    routeTree,
+    from: '/customers/$customerSlug/channels/$channelSlug/edit',
+    to: '/customers/$customerSlug/channels/$channelSlug',
+    params: (prev) => ({ customerSlug: prev.customerSlug, channelSlug: prev.channelSlug }),
+    unmaskOnReload: true,
+  }),
+  createRouteMask({
+    routeTree,
+    from: '/customers/$customerSlug/alert-rules/new',
+    to: '/customers/$customerSlug/alert-rules',
+    params: (prev) => ({ customerSlug: prev.customerSlug }),
+    unmaskOnReload: true,
+  }),
+  createRouteMask({
+    routeTree,
+    from: '/customers/$customerSlug/alert-rules/$ruleSlug/edit',
+    to: '/customers/$customerSlug/alert-rules/$ruleSlug',
+    params: (prev) => ({ customerSlug: prev.customerSlug, ruleSlug: prev.ruleSlug }),
+    unmaskOnReload: true,
+  }),
 ]

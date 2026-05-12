@@ -97,11 +97,11 @@ describe('evaluateRulesForRun', () => {
   it('runs multiple rules in parallel', async () => {
     const db = createTestDb()
     const { customerId, jobId } = await seedJob(db)
-    await seedRun(db, jobId, customerId, 'failure', 1000)
-    await seedRun(db, jobId, customerId, 'failure', 2000)
-    const runId = await seedRun(db, jobId, customerId, 'failure', 3000)
+    await seedRun(db, jobId, customerId, 'failure', 1000, 5000)
+    await seedRun(db, jobId, customerId, 'failure', 10_000, 5000)
+    const runId = await seedRun(db, jobId, customerId, 'failure', 20_000, 5000)
     await seedRule(db, customerId, 'consecutive_failures', { count: 3 }, ['chn_a'])
-    await seedRule(db, customerId, 'slow_run', { threshold_ms: 500 }, ['chn_b'])
+    await seedRule(db, customerId, 'slow_run', { threshold_ms: 1000 }, ['chn_b'])
     expect(await evaluateRulesForRun({ db, customerId, jobId, runId })).toHaveLength(2)
   })
 

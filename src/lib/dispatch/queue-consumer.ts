@@ -1,3 +1,4 @@
+import type { AlertQueueMessage } from '@/lib/alert-queue/types'
 import { createDb } from '@/lib/db/client'
 import { logError, logInfo } from '@/lib/log'
 import { runDispatch } from './dispatch-run'
@@ -55,14 +56,25 @@ function routeMessage(message: Message<DispatchMessage>, err: unknown): void {
   throw err
 }
 
+export interface DispatchQueueEnv {
+  DB: D1Database
+  BODIES: R2Bucket
+  ALERT_QUEUE?: Queue<AlertQueueMessage>
+}
+
 export async function handleQueueMessage(
-  env: { DB: D1Database; BODIES: R2Bucket },
+  env: DispatchQueueEnv,
   message: Message<DispatchMessage>,
 ): Promise<void> {
   const { jobId, scheduledAt, triggerSource, runId } = message.body
   try {
     await runDispatch(
-      { db: createDb(env.DB), bodies: env.BODIES, ...(runId && { preCreatedRunId: runId }) },
+      {
+        db: createDb(env.DB),
+        bodies: env.BODIES,
+        ...(runId && { preCreatedRunId: runId }),
+        ...(env.ALERT_QUEUE && { alertQueue: env.ALERT_QUEUE }),
+      },
       jobId,
       scheduledAt instanceof Date ? scheduledAt : new Date(scheduledAt),
       triggerSource ?? 'cron',
@@ -75,7 +87,7 @@ export async function handleQueueMessage(
 
 export async function queue(
   batch: MessageBatch<DispatchMessage>,
-  env: { DB: D1Database; BODIES: R2Bucket },
+  env: DispatchQueueEnv,
   _ctx: ExecutionContext,
 ): Promise<void> {
   for (const message of batch.messages) {

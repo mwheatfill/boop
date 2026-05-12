@@ -1,7 +1,7 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Pencil, Plus } from 'lucide-react'
+import { ArrowRight, Bell, Pencil, Plus, SendHorizonal } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { DataTable } from '@/components/DataTable'
@@ -9,6 +9,8 @@ import { EmptyState } from '@/components/EmptyState'
 import { useShortcut } from '@/components/keyboard/use-shortcut'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
+import { listAlertRulesQueryOptions } from '@/lib/alert-rules/query-options'
+import { listChannelsQueryOptions } from '@/lib/channels/query-options'
 import { getCustomerFn } from '@/lib/customers/server-fns'
 import { listAllJobsFn } from '@/lib/jobs/server-fns'
 import { useTrackRecentVisit } from '@/lib/recents/use-track-recent-visit'
@@ -88,6 +90,8 @@ export const Route = createFileRoute('/_authenticated/customers/$customerSlug/')
       context.queryClient.ensureQueryData(customerQueryOptions(params.customerSlug)),
       context.queryClient.ensureQueryData(targetsQueryOptions(params.customerSlug, deps.archived)),
       context.queryClient.ensureQueryData(jobsQueryOptions(params.customerSlug)),
+      context.queryClient.ensureQueryData(listChannelsQueryOptions(params.customerSlug, false)),
+      context.queryClient.ensureQueryData(listAlertRulesQueryOptions(params.customerSlug, false)),
     ])
   },
   component: CustomerHubPage,
@@ -131,6 +135,8 @@ function CustomerHubPage() {
   const { data: customer } = useSuspenseQuery(customerQueryOptions(customerSlug))
   const { data: targets } = useSuspenseQuery(targetsQueryOptions(customerSlug, archived))
   const { data: jobs } = useSuspenseQuery(jobsQueryOptions(customerSlug))
+  const { data: channels } = useSuspenseQuery(listChannelsQueryOptions(customerSlug, false))
+  const { data: rules } = useSuspenseQuery(listAlertRulesQueryOptions(customerSlug, false))
 
   useTrackRecentVisit({
     id: `customer:${customer.slug}`,
@@ -251,6 +257,51 @@ function CustomerHubPage() {
         ) : (
           <DataTable columns={jobsColumns(customerSlug)} data={jobs} />
         )}
+      </section>
+
+      <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <Link
+          to="/customers/$customerSlug/channels"
+          params={{ customerSlug }}
+          className="group flex items-center justify-between rounded-md border border-border bg-muted/20 p-4 hover:border-primary/40"
+        >
+          <div className="flex items-center gap-3">
+            <SendHorizonal className="size-5 text-muted-foreground" aria-hidden />
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">Channels</span>
+              <span className="text-xs text-muted-foreground">
+                {channels.length === 0
+                  ? 'No active channels yet'
+                  : `${channels.length} active channel${channels.length === 1 ? '' : 's'}`}
+              </span>
+            </div>
+          </div>
+          <ArrowRight
+            className="size-4 text-muted-foreground group-hover:text-primary"
+            aria-hidden
+          />
+        </Link>
+        <Link
+          to="/customers/$customerSlug/alert-rules"
+          params={{ customerSlug }}
+          className="group flex items-center justify-between rounded-md border border-border bg-muted/20 p-4 hover:border-primary/40"
+        >
+          <div className="flex items-center gap-3">
+            <Bell className="size-5 text-muted-foreground" aria-hidden />
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">Alert Rules</span>
+              <span className="text-xs text-muted-foreground">
+                {rules.length === 0
+                  ? 'No active rules yet'
+                  : `${rules.length} active rule${rules.length === 1 ? '' : 's'}`}
+              </span>
+            </div>
+          </div>
+          <ArrowRight
+            className="size-4 text-muted-foreground group-hover:text-primary"
+            aria-hidden
+          />
+        </Link>
       </section>
     </div>
   )

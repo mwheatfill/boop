@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Pencil, Play } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { AlertsAppliedPanel } from '@/components/alerts/AlertsAppliedPanel'
 import { JobActionsMenu } from '@/components/forms/JobActionsMenu'
 import { RecentRunsPanel } from '@/components/forms/RecentRunsPanel'
 import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
@@ -230,6 +231,8 @@ function JobDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <AlertsAppliedPanel customerSlug={customerSlug} />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-medium">Recent Runs</h2>
