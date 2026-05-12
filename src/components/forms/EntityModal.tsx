@@ -34,6 +34,7 @@ export interface EntityModalProps {
   secondaryAction?: ActionConfig
   createAnother?: CreateAnotherConfig
   dirty?: boolean
+  size?: 'default' | 'wide'
   children: ReactNode
 }
 
@@ -46,6 +47,7 @@ export function EntityModal({
   secondaryAction,
   createAnother,
   dirty = false,
+  size = 'default',
   children,
 }: EntityModalProps) {
   const guard = useEntityModalGuard({ isDirty: dirty })
@@ -59,6 +61,7 @@ export function EntityModal({
       }}
     >
       <DialogContent
+        size={size}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !primaryAction.disabled) {
             e.preventDefault()

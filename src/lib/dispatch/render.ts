@@ -77,6 +77,16 @@ engine.registerTag('boop_secret', {
   },
 })
 
+export const BUILTIN_RENDER_VARIABLE_NAMES = [
+  'run_id',
+  'attempt_number',
+  'customer_name',
+  'customer_timezone',
+  'now',
+] as const
+
+export type BuiltinRenderVariableName = (typeof BUILTIN_RENDER_VARIABLE_NAMES)[number]
+
 export async function renderTemplate(template: string, context: RenderContext): Promise<string> {
   return engine.parseAndRender(template, {
     run_id: context.runId,
