@@ -1,11 +1,12 @@
 import { queryOptions, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Pencil, Play } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { JobActionsMenu } from '@/components/forms/JobActionsMenu'
 import { RecentRunsPanel } from '@/components/forms/RecentRunsPanel'
 import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
+import { useShortcut } from '@/components/keyboard/use-shortcut'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +19,7 @@ import {
   resumeJobFn,
   runJobNowFn,
 } from '@/lib/jobs/server-fns'
+import { visitRecent } from '@/lib/recents/store'
 
 const jobOptions = (customerSlug: string, jobSlug: string) =>
   queryOptions({
@@ -49,6 +51,55 @@ function JobDetailPage() {
     await refresh()
     toast.success(message)
   }
+
+  useEffect(() => {
+    visitRecent({
+      id: `job:${job.customerSlug}:${job.slug}`,
+      entity: 'job',
+      label: job.name,
+      slug: job.slug,
+      customerSlug: job.customerSlug,
+    })
+  }, [job.customerSlug, job.slug, job.name])
+
+  useShortcut(
+    'r',
+    async () => {
+      if (job.status !== 'active') {
+        toast.error('Job is not active.')
+        return
+      }
+      const result = await runJobNowFn({ data: { customerSlug, jobSlug } })
+      if (result.ok) {
+        toast.success('Run queued')
+        await refresh()
+      } else {
+        toast.error(result.message ?? 'Could not queue Run')
+      }
+    },
+    { description: 'Run now', section: 'page' },
+  )
+
+  useShortcut(
+    'p',
+    () => {
+      const fn = job.status === 'paused' ? resumeJobFn : pauseJobFn
+      const label = job.status === 'paused' ? 'Resumed' : 'Paused'
+      void simpleAction(fn, label)()
+    },
+    { description: 'Pause / Resume', section: 'page' },
+  )
+
+  useShortcut(
+    'e',
+    () => {
+      void navigate({
+        to: '/customers/$customerSlug/jobs/$jobSlug/edit',
+        params: { customerSlug, jobSlug },
+      })
+    },
+    { description: 'Edit Job', section: 'page' },
+  )
 
   return (
     <div className="flex flex-col gap-8">
