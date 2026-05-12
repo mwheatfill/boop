@@ -5,7 +5,6 @@ import { EditorView } from '@codemirror/view'
 import CodeMirror from '@uiw/react-codemirror'
 import { useMemo } from 'react'
 import { Label } from '@/components/ui/label'
-import { syntheticRenderContext } from '@/lib/dispatch/render-preview'
 import { boopTheme } from './codemirror-theme'
 import { liquidLintSource } from './liquid-lint'
 import { useLiquidPreview } from './use-liquid-preview'
@@ -46,12 +45,12 @@ export function TemplateEditor({
   variables,
   secrets,
 }: TemplateEditorProps) {
-  const context = useMemo(
-    () => syntheticRenderContext({ customerName, customerTimezone }),
-    [customerName, customerTimezone],
-  )
-
-  const preview = useLiquidPreview({ template: value, context, variant })
+  const preview = useLiquidPreview({
+    template: value,
+    customerName,
+    customerTimezone,
+    variant,
+  })
 
   const extensions = useMemo(
     () => [
