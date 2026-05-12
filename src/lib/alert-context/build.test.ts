@@ -72,6 +72,7 @@ const customer: CustomerRow = {
   timezone: 'America/New_York',
   autotaskCompanyId: null,
   status: 'active',
+  seedTag: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 }

@@ -9,7 +9,7 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     globals: true,
-    include: ['tests/**/*.test.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
+    include: ['tests/**/*.test.{ts,tsx}', 'src/**/*.test.{ts,tsx}', 'scripts/**/*.test.{ts,tsx}'],
     exclude: ['node_modules', 'dist', '.wrangler', '.tanstack'],
   },
 })
