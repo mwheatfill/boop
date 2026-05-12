@@ -363,4 +363,3 @@ async function computeRecentFailures(db: Database): Promise<RecentFailureRow[]> 
     completedAt: r.completedAt?.getTime() ?? null,
   }))
 }
-

@@ -106,4 +106,3 @@ describe('dashboardSummary', () => {
     expect(summary.needsAttention.some((r) => r.status === 'paused')).toBe(true)
   })
 })
-
