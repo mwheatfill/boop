@@ -18,7 +18,7 @@ export default defineConfig({
     cloudflare({
       viteEnvironment: { name: 'ssr' },
     }),
-    tanstackStart(),
+    tanstackStart({ server: { entry: 'server-entry' } }),
     viteReact(),
   ],
   build: {

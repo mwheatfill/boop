@@ -1,0 +1,83 @@
+import { createDb } from '@/lib/db/client'
+import { logError, logInfo } from '@/lib/log'
+import { runDispatch } from './dispatch-run'
+import {
+  ClaimFailedError,
+  DispatchError,
+  isRetryableDispatchError,
+  JobNotDispatchableError,
+  RenderError,
+  TargetHttpError,
+} from './errors'
+import type { DispatchMessage } from './scheduled'
+
+const RETRY_BASE_SECONDS = 30
+
+function retryDelaySeconds(attempts: number): number {
+  return 2 ** attempts * RETRY_BASE_SECONDS
+}
+
+export interface QueueRoute {
+  decision: 'ack' | 'retry' | 'rethrow'
+  delaySeconds?: number
+}
+
+export function classifyError(err: unknown): QueueRoute {
+  if (err instanceof ClaimFailedError) return { decision: 'ack' }
+  if (err instanceof JobNotDispatchableError) return { decision: 'ack' }
+  if (err instanceof RenderError) return { decision: 'ack' }
+  if (err instanceof TargetHttpError && err.status < 500) return { decision: 'ack' }
+  if (err instanceof DispatchError && isRetryableDispatchError(err)) return { decision: 'retry' }
+  return { decision: 'rethrow' }
+}
+
+function routeMessage(message: Message<DispatchMessage>, err: unknown): void {
+  const route = classifyError(err)
+  const { jobId } = message.body
+  if (route.decision === 'ack') {
+    logInfo('queue.acked_no_retry', {
+      jobId,
+      error: err instanceof Error ? err.name : 'unknown',
+    })
+    message.ack()
+    return
+  }
+  if (route.decision === 'retry') {
+    const delay = retryDelaySeconds(message.attempts)
+    logError('queue.retry_scheduled', err, {
+      jobId,
+      attempts: message.attempts,
+      delaySeconds: delay,
+    })
+    message.retry({ delaySeconds: delay })
+    return
+  }
+  throw err
+}
+
+export async function handleQueueMessage(
+  env: { DB: D1Database; BODIES: R2Bucket },
+  message: Message<DispatchMessage>,
+): Promise<void> {
+  const { jobId, scheduledAt } = message.body
+  try {
+    await runDispatch(
+      { db: createDb(env.DB), bodies: env.BODIES },
+      jobId,
+      scheduledAt instanceof Date ? scheduledAt : new Date(scheduledAt),
+    )
+    message.ack()
+  } catch (err) {
+    routeMessage(message, err)
+  }
+}
+
+export async function queue(
+  batch: MessageBatch<DispatchMessage>,
+  env: { DB: D1Database; BODIES: R2Bucket },
+  _ctx: ExecutionContext,
+): Promise<void> {
+  for (const message of batch.messages) {
+    await handleQueueMessage(env, message)
+  }
+}
