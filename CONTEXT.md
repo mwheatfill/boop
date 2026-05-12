@@ -33,16 +33,20 @@ The shared module both lanes call to perform one fire: D1 CAS claim, render temp
 _Avoid_: Executor, Runner
 
 **Channel**:
-A reusable outbound destination for alerts, owned by a Customer. Discriminated by `kind`: `teams` (webhook URL), `pagerduty` (routing key), `autotask` (company id mapping), `email` (recipient list with subject and body templates), `webhook` (generic HTTP POST). Channel adapters are out-of-process integrations called by the alerting Queue consumer; email goes through the `email/send-pipeline` recipe rather than directly.
+A reusable outbound destination for alerts. Scope is **workspace** (visible to every Customer's AlertRules) or **customer** (private to the owning Customer). Discriminated by `kind`: `teams` (webhook URL), `pagerduty` (routing key), `autotask` (company id mapping), `email` (recipient list with subject and body templates), `webhook` (generic HTTP POST). Channel adapters are out-of-process integrations called by the alerting Queue consumer; email goes through the `email/send-pipeline` recipe rather than directly.
 _Avoid_: Notifier, Destination (collides with Target), Endpoint
 
 **AlertRule**:
-A predicate that decides whether a terminal Run produces an alert, and which Channels fan it out. Attaches at two levels: Customer (defaults inherited by all Jobs) and Job (overrides layered on top). Built-in rule kinds for v1: `first_failure`, `consecutive_failures` (with N), `recovery` (first success after a failure streak), `slow_run` (duration > threshold). Custom rule DSL deferred.
+A predicate that decides whether a terminal Run produces an alert, and which Channels fan it out. Attaches at three levels with **additive** semantics: a Run is evaluated against every matching workspace rule, every matching Customer-scoped rule for the Run's Customer, and every matching Job-scoped rule for the Run's Job; the union of all matching rules' Channels is the fan-out set (deduped). No suppression / muting in v1 — opting a Customer out of a workspace rule requires deleting it. Built-in rule kinds for v1: `first_failure`, `consecutive_failures` (with N), `recovery` (first success after a failure streak), `slow_run` (duration > threshold). Custom rule DSL deferred.
 _Avoid_: Notification policy, Trigger (already taken), Routing
 
 **Authoring session**:
-A persisted chat thread where an Operator collaborates with the AI authoring assistant to draft a Job. Survives Operator browser refreshes, retained for audit. The assistant cannot mutate state directly; it composes calls to the Tool catalog, returning a draft for Operator confirmation.
+A persisted chat thread where an Operator collaborates with the AI authoring assistant to draft a Job. Survives Operator browser refreshes, retained for audit. The assistant cannot mutate state directly; it composes calls to the Tool catalog, returning a Draft for Operator confirmation. Many concurrent sessions per Operator; optionally Customer-scoped (when opened from a Customer hub, the AI's read tools default-filter to that Customer).
 _Avoid_: Conversation (too generic), Thread (collides with web tech)
+
+**Draft**:
+The typed output of a `propose_*` Tool catalog call inside an Authoring session — a proposed Job, Job template, or other state-changing artifact that has not been persisted as a real row. Drafts live in the session's message history (one tool-call result per message) and carry one of three statuses: pending (default), confirmed (Operator clicked Confirm and the corresponding real row was created), discarded (Operator dismissed without creating). The Operator confirmation gate is the only path from Draft to real row — the model cannot persist directly. Per [ADR-015](docs/adr/015-ai-authoring-stack.md).
+_Avoid_: Proposal (used as a verb in the tool name `propose_*` but the noun is Draft), Suggestion (too soft — Drafts are typed, validated, ready-to-confirm)
 
 **Tool catalog**:
 The typed set of boop functions exposed to AI: `list_customers`, `list_targets`, `list_jobs`, `propose_job`, `propose_template`, `narrate_run_history`, `summarize_failures`, and similar. Same catalog is consumed by two surfaces: (a) the in-app authoring assistant via the Code Mode SDK, and (b) external agents via boop's MCP server. One source of truth, two surfaces. Each tool call is **double-bound**: the calling Operator's role is the ceiling (AI can never exceed what the human could do directly) and a separate AI allowlist is the floor (some actions are forbidden to AI regardless of role).
@@ -105,9 +109,10 @@ _Avoid_: Error type, Cause
 - A **Run** has one or more **Attempts** (one per retry)
 - A **Run** belongs to exactly one **Job** (and transitively, one **Customer**)
 - **Operators** see all **Customers** (role-based filtering is a phase-2 concern)
-- A **Customer** has zero or more **Channels** and zero or more **AlertRules** (defaults)
-- A **Job** has zero or more **AlertRules** (overrides; layered on Customer defaults)
-- An **AlertRule** references one or more **Channels** to fan out to
+- The **workspace** has zero or more workspace-scoped **Channels** and zero or more workspace-scoped **AlertRules** (defaults inherited by every Customer)
+- A **Customer** has zero or more Customer-scoped **Channels** and zero or more Customer-scoped **AlertRules** (added to the workspace set when evaluating any Job in the Customer)
+- A **Job** has zero or more Job-scoped **AlertRules** (added to the Customer + workspace sets when evaluating Runs of that Job)
+- An **AlertRule** references one or more **Channels** to fan out to; a Customer-scoped AlertRule may reference workspace Channels and Channels of its own Customer; a workspace AlertRule references workspace Channels only
 - An **Operator** has zero or more **Authoring sessions**; each session can produce zero or more drafts that the Operator confirms into real Jobs
 - The **Tool catalog** is referenced by both the in-app authoring assistant (via Code Mode) and the external MCP server (via the `search_and_execute` portal pattern)
 
