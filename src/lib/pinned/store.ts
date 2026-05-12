@@ -1,7 +1,3 @@
-// Device-local pinned entities for the sidebar's Pinned group.
-// PRD #44 ships v1 as a single localStorage key, capped at 20, alphabetically
-// sorted. Cross-device sync is a future PRD that adds server persistence.
-
 export const PINNED_STORAGE_KEY = 'boop.pins'
 export const PINNED_LIMIT = 20
 
@@ -12,7 +8,6 @@ export interface PinnedEntity {
   kind: PinnedKind
   label: string
   slug: string
-  /** Required for jobs (used to build the route). Omitted for customers. */
   customerSlug?: string
 }
 
@@ -37,7 +32,6 @@ export function parsePins(raw: unknown): PinnedEntity[] | null {
   return filtered.slice(0, PINNED_LIMIT)
 }
 
-/** Alphabetical by label (locale-aware, case-insensitive). */
 export function sortPins(pins: PinnedEntity[]): PinnedEntity[] {
   return [...pins].sort((a, b) =>
     a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }),

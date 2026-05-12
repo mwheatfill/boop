@@ -136,10 +136,10 @@
   --tile-p-spacious: 1.25rem;
   --form-row-py-compact: 0.5rem;
   --form-row-py-spacious: 0.75rem;
-  /* Compact is the unattributed default. */
   --row-py: var(--row-py-compact);
   --tile-p: var(--tile-p-compact);
   --form-row-py: var(--form-row-py-compact);
+  --right-rail-width: 20rem;
 }
 
 html[data-density="compact"] {

@@ -3,6 +3,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { getCustomerFn } from '@/lib/customers/server-fns'
 import { listAllJobsFn } from '@/lib/jobs/server-fns'
 import { listTargetsForCustomerFn } from '@/lib/targets/server-fns'
+import { PropertiesPanelShell } from './PropertiesPanelShell'
 import { PropertyRow } from './PropertyRow'
 
 interface CustomerPropertiesPanelProps {
@@ -23,31 +24,32 @@ export function CustomerPropertiesPanel({ customerSlug }: CustomerPropertiesPane
     queryFn: () => listTargetsForCustomerFn({ data: { customerSlug, includeArchived: false } }),
   })
 
-  if (isLoading) {
-    return <p className="px-2 text-sm text-muted-foreground">Loading…</p>
-  }
-  if (!customer) {
-    return <p className="px-2 text-sm text-muted-foreground">Customer not found.</p>
-  }
-
   return (
-    <div className="flex flex-col px-2">
-      <PropertyRow label="Status">
-        <StatusBadge status={customer.status} />
-      </PropertyRow>
-      <PropertyRow label="Slug" mono>
-        {customer.slug}
-      </PropertyRow>
-      <PropertyRow label="Timezone" mono>
-        {customer.timezone}
-      </PropertyRow>
-      {customer.autotaskCompanyId ? (
-        <PropertyRow label="Autotask ID" mono>
-          {customer.autotaskCompanyId}
-        </PropertyRow>
+    <PropertiesPanelShell
+      isLoading={isLoading}
+      missing={!customer}
+      missingLabel="Customer not found."
+    >
+      {customer ? (
+        <>
+          <PropertyRow label="Status">
+            <StatusBadge status={customer.status} />
+          </PropertyRow>
+          <PropertyRow label="Slug" mono>
+            {customer.slug}
+          </PropertyRow>
+          <PropertyRow label="Timezone" mono>
+            {customer.timezone}
+          </PropertyRow>
+          {customer.autotaskCompanyId ? (
+            <PropertyRow label="Autotask ID" mono>
+              {customer.autotaskCompanyId}
+            </PropertyRow>
+          ) : null}
+          <PropertyRow label="Jobs">{jobs ? jobs.length : '—'}</PropertyRow>
+          <PropertyRow label="Targets">{targets ? targets.length : '—'}</PropertyRow>
+        </>
       ) : null}
-      <PropertyRow label="Jobs">{jobs ? jobs.length : '—'}</PropertyRow>
-      <PropertyRow label="Targets">{targets ? targets.length : '—'}</PropertyRow>
-    </div>
+    </PropertiesPanelShell>
   )
 }

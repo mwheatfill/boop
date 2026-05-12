@@ -4,17 +4,25 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ContentChrome } from '@/components/ContentChrome'
 import { DensityProvider } from '@/components/density/DensityProvider'
 import { RightRailProvider } from '@/components/right-rail/RightRailProvider'
+import { RIGHT_RAIL_ROUTE_IDS } from '@/components/right-rail/useRightRailContent'
 
-let activePath = '/customers/acme/jobs/db-backup'
+interface FakeMatch {
+  id: string
+  params: Record<string, string>
+}
+
+let activeMatches: FakeMatch[] = [
+  { id: RIGHT_RAIL_ROUTE_IDS.job, params: { customerSlug: 'acme', jobSlug: 'db-backup' } },
+]
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  useRouterState: <T,>({ select }: { select: (s: { location: { pathname: string } }) => T }) =>
-    select({ location: { pathname: activePath } }),
+  useMatches: <T,>({ select }: { select: (matches: FakeMatch[]) => T }) => select(activeMatches),
 }))
 
 vi.mock('@/lib/jobs/server-fns', () => ({
   getJobFn: vi.fn(async () => null),
+  listAllJobsFn: vi.fn(async () => []),
 }))
 vi.mock('@/lib/customers/server-fns', () => ({
   getCustomerFn: vi.fn(async () => null),
@@ -44,7 +52,9 @@ function renderCluster() {
 
 beforeEach(() => {
   localStorage.clear()
-  activePath = '/customers/acme/jobs/db-backup'
+  activeMatches = [
+    { id: RIGHT_RAIL_ROUTE_IDS.job, params: { customerSlug: 'acme', jobSlug: 'db-backup' } },
+  ]
 })
 
 describe('<ContentChrome>', () => {
@@ -56,19 +66,15 @@ describe('<ContentChrome>', () => {
   })
 
   it('disables the right-rail toggle on routes without entity context', () => {
-    activePath = '/'
+    activeMatches = [{ id: '/_authenticated/', params: {} }]
     renderCluster()
     const toggle = screen.getByRole('button', { name: /properties panel/i }) as HTMLButtonElement
     expect(toggle.disabled).toBe(true)
   })
 
   it('the right-rail toggle reflects the open state via aria-pressed', () => {
-    // Default open=true on detail routes per RightRailProvider effect.
     renderCluster()
     const toggle = screen.getByRole('button', { name: /properties panel/i })
-    // First render: defaults to false until the route-id effect runs;
-    // after the effect synchronously runs in this environment, it flips
-    // to open=true and aria-pressed=true.
     expect(['true', 'false']).toContain(toggle.getAttribute('aria-pressed'))
   })
 })

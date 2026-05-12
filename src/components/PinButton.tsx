@@ -8,24 +8,12 @@ interface PinButtonProps {
   entity: PinnedEntity
 }
 
-/**
- * Pin/unpin toggle for the entity in the page header.
- * Registers `Shift+P` (page scope) per PRD #44 so it appears in the `?`
- * cheatsheet. The hotkey defers to the input-skip guard in
- * KeyboardProvider so typing P in a form input doesn't toggle.
- */
 export function PinButton({ entity }: PinButtonProps) {
   const { isPinned, togglePin } = usePinned()
   const pinned = isPinned(entity)
   const label = pinned ? 'Unpin' : 'Pin'
 
-  useShortcut(
-    'Shift+p',
-    () => {
-      togglePin(entity)
-    },
-    { description: 'Pin / unpin', section: 'page' },
-  )
+  useShortcut('Shift+p', () => togglePin(entity), { description: 'Pin / unpin', section: 'page' })
 
   return (
     <Button

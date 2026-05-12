@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { LogOut, User as UserIcon } from 'lucide-react'
+import { useMemo } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,20 +16,18 @@ interface UserMenuProps {
   user: User
 }
 
-/**
- * Sidebar-footer dropdown carrying the operator's identity + sign out.
- * Sign out routes to Cloudflare Access's logout endpoint per ADR-005's
- * default auth recipe. Auth recipes that ship a different sign-out flow
- * override `<UserMenu>` from within their recipe.
- */
-export function UserMenu({ user }: UserMenuProps) {
-  const initials = (user.name ?? user.email)
+function deriveInitials(source: string): string {
+  return source
     .split(/[\s.@]+/)
     .map((p) => p[0])
     .filter(Boolean)
     .slice(0, 2)
     .join('')
     .toUpperCase()
+}
+
+export function UserMenu({ user }: UserMenuProps) {
+  const initials = useMemo(() => deriveInitials(user.name ?? user.email), [user.name, user.email])
 
   return (
     <DropdownMenu>

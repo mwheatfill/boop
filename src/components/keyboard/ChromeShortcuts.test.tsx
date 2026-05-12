@@ -1,19 +1,28 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ChromeShortcuts } from '@/components/keyboard/ChromeShortcuts'
 import { KeyboardProvider } from '@/components/keyboard/KeyboardProvider'
-import { RightRailProvider } from '@/components/right-rail/RightRailProvider'
+import { RightRailProvider, useRightRail } from '@/components/right-rail/RightRailProvider'
+import { RIGHT_RAIL_ROUTE_IDS } from '@/components/right-rail/useRightRailContent'
 
-let activePath = '/customers/acme/jobs/db-backup'
+interface FakeMatch {
+  id: string
+  params: Record<string, string>
+}
+
+let activeMatches: FakeMatch[] = [
+  { id: RIGHT_RAIL_ROUTE_IDS.job, params: { customerSlug: 'acme', jobSlug: 'db-backup' } },
+]
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  useRouterState: <T,>({ select }: { select: (s: { location: { pathname: string } }) => T }) =>
-    select({ location: { pathname: activePath } }),
+  useMatches: <T,>({ select }: { select: (matches: FakeMatch[]) => T }) => select(activeMatches),
 }))
 
 vi.mock('@/lib/jobs/server-fns', () => ({
   getJobFn: vi.fn(async () => null),
+  listAllJobsFn: vi.fn(async () => []),
 }))
 vi.mock('@/lib/customers/server-fns', () => ({
   getCustomerFn: vi.fn(async () => null),
@@ -26,9 +35,6 @@ vi.mock('@/lib/targets/server-fns', () => ({
 vi.mock('@/lib/runs/server-fns', () => ({
   getRunFn: vi.fn(async () => null),
 }))
-
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useRightRail } from '@/components/right-rail/RightRailProvider'
 
 function Probe() {
   const { open } = useRightRail()
@@ -51,7 +57,9 @@ function harness() {
 
 beforeEach(() => {
   localStorage.clear()
-  activePath = '/customers/acme/jobs/db-backup'
+  activeMatches = [
+    { id: RIGHT_RAIL_ROUTE_IDS.job, params: { customerSlug: 'acme', jobSlug: 'db-backup' } },
+  ]
 })
 
 describe('] toggles the right rail', () => {
@@ -63,7 +71,7 @@ describe('] toggles the right rail', () => {
   })
 
   it('does nothing on list routes where no rail is available', () => {
-    activePath = '/'
+    activeMatches = [{ id: '/_authenticated/', params: {} }]
     harness()
     expect(screen.getByTestId('rail-open').textContent).toBe('false')
     fireEvent.keyDown(window, { key: ']' })

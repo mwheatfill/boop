@@ -1,6 +1,6 @@
-import { Link, useRouterState } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { Activity, Building2, History, Home, Pin } from 'lucide-react'
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { UserMenu } from '@/components/UserMenu'
 import {
@@ -20,11 +20,6 @@ import { usePinned } from '@/lib/pinned/use-pinned'
 import { useRecents } from '@/lib/recents/use-recents'
 import type { User } from '@/shared/schemas/auth'
 
-function isPathActive(pathname: string, target: string, exact: boolean): boolean {
-  if (exact) return pathname === target
-  return pathname === target || pathname.startsWith(`${target}/`)
-}
-
 interface AppSidebarProps {
   user: User
 }
@@ -33,7 +28,6 @@ interface NavItem {
   label: string
   to: '/' | '/jobs' | '/customers' | '/runs'
   icon: ComponentType<{ 'aria-hidden'?: boolean }>
-  /** Active-state matches the exact path so `/` doesn't light up everywhere. */
   exact?: boolean
 }
 
@@ -44,25 +38,57 @@ const NAV: NavItem[] = [
   { label: 'Runs', to: '/runs', icon: History },
 ]
 
-/**
- * The inverted-L workspace sidebar. Composes the shadcn `sidebar` primitive
- * with boop's nav. Per DESIGN.md § 4 the chrome stays tight; density does
- * not affect the sidebar.
- *
- * - Primary nav rendered via `<SidebarMenuButton asChild>` so the TanStack
- *   Router `<Link>` provides active state via the `data-status="active"`
- *   attribute (set by `activeProps`). The button's CSS keys off
- *   `data-active=true` (canonical shadcn selector) — the wrapper sets it
- *   to mirror the router's data-status, since shadcn's `isActive` prop
- *   wants a boolean while TanStack sets it as an attribute.
- *
- * - Recent shares `boop.recents` with the Cmd+K palette (PRD #43).
- * - Pinned reads `boop.pins` via `usePinned()`.
- */
+type EntityKind = 'customer' | 'job'
+
+interface EntityRef {
+  kind: EntityKind
+  label: string
+  slug: string
+  customerSlug?: string
+}
+
+function EntityLink({
+  entity,
+  icon: Icon,
+}: {
+  entity: EntityRef
+  icon: ComponentType<{ 'aria-hidden'?: boolean }>
+}): ReactNode {
+  if (entity.kind === 'customer') {
+    return (
+      <Link
+        to="/customers/$customerSlug"
+        params={{ customerSlug: entity.slug }}
+        activeProps={{ 'data-active': 'true' }}
+      >
+        <Icon aria-hidden />
+        <span>{entity.label}</span>
+      </Link>
+    )
+  }
+  if (entity.customerSlug) {
+    return (
+      <Link
+        to="/customers/$customerSlug/jobs/$jobSlug"
+        params={{ customerSlug: entity.customerSlug, jobSlug: entity.slug }}
+        activeProps={{ 'data-active': 'true' }}
+      >
+        <Icon aria-hidden />
+        <span>{entity.label}</span>
+      </Link>
+    )
+  }
+  return (
+    <span>
+      <Icon aria-hidden />
+      <span>{entity.label}</span>
+    </span>
+  )
+}
+
 export function AppSidebar({ user }: AppSidebarProps) {
   const recents = useRecents()
   const { pinned } = usePinned()
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
 
   return (
     <Sidebar collapsible="icon">
@@ -83,27 +109,23 @@ export function AppSidebar({ user }: AppSidebarProps) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {NAV.map((item) => {
-                const active = isPathActive(pathname, item.to, item.exact ?? false)
-                return (
-                  <SidebarMenuItem key={item.to}>
-                    <SidebarMenuButton
-                      tooltip={item.label}
-                      isActive={active}
-                      render={
-                        <Link
-                          to={item.to}
-                          {...(item.exact ? { activeOptions: { exact: true } } : {})}
-                          activeProps={{ 'data-active': 'true' }}
-                        >
-                          <item.icon aria-hidden />
-                          <span>{item.label}</span>
-                        </Link>
-                      }
-                    />
-                  </SidebarMenuItem>
-                )
-              })}
+              {NAV.map((item) => (
+                <SidebarMenuItem key={item.to}>
+                  <SidebarMenuButton
+                    tooltip={item.label}
+                    render={
+                      <Link
+                        to={item.to}
+                        {...(item.exact ? { activeOptions: { exact: true } } : {})}
+                        activeProps={{ 'data-active': 'true' }}
+                      >
+                        <item.icon aria-hidden />
+                        <span>{item.label}</span>
+                      </Link>
+                    }
+                  />
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -117,39 +139,23 @@ export function AppSidebar({ user }: AppSidebarProps) {
               </p>
             ) : (
               <SidebarMenu>
-                {recents.map((r) => (
-                  <SidebarMenuItem key={r.id}>
-                    <SidebarMenuButton
-                      tooltip={r.label}
-                      render={
-                        r.entity === 'customer' ? (
-                          <Link
-                            to="/customers/$customerSlug"
-                            params={{ customerSlug: r.slug }}
-                            activeProps={{ 'data-active': 'true' }}
-                          >
-                            <Building2 aria-hidden />
-                            <span>{r.label}</span>
-                          </Link>
-                        ) : r.customerSlug ? (
-                          <Link
-                            to="/customers/$customerSlug/jobs/$jobSlug"
-                            params={{ customerSlug: r.customerSlug, jobSlug: r.slug }}
-                            activeProps={{ 'data-active': 'true' }}
-                          >
-                            <Activity aria-hidden />
-                            <span>{r.label}</span>
-                          </Link>
-                        ) : (
-                          <span>
-                            <History aria-hidden />
-                            <span>{r.label}</span>
-                          </span>
-                        )
-                      }
-                    />
-                  </SidebarMenuItem>
-                ))}
+                {recents.map((r) => {
+                  const entity: EntityRef = { kind: r.entity, label: r.label, slug: r.slug }
+                  if (r.customerSlug) entity.customerSlug = r.customerSlug
+                  return (
+                    <SidebarMenuItem key={r.id}>
+                      <SidebarMenuButton
+                        tooltip={r.label}
+                        render={
+                          <EntityLink
+                            entity={entity}
+                            icon={r.entity === 'customer' ? Building2 : Activity}
+                          />
+                        }
+                      />
+                    </SidebarMenuItem>
+                  )
+                })}
               </SidebarMenu>
             )}
           </SidebarGroupContent>
@@ -168,32 +174,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   <SidebarMenuItem key={`${p.kind}:${p.id}`}>
                     <SidebarMenuButton
                       tooltip={p.label}
-                      render={
-                        p.kind === 'customer' ? (
-                          <Link
-                            to="/customers/$customerSlug"
-                            params={{ customerSlug: p.slug }}
-                            activeProps={{ 'data-active': 'true' }}
-                          >
-                            <Pin aria-hidden />
-                            <span>{p.label}</span>
-                          </Link>
-                        ) : p.customerSlug ? (
-                          <Link
-                            to="/customers/$customerSlug/jobs/$jobSlug"
-                            params={{ customerSlug: p.customerSlug, jobSlug: p.slug }}
-                            activeProps={{ 'data-active': 'true' }}
-                          >
-                            <Pin aria-hidden />
-                            <span>{p.label}</span>
-                          </Link>
-                        ) : (
-                          <span>
-                            <Pin aria-hidden />
-                            <span>{p.label}</span>
-                          </span>
-                        )
-                      }
+                      render={<EntityLink entity={p} icon={Pin} />}
                     />
                   </SidebarMenuItem>
                 ))}

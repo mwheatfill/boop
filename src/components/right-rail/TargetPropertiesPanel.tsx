@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { StatusBadge } from '@/components/StatusBadge'
 import { getCustomerFn } from '@/lib/customers/server-fns'
 import { getTargetFn } from '@/lib/targets/server-fns'
+import { PropertiesPanelShell } from './PropertiesPanelShell'
 import { PropertyRow } from './PropertyRow'
 
 interface TargetPropertiesPanelProps {
@@ -20,36 +21,37 @@ export function TargetPropertiesPanel({ customerSlug, targetSlug }: TargetProper
     queryFn: () => getCustomerFn({ data: { slug: customerSlug } }),
   })
 
-  if (isLoading) {
-    return <p className="px-2 text-sm text-muted-foreground">Loading…</p>
-  }
-  if (!target) {
-    return <p className="px-2 text-sm text-muted-foreground">Target not found.</p>
-  }
-
   return (
-    <div className="flex flex-col px-2">
-      <PropertyRow label="Status">
-        <StatusBadge status={target.status} />
-      </PropertyRow>
-      <PropertyRow label="Method" mono>
-        {target.method}
-      </PropertyRow>
-      <PropertyRow label="URL" mono>
-        {target.url}
-      </PropertyRow>
-      <PropertyRow label="Auth">{target.authKind}</PropertyRow>
-      <PropertyRow label="Reachability">{target.reachability}</PropertyRow>
-      {customer ? (
-        <PropertyRow label="Customer">
-          <Link to="/customers/$customerSlug" params={{ customerSlug }} className="hover:underline">
-            {customer.name}
-          </Link>
-        </PropertyRow>
+    <PropertiesPanelShell isLoading={isLoading} missing={!target} missingLabel="Target not found.">
+      {target ? (
+        <>
+          <PropertyRow label="Status">
+            <StatusBadge status={target.status} />
+          </PropertyRow>
+          <PropertyRow label="Method" mono>
+            {target.method}
+          </PropertyRow>
+          <PropertyRow label="URL" mono>
+            {target.url}
+          </PropertyRow>
+          <PropertyRow label="Auth">{target.authKind}</PropertyRow>
+          <PropertyRow label="Reachability">{target.reachability}</PropertyRow>
+          {customer ? (
+            <PropertyRow label="Customer">
+              <Link
+                to="/customers/$customerSlug"
+                params={{ customerSlug }}
+                className="hover:underline"
+              >
+                {customer.name}
+              </Link>
+            </PropertyRow>
+          ) : null}
+          <PropertyRow label="Slug" mono>
+            {target.slug}
+          </PropertyRow>
+        </>
       ) : null}
-      <PropertyRow label="Slug" mono>
-        {target.slug}
-      </PropertyRow>
-    </div>
+    </PropertiesPanelShell>
   )
 }

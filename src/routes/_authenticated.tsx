@@ -1,5 +1,4 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
-import { useCallback, useEffect, useState } from 'react'
 import { AppSidebar } from '@/components/AppSidebar'
 import { CheatsheetDialog } from '@/components/keyboard/CheatsheetDialog'
 import { ChordIndicator } from '@/components/keyboard/ChordIndicator'
@@ -10,6 +9,7 @@ import { KeyboardProvider } from '@/components/keyboard/KeyboardProvider'
 import { RightRail } from '@/components/right-rail/RightRail'
 import { RightRailProvider } from '@/components/right-rail/RightRailProvider'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { useLocalStorage } from '@/lib/use-local-storage'
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: ({ context, location }) => {
@@ -25,46 +25,17 @@ export const Route = createFileRoute('/_authenticated')({
 })
 
 const SIDEBAR_OPEN_STORAGE_KEY = 'boop.sidebar-open'
-
-function readSidebarOpen(): boolean {
-  if (typeof localStorage === 'undefined') return true
-  try {
-    const raw = localStorage.getItem(SIDEBAR_OPEN_STORAGE_KEY)
-    if (raw === 'false') return false
-    if (raw === 'true') return true
-    return true
-  } catch {
-    return true
-  }
-}
-
-function writeSidebarOpen(open: boolean): void {
-  if (typeof localStorage === 'undefined') return
-  try {
-    localStorage.setItem(SIDEBAR_OPEN_STORAGE_KEY, String(open))
-  } catch {
-    // Quota; degrade silently.
-  }
-}
+const PARSE_BOOL = (v: unknown) => (typeof v === 'boolean' ? v : null)
 
 function AuthenticatedLayout() {
   const { currentUser } = Route.useRouteContext()
-
-  // SSR-safe: server render with the canonical default; the client effect
-  // below realigns to the persisted preference on mount.
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  useEffect(() => {
-    setSidebarOpen(readSidebarOpen())
-  }, [])
-
-  const onSidebarOpenChange = useCallback((next: boolean) => {
-    setSidebarOpen(next)
-    writeSidebarOpen(next)
-  }, [])
+  const [sidebarOpen, setSidebarOpen] = useLocalStorage<boolean>(SIDEBAR_OPEN_STORAGE_KEY, true, {
+    parse: PARSE_BOOL,
+  })
 
   return (
     <KeyboardProvider>
-      <SidebarProvider open={sidebarOpen} onOpenChange={onSidebarOpenChange}>
+      <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <RightRailProvider>
           <AppSidebar user={currentUser} />
           <SidebarInset className="flex min-w-0 flex-1 flex-col">
