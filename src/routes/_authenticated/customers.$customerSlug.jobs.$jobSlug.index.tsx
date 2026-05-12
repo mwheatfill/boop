@@ -9,6 +9,7 @@ import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { triggerSummaryWithTimezone } from '@/lib/jobs/format'
 import {
   archiveJobFn,
   getJobFn,
@@ -17,7 +18,6 @@ import {
   resumeJobFn,
   runJobNowFn,
 } from '@/lib/jobs/server-fns'
-import type { Job } from '@/shared/schemas/job'
 
 const jobOptions = (customerSlug: string, jobSlug: string) =>
   queryOptions({
@@ -30,12 +30,6 @@ export const Route = createFileRoute('/_authenticated/customers/$customerSlug/jo
     context.queryClient.ensureQueryData(jobOptions(params.customerSlug, params.jobSlug)),
   component: JobDetailPage,
 })
-
-function triggerSummary(job: Job): string {
-  if (job.triggerKind === 'cron') return `cron ${job.cronExpression} (${job.triggerTimezone})`
-  if (job.triggerKind === 'interval') return `every ${job.intervalSeconds}s`
-  return 'webhook'
-}
 
 function JobDetailPage() {
   const { customerSlug, jobSlug } = Route.useParams()
@@ -133,7 +127,7 @@ function JobDetailPage() {
       <section className="grid gap-3 sm:grid-cols-3">
         <div className="flex flex-col gap-1">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Trigger</p>
-          <p className="font-mono text-sm">{triggerSummary(job)}</p>
+          <p className="font-mono text-sm">{triggerSummaryWithTimezone(job)}</p>
         </div>
         <div className="flex flex-col gap-1">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Last run</p>

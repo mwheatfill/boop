@@ -45,7 +45,7 @@ export function DataTable<TData, TValue>({
           {table.getRowModel().rows.length === 0 ? (
             <TableRow>
               <TableCell colSpan={columns.length} className="h-24 text-center">
-                {emptyState ?? 'No results.'}
+                {emptyState ?? <span className="text-muted-foreground">Nothing here yet.</span>}
               </TableCell>
             </TableRow>
           ) : (
