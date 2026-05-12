@@ -3,6 +3,8 @@ import { queue } from './lib/dispatch/queue-consumer'
 import type { DispatchMessage } from './lib/dispatch/scheduled'
 import { scheduled } from './lib/dispatch/scheduled'
 
+export { JobAlarm } from './lib/dispatch/job-alarm-do'
+
 const fetchHandler = createStartHandler(defaultStreamHandler)
 
 export default {
