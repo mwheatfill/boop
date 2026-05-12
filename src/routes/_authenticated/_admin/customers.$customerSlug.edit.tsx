@@ -83,17 +83,14 @@ function EditCustomerPage() {
           timezone: customer.timezone,
           autotaskCompanyId: customer.autotaskCompanyId ?? '',
         }}
-        onSubmit={async (value) => {
-          const result = await updateCustomerFn({ data: value as never })
-          if (result.ok) {
-            await queryClient.invalidateQueries({ queryKey: ['customers'] })
-            toast.success(`Saved ${result.data.name}`)
-            await navigate({
-              to: '/customers/$customerSlug',
-              params: { customerSlug: result.data.slug },
-            })
-          }
-          return result
+        mutate={(value) => updateCustomerFn({ data: value as never })}
+        onSuccess={async (updated) => {
+          await queryClient.invalidateQueries({ queryKey: ['customers'] })
+          toast.success(`Saved ${updated.name}`)
+          await navigate({
+            to: '/customers/$customerSlug',
+            params: { customerSlug: updated.slug },
+          })
         }}
       />
     </div>

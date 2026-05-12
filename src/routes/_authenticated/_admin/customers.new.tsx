@@ -19,17 +19,14 @@ function NewCustomerPage() {
         variant="create"
         submitLabel="Create Customer"
         initialValues={{ name: '', slug: '', timezone: 'America/New_York', autotaskCompanyId: '' }}
-        onSubmit={async (value) => {
-          const result = await createCustomerFn({ data: value as never })
-          if (result.ok) {
-            await queryClient.invalidateQueries({ queryKey: ['customers'] })
-            toast.success(`Customer ${result.data.name} created`)
-            await navigate({
-              to: '/customers/$customerSlug',
-              params: { customerSlug: result.data.slug },
-            })
-          }
-          return result
+        mutate={(value) => createCustomerFn({ data: value as never })}
+        onSuccess={async (customer) => {
+          await queryClient.invalidateQueries({ queryKey: ['customers'] })
+          toast.success(`Customer ${customer.name} created`)
+          await navigate({
+            to: '/customers/$customerSlug',
+            params: { customerSlug: customer.slug },
+          })
         }}
       />
     </div>

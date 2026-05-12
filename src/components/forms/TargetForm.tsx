@@ -13,8 +13,9 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { FieldErrors } from '@/lib/errors'
+import type { MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
-import type { TargetCreateInput, TargetUpdateInput } from '@/shared/schemas/target'
+import type { Target, TargetCreateInput, TargetUpdateInput } from '@/shared/schemas/target'
 import { TARGET_AUTH_KINDS, TARGET_METHODS, TARGET_REACHABILITIES } from '@/shared/schemas/target'
 
 interface TargetFormProps {
@@ -29,39 +30,51 @@ interface TargetFormProps {
     reachability: (typeof TARGET_REACHABILITIES)[number]
   }
   submitLabel: string
-  onSubmit: (
-    value: TargetCreateInput | TargetUpdateInput,
-  ) => Promise<{ ok: true } | { ok: false; fieldErrors?: FieldErrors; message?: string }>
+  mutate: (value: TargetCreateInput | TargetUpdateInput) => Promise<MutationResult<Target>>
+  onSuccess: (data: Target) => Promise<void> | void
 }
 
-function firstError(errors: FieldErrors | undefined, field: string): string | undefined {
-  return errors?.[field]?.[0]
+function fieldErrorsToTanstack(fieldErrors: FieldErrors | undefined): Record<string, string> {
+  if (!fieldErrors) return {}
+  const out: Record<string, string> = {}
+  for (const [key, msgs] of Object.entries(fieldErrors)) {
+    if (msgs[0]) out[key] = msgs[0]
+  }
+  return out
 }
 
-export function TargetForm({ variant, initialValues, submitLabel, onSubmit }: TargetFormProps) {
+export function TargetForm({
+  variant,
+  initialValues,
+  submitLabel,
+  mutate,
+  onSuccess,
+}: TargetFormProps) {
   const slugManuallyEdited = useRef(variant === 'edit')
 
   const form = useForm({
-    defaultValues: {
-      ...initialValues,
-      _serverFieldErrors: undefined as FieldErrors | undefined,
-      _serverMessage: undefined as string | undefined,
-    },
-    onSubmit: async ({ value, formApi }) => {
-      const baseMutable = {
-        name: value.name,
-        url: value.url,
-        method: value.method,
-        authKind: value.authKind,
-        ...(value.authConfig ? { authConfig: value.authConfig } : { authConfig: null }),
-        reachability: value.reachability,
-      }
-      const payload = variant === 'create' ? { ...baseMutable, slug: value.slug } : baseMutable
-      const result = await onSubmit(payload as never)
-      if (!result.ok) {
-        formApi.setFieldValue('_serverFieldErrors', result.fieldErrors)
-        formApi.setFieldValue('_serverMessage', result.message)
-      }
+    defaultValues: initialValues,
+    validators: {
+      onSubmitAsync: async ({ value }) => {
+        const baseMutable = {
+          name: value.name,
+          url: value.url,
+          method: value.method,
+          authKind: value.authKind,
+          ...(value.authConfig ? { authConfig: value.authConfig } : { authConfig: null }),
+          reachability: value.reachability,
+        }
+        const payload = variant === 'create' ? { ...baseMutable, slug: value.slug } : baseMutable
+        const result = await mutate(payload as never)
+        if (!result.ok) {
+          return {
+            ...(result.message ? { form: result.message } : {}),
+            fields: fieldErrorsToTanstack(result.fieldErrors),
+          }
+        }
+        await onSuccess(result.data)
+        return null
+      },
     },
   })
 
@@ -91,34 +104,33 @@ export function TargetForm({ variant, initialValues, submitLabel, onSubmit }: Ta
               value={field.state.value}
               onChange={(e) => field.handleChange(e.currentTarget.value)}
             />
+            {field.state.meta.errors[0] ? (
+              <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
+            ) : null}
           </div>
         )}
       </form.Field>
 
-      <form.Subscribe selector={(s) => s.values._serverFieldErrors}>
-        {(serverErrors) => (
-          <form.Field name="slug">
-            {(field) => (
-              <SlugField
-                id={field.name}
-                name={field.name}
-                value={field.state.value}
-                readOnly={variant === 'edit'}
-                error={firstError(serverErrors, 'slug')}
-                onChange={(next) => {
-                  slugManuallyEdited.current = true
-                  field.handleChange(next)
-                }}
-                helpText={
-                  variant === 'create'
-                    ? 'Auto-filled from name. Read-only after create.'
-                    : 'Slug is immutable after create.'
-                }
-              />
-            )}
-          </form.Field>
+      <form.Field name="slug">
+        {(field) => (
+          <SlugField
+            id={field.name}
+            name={field.name}
+            value={field.state.value}
+            readOnly={variant === 'edit'}
+            error={field.state.meta.errors[0] ? String(field.state.meta.errors[0]) : undefined}
+            onChange={(next) => {
+              slugManuallyEdited.current = true
+              field.handleChange(next)
+            }}
+            helpText={
+              variant === 'create'
+                ? 'Auto-filled from name. Read-only after create.'
+                : 'Slug is immutable after create.'
+            }
+          />
         )}
-      </form.Subscribe>
+      </form.Field>
 
       <form.Field name="url">
         {(field) => (
@@ -132,6 +144,9 @@ export function TargetForm({ variant, initialValues, submitLabel, onSubmit }: Ta
               placeholder="https://api.example.com/healthz"
               onChange={(e) => field.handleChange(e.currentTarget.value)}
             />
+            {field.state.meta.errors[0] ? (
+              <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
+            ) : null}
           </div>
         )}
       </form.Field>
@@ -232,10 +247,10 @@ export function TargetForm({ variant, initialValues, submitLabel, onSubmit }: Ta
         )}
       </form.Field>
 
-      <form.Subscribe selector={(s) => [s.isSubmitting, s.values._serverMessage] as const}>
-        {([isSubmitting, serverMessage]) => (
+      <form.Subscribe selector={(s) => [s.isSubmitting, s.errorMap.onSubmit] as const}>
+        {([isSubmitting, formError]) => (
           <div className="flex flex-col gap-2">
-            {serverMessage ? <p className="text-sm text-destructive">{serverMessage}</p> : null}
+            {formError ? <p className="text-sm text-destructive">{String(formError)}</p> : null}
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Saving…' : submitLabel}
             </Button>
