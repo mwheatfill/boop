@@ -8,6 +8,11 @@
   "paths": {},
   "components": {
     "schemas": {
+      "Timezone": {
+        "type": "string",
+        "description": "IANA timezone identifier.",
+        "example": "America/New_York"
+      },
       "User": {
         "type": "object",
         "properties": {
@@ -47,6 +52,343 @@
         ],
         "additionalProperties": false,
         "description": "Authenticated user as returned by getCurrentUser(request)."
+      },
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "cust_abc123"
+          },
+          "name": {
+            "type": "string",
+            "example": "Acme"
+          },
+          "slug": {
+            "type": "string",
+            "example": "acme"
+          },
+          "timezone": {
+            "$ref": "#/components/schemas/Timezone"
+          },
+          "autotaskCompanyId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "12345"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "timezone",
+          "autotaskCompanyId",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "description": "A customer organization that owns Targets, Jobs, and Channels."
+      },
+      "CustomerCreateInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "timezone": {
+            "$ref": "#/components/schemas/Timezone"
+          },
+          "autotaskCompanyId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "timezone"
+        ],
+        "additionalProperties": false
+      },
+      "CustomerUpdateInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "timezone": {
+            "$ref": "#/components/schemas/Timezone"
+          },
+          "autotaskCompanyId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "name",
+          "timezone"
+        ],
+        "additionalProperties": false
+      },
+      "Target": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "tgt_abc123"
+          },
+          "customerId": {
+            "type": "string",
+            "example": "cust_abc123"
+          },
+          "name": {
+            "type": "string",
+            "example": "Primary API"
+          },
+          "slug": {
+            "type": "string",
+            "example": "primary-api"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://api.acme.com/healthz"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE",
+              "HEAD"
+            ]
+          },
+          "authKind": {
+            "type": "string",
+            "enum": [
+              "none",
+              "bearer",
+              "basic",
+              "header"
+            ]
+          },
+          "authConfig": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reachability": {
+            "type": "string",
+            "enum": [
+              "public",
+              "tunnel"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "customerId",
+          "name",
+          "slug",
+          "url",
+          "method",
+          "authKind",
+          "authConfig",
+          "reachability",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "description": "A reusable HTTP destination owned by a Customer."
+      },
+      "TargetCreateInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2048,
+            "format": "uri"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE",
+              "HEAD"
+            ]
+          },
+          "authKind": {
+            "type": "string",
+            "enum": [
+              "none",
+              "bearer",
+              "basic",
+              "header"
+            ]
+          },
+          "authConfig": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reachability": {
+            "type": "string",
+            "enum": [
+              "public",
+              "tunnel"
+            ]
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          }
+        },
+        "required": [
+          "name",
+          "url",
+          "method",
+          "authKind",
+          "reachability",
+          "slug"
+        ],
+        "additionalProperties": false
+      },
+      "TargetUpdateInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2048,
+            "format": "uri"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE",
+              "HEAD"
+            ]
+          },
+          "authKind": {
+            "type": "string",
+            "enum": [
+              "none",
+              "bearer",
+              "basic",
+              "header"
+            ]
+          },
+          "authConfig": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reachability": {
+            "type": "string",
+            "enum": [
+              "public",
+              "tunnel"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "url",
+          "method",
+          "authKind",
+          "reachability"
+        ],
+        "additionalProperties": false
       }
     }
   }

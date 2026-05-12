@@ -47,13 +47,22 @@ function RootDocument({ children }: { children: ReactNode }) {
         <ThemeProvider>
           <header className="border-b border-border">
             <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-              <Link
-                to="/"
-                className="text-sm font-semibold tracking-tight"
-                activeProps={{ className: 'text-primary' }}
-              >
-                boop
-              </Link>
+              <div className="flex items-center gap-6">
+                <Link
+                  to="/"
+                  className="text-sm font-semibold tracking-tight"
+                  activeProps={{ className: 'text-primary' }}
+                >
+                  boop
+                </Link>
+                <Link
+                  to="/customers"
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                  activeProps={{ className: 'text-foreground' }}
+                >
+                  Customers
+                </Link>
+              </div>
               <ThemeToggle />
             </div>
           </header>

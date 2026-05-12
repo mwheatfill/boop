@@ -34,6 +34,7 @@ async function seedFixture(db: Database, overrides: FixtureOverrides = {}) {
     id: targetId,
     customerId,
     name: 'Health',
+    slug: 'health',
     url: 'https://example.test/ping',
     method: 'POST',
   })

@@ -1,6 +1,12 @@
 import { createDocument } from 'zod-openapi'
 import pkg from '../package.json' with { type: 'json' }
 import { UserSchema } from '../src/shared/schemas/auth'
+import {
+  CustomerCreateInput,
+  CustomerSchema,
+  CustomerUpdateInput,
+} from '../src/shared/schemas/customer'
+import { TargetCreateInput, TargetSchema, TargetUpdateInput } from '../src/shared/schemas/target'
 
 export const document = createDocument({
   openapi: '3.1.0',
@@ -15,6 +21,12 @@ export const document = createDocument({
   components: {
     schemas: {
       User: UserSchema,
+      Customer: CustomerSchema,
+      CustomerCreateInput,
+      CustomerUpdateInput,
+      Target: TargetSchema,
+      TargetCreateInput,
+      TargetUpdateInput,
     },
   },
 })
