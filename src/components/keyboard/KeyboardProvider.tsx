@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import { tinykeys } from 'tinykeys'
@@ -43,8 +44,7 @@ export function useKeyboard(): KeyboardContextValue {
 const CHORD_PREFIXES = new Set(['g', 'n'])
 const CHORD_TIMEOUT_MS = 1200
 const INPUT_SELECTOR = 'input, textarea, [contenteditable="true"]'
-// $mod+k always fires regardless of focus context; everything else respects inputs.
-const INPUT_EXEMPT_KEYS = new Set(['$mod+k', '$mod+K'])
+const INPUT_EXEMPT_KEYS = new Set(['$mod+k'])
 
 function isTypingTarget(target: EventTarget | null): boolean {
   return target instanceof Element && target.matches(INPUT_SELECTOR)
@@ -86,6 +86,11 @@ export function KeyboardProvider({ children }: { children: ReactNode }) {
     return tinykeys(window, handlers, { timeout: CHORD_TIMEOUT_MS })
   }, [registry])
 
+  const registryRef = useRef(registry)
+  registryRef.current = registry
+  const chordPrefixRef = useRef<string | null>(null)
+  chordPrefixRef.current = chordPrefix
+
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null
     const clearChord = () => {
@@ -99,7 +104,7 @@ export function KeyboardProvider({ children }: { children: ReactNode }) {
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (isTypingTarget(e.target)) return
       if (CHORD_PREFIXES.has(e.key)) {
-        const hasMatch = Array.from(registry.values()).some(
+        const hasMatch = Array.from(registryRef.current.values()).some(
           (entry) => !entry.disabled && entry.key.startsWith(`${e.key} `),
         )
         if (!hasMatch) return
@@ -108,14 +113,14 @@ export function KeyboardProvider({ children }: { children: ReactNode }) {
         timer = setTimeout(clearChord, CHORD_TIMEOUT_MS)
         return
       }
-      if (chordPrefix) clearChord()
+      if (chordPrefixRef.current) clearChord()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       if (timer) clearTimeout(timer)
     }
-  }, [registry, chordPrefix])
+  }, [])
 
   const value = useMemo<KeyboardContextValue>(
     () => ({

@@ -2,7 +2,6 @@ import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil, Plus } from 'lucide-react'
-import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { DataTable } from '@/components/DataTable'
@@ -12,7 +11,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { getCustomerFn } from '@/lib/customers/server-fns'
 import { listAllJobsFn } from '@/lib/jobs/server-fns'
-import { visitRecent } from '@/lib/recents/store'
+import { useTrackRecentVisit } from '@/lib/recents/use-track-recent-visit'
 import { listTargetsForCustomerFn } from '@/lib/targets/server-fns'
 import type { JobSummary } from '@/shared/schemas/job'
 import type { Target } from '@/shared/schemas/target'
@@ -133,14 +132,12 @@ function CustomerHubPage() {
   const { data: targets } = useSuspenseQuery(targetsQueryOptions(customerSlug, archived))
   const { data: jobs } = useSuspenseQuery(jobsQueryOptions(customerSlug))
 
-  useEffect(() => {
-    visitRecent({
-      id: `customer:${customer.slug}`,
-      entity: 'customer',
-      label: customer.name,
-      slug: customer.slug,
-    })
-  }, [customer.slug, customer.name])
+  useTrackRecentVisit({
+    id: `customer:${customer.slug}`,
+    entity: 'customer',
+    label: customer.name,
+    slug: customer.slug,
+  })
 
   useShortcut(
     'e',

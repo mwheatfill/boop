@@ -57,3 +57,8 @@ export function renderKeyCombo(combo: string, mac = isMac()): string[] {
   }
   return combo.split('+').map((t) => formatKeyToken(t, mac))
 }
+
+/** Space-joined form for inline display surfaces like CommandShortcut. */
+export function formatKeyCombo(combo: string, mac = isMac()): string {
+  return renderKeyCombo(combo, mac).join(' ')
+}

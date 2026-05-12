@@ -1,7 +1,7 @@
 import { queryOptions, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Pencil, Play } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { JobActionsMenu } from '@/components/forms/JobActionsMenu'
 import { RecentRunsPanel } from '@/components/forms/RecentRunsPanel'
@@ -19,7 +19,7 @@ import {
   resumeJobFn,
   runJobNowFn,
 } from '@/lib/jobs/server-fns'
-import { visitRecent } from '@/lib/recents/store'
+import { useTrackRecentVisit } from '@/lib/recents/use-track-recent-visit'
 
 const jobOptions = (customerSlug: string, jobSlug: string) =>
   queryOptions({
@@ -52,15 +52,13 @@ function JobDetailPage() {
     toast.success(message)
   }
 
-  useEffect(() => {
-    visitRecent({
-      id: `job:${job.customerSlug}:${job.slug}`,
-      entity: 'job',
-      label: job.name,
-      slug: job.slug,
-      customerSlug: job.customerSlug,
-    })
-  }, [job.customerSlug, job.slug, job.name])
+  useTrackRecentVisit({
+    id: `job:${job.customerSlug}:${job.slug}`,
+    entity: 'job',
+    label: job.name,
+    slug: job.slug,
+    customerSlug: job.customerSlug,
+  })
 
   useShortcut(
     'r',

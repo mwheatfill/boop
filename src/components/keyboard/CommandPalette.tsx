@@ -28,7 +28,7 @@ import {
 import { listCustomersFn } from '@/lib/customers/server-fns'
 import { listAllJobsFn, pauseJobFn, resumeJobFn, runJobNowFn } from '@/lib/jobs/server-fns'
 import { fuzzyScore } from '@/lib/keyboard/fuzzy'
-import { renderKeyCombo } from '@/lib/keyboard/key-combo'
+import { formatKeyCombo } from '@/lib/keyboard/key-combo'
 import { type RecentEntry, readRecents } from '@/lib/recents/store'
 import type { User } from '@/shared/schemas/auth'
 import type { Customer } from '@/shared/schemas/customer'
@@ -61,6 +61,10 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
   const jobsQuery = useQuery({ ...paletteJobsOptions, enabled: paletteOpen })
   const customers = customersQuery.data ?? []
   const jobs = jobsQuery.data ?? []
+  const actionableJobs = useMemo(
+    () => jobs.filter((j) => j.status === 'active' || j.status === 'paused').slice(0, 50),
+    [jobs],
+  )
 
   const [recents, setRecents] = useState<RecentEntry[]>([])
   useEffect(() => {
@@ -170,64 +174,58 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
         ) : null}
 
         <CommandGroup heading="Actions">
-          {jobs
-            .filter((j) => j.status === 'active' || j.status === 'paused')
-            .slice(0, 50)
-            .map((j) => (
-              <CommandItem
-                key={`action-runnow-${j.id}`}
-                value={`run now ${j.name}`}
-                keywords={['run', 'execute', 'trigger', j.slug]}
-                onSelect={async () => {
-                  close()
-                  const result = await runJobNowFn({
-                    data: { customerSlug: j.customerSlug, jobSlug: j.slug },
-                  })
-                  if (result.ok) {
-                    toast.success(`Run queued for ${j.name}`)
-                    await refreshJobs()
-                  } else {
-                    toast.error(result.message ?? 'Could not queue Run')
-                  }
-                }}
-              >
-                <Play aria-hidden /> Run now <span className="text-muted-foreground">{j.name}</span>
-              </CommandItem>
-            ))}
-          {jobs
-            .filter((j) => j.status === 'active' || j.status === 'paused')
-            .slice(0, 50)
-            .map((j) => (
-              <CommandItem
-                key={`action-pause-${j.id}`}
-                value={`${j.status === 'paused' ? 'resume' : 'pause'} ${j.name}`}
-                keywords={[j.status === 'paused' ? 'resume' : 'pause', j.slug]}
-                onSelect={async () => {
-                  close()
-                  const fn = j.status === 'paused' ? resumeJobFn : pauseJobFn
-                  const result = await fn({
-                    data: { customerSlug: j.customerSlug, jobSlug: j.slug },
-                  })
-                  if (result.ok) {
-                    toast.success(j.status === 'paused' ? 'Resumed' : 'Paused')
-                    await refreshJobs()
-                  } else {
-                    toast.error(result.message ?? 'Could not change status')
-                  }
-                }}
-              >
-                {j.status === 'paused' ? (
-                  <>
-                    <Play aria-hidden /> Resume
-                  </>
-                ) : (
-                  <>
-                    <PauseCircle aria-hidden /> Pause
-                  </>
-                )}
-                <span className="text-muted-foreground">{j.name}</span>
-              </CommandItem>
-            ))}
+          {actionableJobs.map((j) => (
+            <CommandItem
+              key={`action-runnow-${j.id}`}
+              value={`run now ${j.name}`}
+              keywords={['run', 'execute', 'trigger', j.slug]}
+              onSelect={async () => {
+                close()
+                const result = await runJobNowFn({
+                  data: { customerSlug: j.customerSlug, jobSlug: j.slug },
+                })
+                if (result.ok) {
+                  toast.success(`Run queued for ${j.name}`)
+                  await refreshJobs()
+                } else {
+                  toast.error(result.message ?? 'Could not queue Run')
+                }
+              }}
+            >
+              <Play aria-hidden /> Run now <span className="text-muted-foreground">{j.name}</span>
+            </CommandItem>
+          ))}
+          {actionableJobs.map((j) => (
+            <CommandItem
+              key={`action-pause-${j.id}`}
+              value={`${j.status === 'paused' ? 'resume' : 'pause'} ${j.name}`}
+              keywords={[j.status === 'paused' ? 'resume' : 'pause', j.slug]}
+              onSelect={async () => {
+                close()
+                const fn = j.status === 'paused' ? resumeJobFn : pauseJobFn
+                const result = await fn({
+                  data: { customerSlug: j.customerSlug, jobSlug: j.slug },
+                })
+                if (result.ok) {
+                  toast.success(j.status === 'paused' ? 'Resumed' : 'Paused')
+                  await refreshJobs()
+                } else {
+                  toast.error(result.message ?? 'Could not change status')
+                }
+              }}
+            >
+              {j.status === 'paused' ? (
+                <>
+                  <Play aria-hidden /> Resume
+                </>
+              ) : (
+                <>
+                  <PauseCircle aria-hidden /> Pause
+                </>
+              )}
+              <span className="text-muted-foreground">{j.name}</span>
+            </CommandItem>
+          ))}
           <CommandItem
             value="new job"
             keywords={['create', 'add']}
@@ -277,7 +275,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
             }}
           >
             <ArrowRight aria-hidden /> Go home
-            <CommandShortcut>{renderKeyCombo('g h').join(' ')}</CommandShortcut>
+            <CommandShortcut>{formatKeyCombo('g h')}</CommandShortcut>
           </CommandItem>
           <CommandItem
             value="go jobs"
@@ -288,7 +286,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
             }}
           >
             <ArrowRight aria-hidden /> Go to Jobs
-            <CommandShortcut>{renderKeyCombo('g j').join(' ')}</CommandShortcut>
+            <CommandShortcut>{formatKeyCombo('g j')}</CommandShortcut>
           </CommandItem>
           <CommandItem
             value="go customers"
@@ -299,7 +297,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
             }}
           >
             <Users aria-hidden /> Go to Customers
-            <CommandShortcut>{renderKeyCombo('g c').join(' ')}</CommandShortcut>
+            <CommandShortcut>{formatKeyCombo('g c')}</CommandShortcut>
           </CommandItem>
           <CommandItem
             value="go runs"
@@ -310,7 +308,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
             }}
           >
             <ArrowRight aria-hidden /> Go to Runs
-            <CommandShortcut>{renderKeyCombo('g r').join(' ')}</CommandShortcut>
+            <CommandShortcut>{formatKeyCombo('g r')}</CommandShortcut>
           </CommandItem>
         </CommandGroup>
 
