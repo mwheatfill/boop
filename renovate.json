@@ -4,8 +4,10 @@
     "config:recommended",
     ":dependencyDashboard",
     ":semanticCommitTypeAll(chore)",
-    ":timezone(America/Phoenix)"
+    ":timezone(America/Phoenix)",
+    "helpers:pinGitHubActionDigests"
   ],
+  "minimumReleaseAge": "14 days",
   "schedule": ["before 6am on monday"],
   "labels": ["dependencies"],
   "lockFileMaintenance": {

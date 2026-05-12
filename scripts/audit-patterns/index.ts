@@ -6,6 +6,7 @@ import { runPreferencesAudit } from './preferences'
 import { runShadcnAudit } from './shadcn'
 import { runTanstackAudit } from './tanstack'
 import type { AuditResult, Finding, Severity } from './types'
+import { runWorkflowsAudit } from './workflows'
 
 const args = new Set(process.argv.slice(2))
 const quiet = args.has('--quiet')
@@ -95,9 +96,14 @@ function renderText(results: AuditResult[], summary: Summary): string {
 }
 
 async function main() {
-  // shadcn is async (network); tanstack + preferences are sync.
+  // shadcn + workflows hit the network; tanstack + preferences are sync.
   // Promise.all with a mixed list resolves the sync values inline.
-  const results = await Promise.all([runShadcnAudit(), runTanstackAudit(), runPreferencesAudit()])
+  const results = await Promise.all([
+    runShadcnAudit(),
+    runTanstackAudit(),
+    runPreferencesAudit(),
+    runWorkflowsAudit(),
+  ])
   const summary = summarize(results)
 
   if (!quiet) console.log(renderText(results, summary))
