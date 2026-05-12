@@ -6,13 +6,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { EntityModal } from '@/components/forms/EntityModal'
 import { PillButton } from '@/components/forms/PillPicker'
+import { SingleSelectPill } from '@/components/forms/SingleSelectPill'
 import { TargetModal } from '@/components/forms/TargetModal'
 import { TemplateEditor } from '@/components/forms/TemplateEditor'
 import { TriggerPicker } from '@/components/forms/TriggerPicker'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { triggerSummary } from '@/lib/jobs/format'
 import { createJobFn, updateJobFn } from '@/lib/jobs/server-fns'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
@@ -77,8 +77,6 @@ export function JobModal({
   const slug = useSlugAutoFill(variant === 'edit')
   const [createAnother, setCreateAnother] = useState(false)
   const [nestedTargetOpen, setNestedTargetOpen] = useState(false)
-  const [customerPickerOpen, setCustomerPickerOpen] = useState(false)
-  const [targetPickerOpen, setTargetPickerOpen] = useState(false)
 
   const form = useForm({
     defaultValues: {
@@ -269,92 +267,48 @@ export function JobModal({
         </form.Field>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Popover open={customerPickerOpen} onOpenChange={setCustomerPickerOpen}>
-            <PopoverTrigger
-              render={
-                <PillButton
-                  label="Customer"
-                  value={selectedCustomer?.name}
-                  state={selectedCustomer ? 'filled' : 'empty'}
-                  required
-                  disabled={variant === 'edit'}
-                />
-              }
-            />
-            <PopoverContent className="w-64 p-1">
-              <ul className="flex max-h-64 flex-col gap-px overflow-y-auto">
-                {customers.map((c) => (
-                  <li key={c.slug}>
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
-                      onClick={() => {
-                        form.setFieldValue('customerSlug', c.slug)
-                        form.setFieldValue('triggerTimezone', c.timezone)
-                        setCustomerPickerOpen(false)
-                      }}
-                    >
-                      <span>{c.name}</span>
-                      <span className="font-mono text-xs text-muted-foreground">{c.slug}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </PopoverContent>
-          </Popover>
+          <SingleSelectPill
+            label="Customer"
+            required
+            disabled={variant === 'edit'}
+            items={customers}
+            selected={selectedCustomer ?? undefined}
+            getKey={(c) => c.slug}
+            getPrimary={(c) => c.name}
+            getSecondary={(c) => c.slug}
+            onSelect={(c) => {
+              form.setFieldValue('customerSlug', c.slug)
+              form.setFieldValue('triggerTimezone', c.timezone)
+            }}
+          />
 
-          <Popover open={targetPickerOpen} onOpenChange={setTargetPickerOpen}>
-            <PopoverTrigger
-              render={
-                <PillButton
-                  label="Target"
-                  value={selectedTarget?.name}
-                  state={selectedTarget ? 'filled' : 'empty'}
-                  required
-                  disabled={!customerSlug}
-                />
-              }
-            />
-            <PopoverContent className="w-72 p-1">
-              {targets.length === 0 ? (
-                <p className="px-2 py-2 text-xs text-muted-foreground">
-                  No Targets yet for this Customer.
-                </p>
-              ) : (
-                <ul className="flex max-h-56 flex-col gap-px overflow-y-auto">
-                  {targets.map((t) => (
-                    <li key={t.slug}>
-                      <button
-                        type="button"
-                        className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
-                        onClick={() => {
-                          form.setFieldValue('targetSlug', t.slug)
-                          setTargetPickerOpen(false)
-                        }}
-                      >
-                        <span>{t.name}</span>
-                        <span className="font-mono text-xs text-muted-foreground">{t.method}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className="mt-1 border-t border-border pt-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    setTargetPickerOpen(false)
-                    setNestedTargetOpen(true)
-                  }}
-                >
-                  <Plus aria-hidden /> New Target
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <SingleSelectPill
+            label="Target"
+            required
+            disabled={!customerSlug}
+            items={targets}
+            selected={selectedTarget}
+            getKey={(t) => t.slug}
+            getPrimary={(t) => t.name}
+            getSecondary={(t) => t.method}
+            onSelect={(t) => form.setFieldValue('targetSlug', t.slug)}
+            emptyMessage="No Targets yet for this Customer."
+            popoverWidthClass="w-72"
+            footer={(close) => (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => {
+                  close()
+                  setNestedTargetOpen(true)
+                }}
+              >
+                <Plus aria-hidden /> New Target
+              </Button>
+            )}
+          />
 
           <PillButton
             label="Trigger"
