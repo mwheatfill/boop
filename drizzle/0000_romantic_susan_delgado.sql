@@ -30,7 +30,7 @@ CREATE TABLE `attempts` (
 	FOREIGN KEY (`run_id`) REFERENCES `runs`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX `attempts_run_idx` ON `attempts` (`run_id`,`attempt_number`);--> statement-breakpoint
+CREATE UNIQUE INDEX `attempts_run_idx` ON `attempts` (`run_id`,`attempt_number`);--> statement-breakpoint
 CREATE TABLE `authoring_sessions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
@@ -114,8 +114,7 @@ CREATE TABLE `runs` (
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	FOREIGN KEY (`job_id`) REFERENCES `jobs`(`id`) ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON UPDATE no action ON DELETE restrict,
-	CONSTRAINT "status_check" CHECK("status" IN ('scheduled', 'running', 'completed', 'canceled'))
+	FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON UPDATE no action ON DELETE restrict
 );
 --> statement-breakpoint
 CREATE INDEX `runs_job_started_idx` ON `runs` (`job_id`,"started_at" desc);--> statement-breakpoint

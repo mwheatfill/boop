@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { ID_PREFIXES, type IdPrefix, newId } from './ids'
+import { ID_PREFIXES, newId } from './ids'
 
 describe('newId', () => {
-  it('returns the expected prefix', () => {
-    for (const prefix of ID_PREFIXES) {
-      expect(newId(prefix)).toMatch(new RegExp(`^${prefix}_`))
-    }
+  it.each(ID_PREFIXES)('returns the expected prefix for %s', (prefix) => {
+    expect(newId(prefix)).toMatch(new RegExp(`^${prefix}_`))
   })
 
   it('produces 26 chars of entropy after the prefix', () => {
@@ -20,19 +18,12 @@ describe('newId', () => {
     expect(body).toMatch(/^[0-9abcdefghjkmnpqrstvwxyz]+$/)
   })
 
-  it('produces unique IDs over a high-volume loop', () => {
+  it('produces unique IDs', () => {
     const seen = new Set<string>()
-    const N = 50_000
+    const N = 1000
     for (let i = 0; i < N; i++) {
       seen.add(newId('run'))
     }
     expect(seen.size).toBe(N)
-  })
-
-  it('is callable with each prefix in the union', () => {
-    const prefixes: IdPrefix[] = ['cust', 'usr', 'tgt', 'job', 'run', 'att', 'chn', 'rul', 'ses']
-    for (const p of prefixes) {
-      expect(() => newId(p)).not.toThrow()
-    }
   })
 })

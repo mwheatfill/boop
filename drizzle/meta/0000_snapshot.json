@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "94a19bc4-7cdc-420a-9833-c79d2096811e",
+  "id": "86a9b9a7-4cb5-4231-a9c3-d9218142b68c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "alert_rules": {
@@ -217,7 +217,7 @@
             "run_id",
             "attempt_number"
           ],
-          "isUnique": false
+          "isUnique": true
         }
       },
       "foreignKeys": {
@@ -862,12 +862,7 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {
-        "status_check": {
-          "name": "status_check",
-          "value": "\"status\" IN ('scheduled', 'running', 'completed', 'canceled')"
-        }
-      }
+      "checkConstraints": {}
     },
     "targets": {
       "name": "targets",

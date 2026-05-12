@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { type AnySQLiteColumn, check, integer } from 'drizzle-orm/sqlite-core'
+import { type AnySQLiteColumn, check, integer, text } from 'drizzle-orm/sqlite-core'
 
 export function timestamps() {
   return {
@@ -10,6 +10,10 @@ export function timestamps() {
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
   }
+}
+
+export function enumColumn<T extends readonly [string, ...string[]]>(name: string, _values: T) {
+  return text(name).$type<T[number]>()
 }
 
 export function lifecycleCheck<T extends readonly string[]>(column: AnySQLiteColumn, values: T) {

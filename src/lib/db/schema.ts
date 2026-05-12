@@ -1,10 +1,9 @@
 import { sql } from 'drizzle-orm'
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
-import { lifecycleCheck, timestamps } from './columns'
+import { enumColumn, lifecycleCheck, timestamps } from './columns'
 
-const CUSTOMER_STATUSES = ['active', 'archived'] as const
+const LIFECYCLE_STATUSES = ['active', 'archived'] as const
 const USER_ROLES = ['admin', 'operator'] as const
-const TARGET_STATUSES = ['active', 'archived'] as const
 const TARGET_REACHABILITIES = ['public', 'tunnel'] as const
 const TARGET_AUTH_KINDS = ['none', 'bearer', 'basic', 'header'] as const
 const JOB_STATUSES = ['active', 'paused', 'archived'] as const
@@ -13,9 +12,7 @@ const RUN_STATUSES = ['scheduled', 'running', 'completed', 'canceled'] as const
 const RUN_OUTCOMES = ['success', 'failure', 'timeout'] as const
 const FAILURE_KINDS = ['timeout', 'network', 'http_4xx', 'http_5xx', 'non_2xx_other'] as const
 const CHANNEL_KINDS = ['teams', 'pagerduty', 'autotask', 'email', 'webhook'] as const
-const CHANNEL_STATUSES = ['active', 'archived'] as const
 const ALERT_RULE_KINDS = ['first_failure', 'consecutive_failures', 'recovery', 'slow_run'] as const
-const ALERT_RULE_STATUSES = ['active', 'archived'] as const
 const AUTHORING_SESSION_STATES = ['draft', 'confirmed', 'abandoned'] as const
 
 export const customers = sqliteTable(
@@ -26,13 +23,13 @@ export const customers = sqliteTable(
     slug: text('slug').notNull(),
     timezone: text('timezone').notNull(),
     autotaskCompanyId: text('autotask_company_id'),
-    status: text('status').$type<(typeof CUSTOMER_STATUSES)[number]>().notNull().default('active'),
+    status: enumColumn('status', LIFECYCLE_STATUSES).notNull().default('active'),
     ...timestamps(),
   },
   (table) => [
     uniqueIndex('customers_slug_idx').on(table.slug),
     index('customers_status_idx').on(table.status),
-    lifecycleCheck(table.status, CUSTOMER_STATUSES),
+    lifecycleCheck(table.status, LIFECYCLE_STATUSES),
   ],
 )
 
@@ -43,7 +40,7 @@ export const users = sqliteTable(
     email: text('email').notNull(),
     name: text('name'),
     image: text('image'),
-    role: text('role').$type<(typeof USER_ROLES)[number]>().notNull().default('operator'),
+    role: enumColumn('role', USER_ROLES).notNull().default('operator'),
     ...timestamps(),
   },
   (table) => [
@@ -62,21 +59,15 @@ export const targets = sqliteTable(
     name: text('name').notNull(),
     url: text('url').notNull(),
     method: text('method').notNull(),
-    authKind: text('auth_kind')
-      .$type<(typeof TARGET_AUTH_KINDS)[number]>()
-      .notNull()
-      .default('none'),
+    authKind: enumColumn('auth_kind', TARGET_AUTH_KINDS).notNull().default('none'),
     authConfig: text('auth_config'),
-    reachability: text('reachability')
-      .$type<(typeof TARGET_REACHABILITIES)[number]>()
-      .notNull()
-      .default('public'),
-    status: text('status').$type<(typeof TARGET_STATUSES)[number]>().notNull().default('active'),
+    reachability: enumColumn('reachability', TARGET_REACHABILITIES).notNull().default('public'),
+    status: enumColumn('status', LIFECYCLE_STATUSES).notNull().default('active'),
     ...timestamps(),
   },
   (table) => [
     index('targets_customer_status_idx').on(table.customerId, table.status),
-    lifecycleCheck(table.status, TARGET_STATUSES),
+    lifecycleCheck(table.status, LIFECYCLE_STATUSES),
     lifecycleCheck(table.reachability, TARGET_REACHABILITIES),
     lifecycleCheck(table.authKind, TARGET_AUTH_KINDS),
   ],
@@ -94,7 +85,7 @@ export const jobs = sqliteTable(
       .references(() => targets.id, { onDelete: 'restrict' }),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
-    triggerKind: text('trigger_kind').$type<(typeof TRIGGER_KINDS)[number]>().notNull(),
+    triggerKind: enumColumn('trigger_kind', TRIGGER_KINDS).notNull(),
     cronExpression: text('cron_expression'),
     intervalSeconds: integer('interval_seconds'),
     triggerTimezone: text('trigger_timezone'),
@@ -103,7 +94,7 @@ export const jobs = sqliteTable(
     lastFireAt: integer('last_fire_at', { mode: 'timestamp_ms' }),
     nextFireAt: integer('next_fire_at', { mode: 'timestamp_ms' }),
     fireInProgress: integer('fire_in_progress', { mode: 'boolean' }).notNull().default(false),
-    status: text('status').$type<(typeof JOB_STATUSES)[number]>().notNull().default('active'),
+    status: enumColumn('status', JOB_STATUSES).notNull().default('active'),
     ...timestamps(),
   },
   (table) => [
@@ -115,6 +106,9 @@ export const jobs = sqliteTable(
   ],
 )
 
+// runs and attempts are high-volume; status/outcome/failure_kind are
+// enforced at the Zod boundary, not via CHECK, so adding an enum value
+// later does not trigger a SQLite table rebuild.
 export const runs = sqliteTable(
   'runs',
   {
@@ -128,15 +122,14 @@ export const runs = sqliteTable(
     scheduledAt: integer('scheduled_at', { mode: 'timestamp_ms' }).notNull(),
     startedAt: integer('started_at', { mode: 'timestamp_ms' }),
     completedAt: integer('completed_at', { mode: 'timestamp_ms' }),
-    status: text('status').$type<(typeof RUN_STATUSES)[number]>().notNull().default('scheduled'),
-    outcome: text('outcome').$type<(typeof RUN_OUTCOMES)[number]>(),
+    status: enumColumn('status', RUN_STATUSES).notNull().default('scheduled'),
+    outcome: enumColumn('outcome', RUN_OUTCOMES),
     skippedReason: text('skipped_reason'),
     ...timestamps(),
   },
   (table) => [
     index('runs_job_started_idx').on(table.jobId, sql`${table.startedAt} desc`),
     index('runs_customer_started_idx').on(table.customerId, sql`${table.startedAt} desc`),
-    lifecycleCheck(table.status, RUN_STATUSES),
   ],
 )
 
@@ -151,11 +144,11 @@ export const attempts = sqliteTable(
     startedAt: integer('started_at', { mode: 'timestamp_ms' }).notNull(),
     completedAt: integer('completed_at', { mode: 'timestamp_ms' }),
     httpStatus: integer('http_status'),
-    failureKind: text('failure_kind').$type<(typeof FAILURE_KINDS)[number]>(),
+    failureKind: enumColumn('failure_kind', FAILURE_KINDS),
     responseBodyR2Key: text('response_body_r2_key'),
     ...timestamps(),
   },
-  (table) => [index('attempts_run_idx').on(table.runId, table.attemptNumber)],
+  (table) => [uniqueIndex('attempts_run_idx').on(table.runId, table.attemptNumber)],
 )
 
 export const channels = sqliteTable(
@@ -165,15 +158,15 @@ export const channels = sqliteTable(
     customerId: text('customer_id')
       .notNull()
       .references(() => customers.id, { onDelete: 'cascade' }),
-    kind: text('kind').$type<(typeof CHANNEL_KINDS)[number]>().notNull(),
+    kind: enumColumn('kind', CHANNEL_KINDS).notNull(),
     name: text('name').notNull(),
     config: text('config').notNull().default('{}'),
-    status: text('status').$type<(typeof CHANNEL_STATUSES)[number]>().notNull().default('active'),
+    status: enumColumn('status', LIFECYCLE_STATUSES).notNull().default('active'),
     ...timestamps(),
   },
   (table) => [
     index('channels_customer_status_idx').on(table.customerId, table.status),
-    lifecycleCheck(table.status, CHANNEL_STATUSES),
+    lifecycleCheck(table.status, LIFECYCLE_STATUSES),
     lifecycleCheck(table.kind, CHANNEL_KINDS),
   ],
 )
@@ -186,19 +179,16 @@ export const alertRules = sqliteTable(
       .notNull()
       .references(() => customers.id, { onDelete: 'cascade' }),
     jobId: text('job_id').references(() => jobs.id, { onDelete: 'cascade' }),
-    kind: text('kind').$type<(typeof ALERT_RULE_KINDS)[number]>().notNull(),
+    kind: enumColumn('kind', ALERT_RULE_KINDS).notNull(),
     config: text('config').notNull().default('{}'),
     channelIds: text('channel_ids').notNull().default('[]'),
-    status: text('status')
-      .$type<(typeof ALERT_RULE_STATUSES)[number]>()
-      .notNull()
-      .default('active'),
+    status: enumColumn('status', LIFECYCLE_STATUSES).notNull().default('active'),
     ...timestamps(),
   },
   (table) => [
     index('alert_rules_customer_status_idx').on(table.customerId, table.status),
     index('alert_rules_job_idx').on(table.jobId),
-    lifecycleCheck(table.status, ALERT_RULE_STATUSES),
+    lifecycleCheck(table.status, LIFECYCLE_STATUSES),
     lifecycleCheck(table.kind, ALERT_RULE_KINDS),
   ],
 )
@@ -214,10 +204,7 @@ export const authoringSessions = sqliteTable(
       onDelete: 'set null',
     }),
     messages: text('messages').notNull().default('[]'),
-    state: text('state')
-      .$type<(typeof AUTHORING_SESSION_STATES)[number]>()
-      .notNull()
-      .default('draft'),
+    state: enumColumn('state', AUTHORING_SESSION_STATES).notNull().default('draft'),
     ...timestamps(),
   },
   (table) => [
