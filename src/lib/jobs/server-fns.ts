@@ -16,7 +16,7 @@ import {
   runJobNow,
   updateJob,
 } from './commands'
-import { getJobDetail, listAllJobs, listJobsForCustomer, listRecentRunsForJob } from './queries'
+import { getJobDetail, listAllJobs, listJobsForCustomer } from './queries'
 
 function makeDeps(): JobsDeps {
   return {
@@ -62,24 +62,6 @@ export const getJobFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .inputValidator((data) => jobSlugPair.parse(data))
   .handler(async ({ data }) => getJobDetail(createDb(env.DB), data.customerSlug, data.jobSlug))
-
-export const listRecentRunsForJobFn = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware])
-  .inputValidator((data: { jobId: string; limit?: number; offset?: number }) =>
-    z
-      .object({
-        jobId: z.string().min(1),
-        limit: z.int().min(1).max(100).optional(),
-        offset: z.int().min(0).optional(),
-      })
-      .parse(data),
-  )
-  .handler(async ({ data }) =>
-    listRecentRunsForJob(createDb(env.DB), data.jobId, {
-      ...(data.limit !== undefined ? { limit: data.limit } : {}),
-      ...(data.offset !== undefined ? { offset: data.offset } : {}),
-    }),
-  )
 
 export const createJobFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])

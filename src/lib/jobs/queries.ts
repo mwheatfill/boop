@@ -3,13 +3,7 @@ import type { Database } from '@/lib/db/client'
 import { attempts, customers, jobs, runs, targets } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
 import type { Job, JobSummary, TriggerKind } from '@/shared/schemas/job'
-import type {
-  AttemptSummary,
-  FAILURE_KINDS,
-  RUN_OUTCOMES,
-  RUN_STATUSES,
-  Run,
-} from '@/shared/schemas/run'
+import type { AttemptSummary, FAILURE_KINDS } from '@/shared/schemas/run'
 
 interface ListFilters {
   customerId?: string
@@ -143,35 +137,6 @@ export async function getJobDetail(
   const row = joined[0]
   if (!row) throw new NotFoundError('Job', `${customerSlug}/${jobSlug}`)
   return toJob(row)
-}
-
-export async function listRecentRunsForJob(
-  db: Database,
-  jobId: string,
-  { limit = 25, offset = 0 }: { limit?: number; offset?: number } = {},
-): Promise<Run[]> {
-  const rows = await db
-    .select()
-    .from(runs)
-    .where(eq(runs.jobId, jobId))
-    .orderBy(desc(runs.startedAt))
-    .limit(limit)
-    .offset(offset)
-  return rows.map(
-    (r): Run => ({
-      id: r.id,
-      jobId: r.jobId,
-      customerId: r.customerId,
-      scheduledAt: r.scheduledAt.toISOString(),
-      startedAt: r.startedAt?.toISOString() ?? null,
-      completedAt: r.completedAt?.toISOString() ?? null,
-      status: r.status as (typeof RUN_STATUSES)[number],
-      outcome: (r.outcome as (typeof RUN_OUTCOMES)[number]) ?? null,
-      skippedReason: r.skippedReason,
-      createdAt: r.createdAt.toISOString(),
-      updatedAt: r.updatedAt.toISOString(),
-    }),
-  )
 }
 
 export async function listAttemptsForRun(db: Database, runId: string): Promise<AttemptSummary[]> {

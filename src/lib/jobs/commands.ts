@@ -226,6 +226,10 @@ export async function runJobNow(
       status: [`Job is ${job.status}; Run now is only available for active Jobs`],
     })
   }
-  await deps.dispatchQueue.send({ jobId: job.id, scheduledAt: deps.now?.() ?? new Date() })
+  await deps.dispatchQueue.send({
+    jobId: job.id,
+    scheduledAt: deps.now?.() ?? new Date(),
+    triggerSource: 'manual',
+  })
   return job
 }

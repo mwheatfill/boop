@@ -37,7 +37,7 @@ export class JobAlarm extends DurableObject<Cloudflare.Env> {
     return {
       storage: this.ctx.storage,
       readJob: (jobId) => readJobLite(db, jobId),
-      runDispatch: (jobId, scheduledAt) => dispatchRun(this.env, jobId, scheduledAt),
+      runDispatch: (jobId, scheduledAt) => dispatchRun(this.env, jobId, scheduledAt, 'interval'),
     }
   }
 }

@@ -1,41 +1,46 @@
 import { infiniteQueryOptions, useInfiniteQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { listRecentRunsForJobFn } from '@/lib/jobs/server-fns'
-import type { Run } from '@/shared/schemas/run'
+import { listRunsForJobFn } from '@/lib/runs/server-fns'
+import type { RunsListResponse } from '@/shared/schemas/run'
 
 const PAGE_SIZE = 25
 
-const recentRunsOptions = (jobId: string) =>
+const recentRunsOptions = (jobId: string, customerSlug: string, jobSlug: string) =>
   infiniteQueryOptions({
     queryKey: ['jobs', jobId, 'runs'],
     queryFn: ({ pageParam }) =>
-      listRecentRunsForJobFn({ data: { jobId, limit: PAGE_SIZE, offset: pageParam } }),
-    initialPageParam: 0,
-    getNextPageParam: (lastPage: Run[], _all, lastPageParam) =>
-      lastPage.length === PAGE_SIZE ? lastPageParam + PAGE_SIZE : undefined,
+      listRunsForJobFn({
+        data: {
+          jobId,
+          limit: PAGE_SIZE,
+          ...(pageParam ? { cursor: pageParam } : {}),
+        },
+      }),
+    initialPageParam: '' as string,
+    getNextPageParam: (lastPage: RunsListResponse) => lastPage.nextCursor ?? undefined,
     refetchInterval: (query) => {
-      const runs = query.state.data?.pages.flat()
-      if (!runs) return false
-      return runs.some((r) => r.status === 'running') ? 5_000 : false
+      const rows = query.state.data?.pages.flatMap((p) => p.rows)
+      if (!rows) return false
+      return rows.some((r) => r.status === 'running') ? 5_000 : false
     },
+    meta: { customerSlug, jobSlug },
   })
 
 interface RecentRunsPanelProps {
   jobId: string
+  customerSlug: string
+  jobSlug: string
 }
 
 const outcomeVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   success: 'default',
   failure: 'destructive',
   timeout: 'destructive',
-}
-
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  scheduled: 'secondary',
+  skipped: 'secondary',
   running: 'default',
-  completed: 'outline',
-  canceled: 'secondary',
+  scheduled: 'outline',
 }
 
 function relativeTime(iso: string | null): string {
@@ -50,16 +55,16 @@ function relativeTime(iso: string | null): string {
   return `${days}d ago`
 }
 
-export function RecentRunsPanel({ jobId }: RecentRunsPanelProps) {
+export function RecentRunsPanel({ jobId, customerSlug, jobSlug }: RecentRunsPanelProps) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery(
-    recentRunsOptions(jobId),
+    recentRunsOptions(jobId, customerSlug, jobSlug),
   )
 
   if (!data) return null
 
-  const runs = data.pages.flat()
+  const rows = data.pages.flatMap((p) => p.rows)
 
-  if (runs.length === 0) {
+  if (rows.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
         No Runs yet. Click <span className="font-medium">Run now</span> to produce one.
@@ -70,21 +75,21 @@ export function RecentRunsPanel({ jobId }: RecentRunsPanelProps) {
   return (
     <div className="flex flex-col gap-3">
       <ul className="flex flex-col gap-2">
-        {runs.map((run: Run) => (
+        {rows.map((row) => (
           <li
-            key={run.id}
+            key={row.id}
             className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm"
           >
-            <div className="flex items-center gap-2">
-              <Badge variant={statusVariant[run.status]}>{run.status}</Badge>
-              {run.outcome ? (
-                <Badge variant={outcomeVariant[run.outcome]}>{run.outcome}</Badge>
-              ) : null}
-              <span className="text-muted-foreground">
-                {relativeTime(run.startedAt ?? run.scheduledAt)}
-              </span>
-            </div>
-            <code className="font-mono text-xs text-muted-foreground">{run.id}</code>
+            <Link
+              to="/customers/$customerSlug/jobs/$jobSlug/runs/$runId"
+              params={{ customerSlug, jobSlug, runId: row.id }}
+              className="flex flex-1 items-center gap-2 hover:underline"
+            >
+              <Badge variant={outcomeVariant[row.displayOutcome]}>{row.displayOutcome}</Badge>
+              <span className="text-muted-foreground">{relativeTime(row.startedAt)}</span>
+              <span className="text-xs text-muted-foreground">· {row.triggerSource}</span>
+            </Link>
+            <code className="font-mono text-xs text-muted-foreground">{row.id}</code>
           </li>
         ))}
       </ul>
