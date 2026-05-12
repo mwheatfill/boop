@@ -12,8 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import type { FieldErrors } from '@/lib/errors'
-import type { MutationResult } from '@/lib/mutation-result'
+import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
 import type { Target, TargetCreateInput, TargetUpdateInput } from '@/shared/schemas/target'
 import { TARGET_AUTH_KINDS, TARGET_METHODS, TARGET_REACHABILITIES } from '@/shared/schemas/target'
@@ -32,15 +31,6 @@ interface TargetFormProps {
   submitLabel: string
   mutate: (value: TargetCreateInput | TargetUpdateInput) => Promise<MutationResult<Target>>
   onSuccess: (data: Target) => Promise<void> | void
-}
-
-function fieldErrorsToTanstack(fieldErrors: FieldErrors | undefined): Record<string, string> {
-  if (!fieldErrors) return {}
-  const out: Record<string, string> = {}
-  for (const [key, msgs] of Object.entries(fieldErrors)) {
-    if (msgs[0]) out[key] = msgs[0]
-  }
-  return out
 }
 
 export function TargetForm({

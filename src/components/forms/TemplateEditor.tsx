@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { previewBody, previewHeaders, syntheticRenderContext } from '@/lib/dispatch/render-preview'
@@ -28,31 +28,29 @@ export function TemplateEditor({
   helpText,
   rows = 6,
 }: TemplateEditorProps) {
-  const [previewState, setPreviewState] = useState<{
-    rendered: string
-    error?: string
-  }>({ rendered: '' })
+  const context = useMemo(
+    () => syntheticRenderContext({ customerName, customerTimezone }),
+    [customerName, customerTimezone],
+  )
+  const [rendered, setRendered] = useState('')
+  const [error, setError] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     let canceled = false
     const timer = setTimeout(async () => {
-      const context = syntheticRenderContext({ customerName, customerTimezone })
       const result =
         variant === 'headers'
           ? await previewHeaders(value, context)
           : await previewBody(value, context)
-      if (!canceled) {
-        setPreviewState({
-          rendered: result.rendered,
-          ...(result.error ? { error: result.error } : {}),
-        })
-      }
+      if (canceled) return
+      setRendered(result.rendered)
+      setError(result.error)
     }, DEBOUNCE_MS)
     return () => {
       canceled = true
       clearTimeout(timer)
     }
-  }, [value, variant, customerName, customerTimezone])
+  }, [value, variant, context])
 
   return (
     <div className="flex flex-col gap-2">
@@ -72,11 +70,11 @@ export function TemplateEditor({
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Preview
           </p>
-          {previewState.error ? (
-            <p className="text-xs text-destructive">{previewState.error}</p>
+          {error ? (
+            <p className="text-xs text-destructive">{error}</p>
           ) : (
             <pre className="whitespace-pre-wrap break-words font-mono text-xs text-foreground">
-              {previewState.rendered || <span className="text-muted-foreground">(empty)</span>}
+              {rendered || <span className="text-muted-foreground">(empty)</span>}
             </pre>
           )}
         </div>

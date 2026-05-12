@@ -13,3 +13,14 @@ export function asMutationFailure(err: unknown): MutationResult<never> | null {
   }
   return null
 }
+
+export function fieldErrorsToTanstack(
+  fieldErrors: FieldErrors | undefined,
+): Record<string, string> {
+  if (!fieldErrors) return {}
+  const out: Record<string, string> = {}
+  for (const [key, msgs] of Object.entries(fieldErrors)) {
+    if (msgs[0]) out[key] = msgs[0]
+  }
+  return out
+}

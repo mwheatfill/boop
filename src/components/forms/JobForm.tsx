@@ -15,8 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { FieldErrors } from '@/lib/errors'
-import type { MutationResult } from '@/lib/mutation-result'
+import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
 import type { Job, JobCreateInput, JobUpdateInput, TriggerKind } from '@/shared/schemas/job'
 import type { Target } from '@/shared/schemas/target'
@@ -49,15 +48,6 @@ interface JobFormProps {
   customerTimezone: string
   mutate: (value: JobCreateInput | JobUpdateInput) => Promise<MutationResult<Job>>
   onSuccess: (data: Job) => Promise<void> | void
-}
-
-function fieldErrorsToTanstack(fieldErrors: FieldErrors | undefined): Record<string, string> {
-  if (!fieldErrors) return {}
-  const out: Record<string, string> = {}
-  for (const [key, msgs] of Object.entries(fieldErrors)) {
-    if (msgs[0]) out[key] = msgs[0]
-  }
-  return out
 }
 
 function payloadFor(

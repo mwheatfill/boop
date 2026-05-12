@@ -4,8 +4,7 @@ import { SlugField } from '@/components/SlugField'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import type { FieldErrors } from '@/lib/errors'
-import type { MutationResult } from '@/lib/mutation-result'
+import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
 import type { Customer, CustomerCreateInput, CustomerUpdateInput } from '@/shared/schemas/customer'
 
@@ -22,15 +21,6 @@ interface CustomerFormProps {
     value: CustomerCreateInput | (CustomerUpdateInput & { slug: string }),
   ) => Promise<MutationResult<Customer>>
   onSuccess: (data: Customer) => Promise<void> | void
-}
-
-function fieldErrorsToTanstack(fieldErrors: FieldErrors | undefined): Record<string, string> {
-  if (!fieldErrors) return {}
-  const out: Record<string, string> = {}
-  for (const [key, msgs] of Object.entries(fieldErrors)) {
-    if (msgs[0]) out[key] = msgs[0]
-  }
-  return out
 }
 
 export function CustomerForm({

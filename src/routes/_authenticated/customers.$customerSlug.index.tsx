@@ -62,10 +62,12 @@ function jobsColumns(customerSlug: string): ColumnDef<JobSummary>[] {
         row.original.nextFireAt ? new Date(row.original.nextFireAt).toLocaleString() : '—',
     },
     {
-      accessorKey: 'lastFireAt',
+      accessorKey: 'lastRunStartedAt',
       header: 'Last run',
       cell: ({ row }) =>
-        row.original.lastFireAt ? new Date(row.original.lastFireAt).toLocaleString() : '—',
+        row.original.lastRunStartedAt
+          ? new Date(row.original.lastRunStartedAt).toLocaleString()
+          : '—',
     },
     {
       accessorKey: 'status',

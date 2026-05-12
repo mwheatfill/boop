@@ -49,6 +49,13 @@ function JobDetailPage() {
     await queryClient.invalidateQueries({ queryKey: ['jobs'] })
   }
 
+  const simpleAction = (fn: typeof pauseJobFn, message: string) => async () => {
+    setArchiveBlock(null)
+    await fn({ data: { customerSlug, jobSlug } })
+    await refresh()
+    toast.success(message)
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-3">
@@ -96,17 +103,10 @@ function JobDetailPage() {
             </Button>
             <JobActionsMenu
               status={job.status}
-              onPause={async () => {
-                await pauseJobFn({ data: { customerSlug, jobSlug } })
-                await refresh()
-                toast.success('Paused')
-              }}
-              onResume={async () => {
-                await resumeJobFn({ data: { customerSlug, jobSlug } })
-                await refresh()
-                toast.success('Resumed')
-              }}
+              onPause={simpleAction(pauseJobFn, 'Paused')}
+              onResume={simpleAction(resumeJobFn, 'Resumed')}
               onArchive={async () => {
+                setArchiveBlock(null)
                 const result = await archiveJobFn({ data: { customerSlug, jobSlug } })
                 if (!result.ok) {
                   setArchiveBlock(result.message ?? 'Archive blocked.')
@@ -119,11 +119,7 @@ function JobDetailPage() {
                   params: { customerSlug },
                 })
               }}
-              onRestore={async () => {
-                await restoreJobFn({ data: { customerSlug, jobSlug } })
-                await refresh()
-                toast.success('Restored')
-              }}
+              onRestore={simpleAction(restoreJobFn, 'Restored')}
             />
           </div>
         </div>
