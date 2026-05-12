@@ -65,6 +65,20 @@ ADRs in `docs/adr/`. Read the ADR before contemplating an override; deviations r
 - Discoverability surface in template ([ADR-012](docs/adr/012-discoverability-in-template.md))
 - Forms + validation (TanStack Form, React 19 actions, Zod) ([ADR-013](docs/adr/013-forms-and-validation.md))
 
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on [`mwheatfill/boop`](https://github.com/mwheatfill/boop) via the `gh` CLI. See [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
+
+### Triage labels
+
+Canonical roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) map 1:1 to GitHub labels. See [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md).
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` and one `docs/adr/` at the repo root. See [`docs/agents/domain.md`](docs/agents/domain.md).
+
 ## Things to avoid
 
 - **Don't add dependencies without proposing.** The harness denies `pnpm add` by default and prompts the user. Propose `<package>@<version>`, why, alternatives considered, maintenance signal.
