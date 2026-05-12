@@ -15,6 +15,9 @@
     "PUBLIC_APP_NAME": "boop-dev",
     "PUBLIC_ENV": "dev"
   },
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -29,12 +32,32 @@
       "bucket_name": "boop-bodies-dev"
     }
   ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "DISPATCH_QUEUE",
+        "queue": "boop-dispatch-dev"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "boop-dispatch-dev",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "boop-dispatch-dlq-dev"
+      }
+    ]
+  },
   "env": {
     "production": {
       "name": "boop-prod",
       "vars": {
         "PUBLIC_APP_NAME": "boop-prod",
         "PUBLIC_ENV": "production"
+      },
+      "triggers": {
+        "crons": ["* * * * *"]
       },
       "d1_databases": [
         {
@@ -49,7 +72,24 @@
           "binding": "BODIES",
           "bucket_name": "boop-bodies-prod"
         }
-      ]
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "DISPATCH_QUEUE",
+            "queue": "boop-dispatch-prod"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "boop-dispatch-prod",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+            "dead_letter_queue": "boop-dispatch-dlq-prod"
+          }
+        ]
+      }
     }
   }
 }
