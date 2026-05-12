@@ -72,14 +72,8 @@ function HomePage() {
 
       <section className="grid gap-3 sm:grid-cols-2">
         {docLinks.map((link) => (
-          <a
-            key={link.href}
-            href={link.href}
-            target="_blank"
-            rel="noreferrer"
-            className="block transition-colors hover:bg-muted"
-          >
-            <Card className="h-full">
+          <a key={link.href} href={link.href} target="_blank" rel="noreferrer" className="block">
+            <Card className="h-full transition-colors hover:bg-muted">
               <CardHeader>
                 <CardTitle className="text-sm">{link.title}</CardTitle>
                 <CardDescription>{link.description}</CardDescription>
