@@ -66,6 +66,7 @@ ADRs in `docs/adr/`. Read the ADR before contemplating an override; deviations r
 - Forms + validation (TanStack Form, React 19 actions, Zod) ([ADR-013](docs/adr/013-forms-and-validation.md))
 - Cron parser, date/time approach, timezone on the data model ([ADR-017](docs/adr/017-cron-and-time.md))
 - Current-by-default for third-party version pins ([ADR-020](docs/adr/020-current-by-default-third-party-pins.md))
+- Brand color palette (warm orange primary, warm-leaning neutrals, gold-shifted warning) ([ADR-021](docs/adr/021-brand-color-palette.md))
 
 ## Agent skills
 

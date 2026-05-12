@@ -1,6 +1,12 @@
 # Design direction
 
-The brief for the future design-language session. Not an ADR (no decision yet), not domain language (so not in `CONTEXT.md`), not an agent operating instruction (so not in `AGENTS.md`). A standing reference that the next session can pick up from.
+The brief for the design-language session. Not an ADR for the principle itself (which is directional, not decisional), not domain language (so not in `CONTEXT.md`), not an agent operating instruction (so not in `AGENTS.md`). A standing reference that each session picks up from.
+
+The session has started. The principle frames the aesthetic; the queued surfaces define the remaining scope; the "Landed" section is the audit trail for what's been settled.
+
+## Landed
+
+- **Brand color palette.** Warm orange primary (`#E27528` family), warm-leaning neutrals (sub-perceptual chroma), gold-shifted warning that dodges the primary-orange hue collision, four semantic states (`success` / `warning` / `info` / `destructive`). See [ADR-021](adr/021-brand-color-palette.md).
 
 ## Principle
 

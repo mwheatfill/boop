@@ -31,6 +31,7 @@ Ordered foundation → data → auth → AI → product surface → meta.
 | [018](018-navigation-ia.md) | Proposed | Navigation IA (Customer-nested URLs, Jobs-first navigation surfaces) |
 | [019](019-soft-delete-policy.md) | Proposed | Soft-delete policy (archive blocks on active dependents) |
 | [020](020-current-by-default-third-party-pins.md) | Proposed | Current-by-default for third-party version pins (Renovate + audit + agent-side rule) |
+| [021](021-brand-color-palette.md) | Proposed | Brand color palette (warm orange primary, warm-leaning neutrals, gold-shifted warning) |
 
 ## How to add an ADR
 
