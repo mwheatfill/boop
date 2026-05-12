@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { buildAlertContext, buildSyntheticTestContext } from '@/lib/alert-context/build'
 import { adapterFor } from '@/lib/channel-adapters/registry'
 import type { AdapterResult } from '@/lib/channel-adapters/types'
-import { rowToChannel } from '@/lib/channels/row-mapper'
+import { findChannelById } from '@/lib/channels/queries'
 import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
 import { alertRules, attempts, channels, customers, jobs, runs, targets } from '@/lib/db/schema'
@@ -13,11 +13,6 @@ const RETRY_BASE_SECONDS = 60
 
 function retryDelaySeconds(attempts: number): number {
   return 2 ** Math.min(attempts, 6) * RETRY_BASE_SECONDS
-}
-
-async function loadChannel(db: Database, channelId: string) {
-  const row = (await db.select().from(channels).where(eq(channels.id, channelId)).limit(1))[0]
-  return row ? rowToChannel(row) : null
 }
 
 async function loadCustomer(db: Database, customerId: string) {
@@ -101,7 +96,7 @@ async function processTestMessage(
   { db, appOrigin }: ConsumerDeps,
   message: Message<AlertQueueMessage>,
 ): Promise<void> {
-  const channel = await loadChannel(db, message.body.channelId)
+  const channel = await findChannelById(db, message.body.channelId)
   if (!channel) {
     logError('alert.failed', new Error('channel_missing'), {
       channelId: message.body.channelId,
@@ -135,7 +130,7 @@ async function processRealMessage(
   { db, appOrigin }: ConsumerDeps,
   message: Message<AlertQueueMessage>,
 ): Promise<void> {
-  const channel = await loadChannel(db, message.body.channelId)
+  const channel = await findChannelById(db, message.body.channelId)
   const bundle = await loadRunBundle(db, message.body.runId)
   const fields = {
     runId: message.body.runId,
