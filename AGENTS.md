@@ -65,6 +65,7 @@ ADRs in `docs/adr/`. Read the ADR before contemplating an override; deviations r
 - Discoverability surface in template ([ADR-012](docs/adr/012-discoverability-in-template.md))
 - Forms + validation (TanStack Form, React 19 actions, Zod) ([ADR-013](docs/adr/013-forms-and-validation.md))
 - Cron parser, date/time approach, timezone on the data model ([ADR-017](docs/adr/017-cron-and-time.md))
+- Current-by-default for third-party version pins ([ADR-020](docs/adr/020-current-by-default-third-party-pins.md))
 
 ## Agent skills
 
@@ -83,6 +84,7 @@ Single-context: one `CONTEXT.md` and one `docs/adr/` at the repo root. See [`doc
 ## Things to avoid
 
 - **Don't add dependencies casually.** Propose `<package>@<version>`, why, alternatives considered, maintenance signal in the PR description or commit body. The harness allows `pnpm add`; the protection is the `pnpm-lock.yaml` diff in PR review.
+- **Don't pin stale majors of third-party versions.** GitHub Actions, npm deps, wrangler/cloudflare action pins, MCP server pins, shadcn registry style. Resolve current latest before pinning: `gh api repos/<owner>/<repo>/releases/latest` for Actions, the package registry for npm, the vendor's release feed otherwise. Renovate keeps in-repo pins fresh once installed; `pnpm audit:patterns` catches drift in CI. See ADR-020.
 - **Don't write code that the OpenAPI contract doesn't describe.** Server functions take Zod-validated inputs that flow into `public/openapi.json`. The CI guard (`pnpm openapi:check`) blocks deploys on drift.
 - **Don't bypass the auth abstraction.** All identity reads go through `getCurrentUser(request)`. Don't import an auth library directly from route guards or server functions.
 - **Don't import from `radix-ui` or `@radix-ui/*`.** UI uses Base UI (`@base-ui/react`, style `base-vega`). For composition, use Base UI's `render` prop: `<Button render={<Link to="/x" />}>Label</Button>`. The audit (`pnpm audit:patterns`) blocks Radix imports.

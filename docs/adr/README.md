@@ -30,6 +30,7 @@ Ordered foundation → data → auth → AI → product surface → meta.
 | [017](017-cron-and-time.md) | Proposed | Cron parser (`croner`), date/time approach (native `Intl.*`), timezone on the data model |
 | [018](018-navigation-ia.md) | Proposed | Navigation IA (Customer-nested URLs, Jobs-first navigation surfaces) |
 | [019](019-soft-delete-policy.md) | Proposed | Soft-delete policy (archive blocks on active dependents) |
+| [020](020-current-by-default-third-party-pins.md) | Proposed | Current-by-default for third-party version pins (Renovate + audit + agent-side rule) |
 
 ## How to add an ADR
 
