@@ -25,11 +25,13 @@ export const customers = sqliteTable(
     timezone: text('timezone').notNull(),
     autotaskCompanyId: text('autotask_company_id'),
     status: enumColumn('status', LIFECYCLE_STATUSES).notNull().default('active'),
+    seedTag: text('seed_tag'),
     ...timestamps(),
   },
   (table) => [
     uniqueIndex('customers_slug_idx').on(table.slug),
     index('customers_status_idx').on(table.status),
+    index('customers_seed_tag_idx').on(table.seedTag).where(sql`${table.seedTag} IS NOT NULL`),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
   ],
 )
@@ -42,10 +44,12 @@ export const users = sqliteTable(
     name: text('name'),
     image: text('image'),
     role: enumColumn('role', USER_ROLES).notNull().default('operator'),
+    seedTag: text('seed_tag'),
     ...timestamps(),
   },
   (table) => [
     uniqueIndex('users_email_idx').on(table.email),
+    index('users_seed_tag_idx').on(table.seedTag).where(sql`${table.seedTag} IS NOT NULL`),
     lifecycleCheck(table.role, USER_ROLES),
   ],
 )

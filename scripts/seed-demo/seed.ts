@@ -1,0 +1,300 @@
+import { sql } from 'drizzle-orm'
+import type { SQLiteTable } from 'drizzle-orm/sqlite-core'
+import { getTableColumns } from 'drizzle-orm/utils'
+import type { Database } from '@/lib/db/client'
+import {
+  alertRules,
+  attempts,
+  channels,
+  customers,
+  jobs,
+  runs,
+  targets,
+  users,
+} from '@/lib/db/schema'
+import { alertRuleRow, DEMO_ALERT_RULES } from './alert-rules'
+import { channelRow, DEMO_CHANNELS } from './channels'
+import { customerRow, DEMO_CUSTOMERS } from './customers'
+import { DEMO_JOBS, jobRow } from './jobs'
+import { isProfile, PROFILES, type Profile } from './manifest'
+import { DEMO_OPERATORS, operatorRow } from './operators'
+import { createPrng } from './prng'
+import { generateRunsForJob } from './runs'
+import { DEMO_TARGETS, targetRow } from './targets'
+
+export type SeedOptions = {
+  profile: Profile
+  now?: Date
+  onProgress?: (event: SeedProgressEvent) => void
+}
+
+export type SeedProgressEvent = {
+  kind: 'phase' | 'progress'
+  message: string
+  rows?: number
+}
+
+export type SeedCounts = {
+  customers: number
+  operators: number
+  targets: number
+  jobs: number
+  channels: number
+  alertRules: number
+  runs: number
+  attempts: number
+}
+
+const BATCH_INSERT_SIZE = 250
+
+export async function seedDemoData(db: Database, options: SeedOptions): Promise<SeedCounts> {
+  if (!isProfile(options.profile)) {
+    throw new Error(`Unknown profile: ${options.profile}`)
+  }
+  const now = options.now ?? new Date()
+  const profile = PROFILES[options.profile]
+  const log = options.onProgress ?? (() => {})
+
+  const customerSpecs = filterByField(DEMO_CUSTOMERS, 'slug', profile.customerSlugs)
+  const customerSlugSet = new Set(customerSpecs.map((c) => c.slug))
+  const jobSpecsAll = DEMO_JOBS.filter((j) => customerSlugSet.has(j.customerSlug))
+  const jobSpecs = filterByField(jobSpecsAll, 'slug', profile.jobSlugs)
+  const allowedJobSlugSet = new Set(jobSpecs.map((j) => j.slug))
+  const targetSpecs = DEMO_TARGETS.filter((t) => customerSlugSet.has(t.customerSlug))
+  const channelSpecs = DEMO_CHANNELS.filter((c) => customerSlugSet.has(c.customerSlug))
+  const alertRuleSpecs = DEMO_ALERT_RULES.filter(
+    (r) =>
+      customerSlugSet.has(r.customerSlug) &&
+      (r.jobSlug === null || allowedJobSlugSet.has(r.jobSlug)),
+  )
+
+  log({ kind: 'phase', message: 'Upserting Customers' })
+  const customerRows = customerSpecs.map((c) => customerRow(c, now))
+  await upsertBatched(db, customers, customerRows)
+  const customerIdBySlug = new Map<string, string>()
+  const customerCreatedAtBySlug = new Map<string, Date>()
+  for (const row of customerRows) {
+    customerIdBySlug.set(row.slug, row.id)
+    customerCreatedAtBySlug.set(row.slug, row.createdAt as Date)
+  }
+
+  log({ kind: 'phase', message: 'Upserting Operators' })
+  const operatorRows = DEMO_OPERATORS.map((o) => operatorRow(o, now))
+  await upsertBatched(db, users, operatorRows)
+
+  log({ kind: 'phase', message: 'Upserting Targets' })
+  const targetRows: ReturnType<typeof targetRow>[] = []
+  const targetIdByKey = new Map<string, string>()
+  for (const t of targetSpecs) {
+    const cId = customerIdBySlug.get(t.customerSlug)
+    if (!cId) throw new Error(`Target ${t.slug} references unknown Customer ${t.customerSlug}`)
+    const createdAt = customerCreatedAtBySlug.get(t.customerSlug) ?? now
+    const row = targetRow(t, cId, createdAt)
+    targetRows.push(row)
+    targetIdByKey.set(targetKey(t.customerSlug, t.slug), row.id)
+  }
+  await upsertBatched(db, targets, targetRows)
+
+  log({ kind: 'phase', message: 'Upserting Jobs' })
+  const jobRows: ReturnType<typeof jobRow>[] = []
+  const jobIdBySlug = new Map<string, string>()
+  for (const j of jobSpecs) {
+    const cId = customerIdBySlug.get(j.customerSlug)
+    if (!cId) throw new Error(`Job ${j.slug} references unknown Customer ${j.customerSlug}`)
+    const tId = targetIdByKey.get(targetKey(j.customerSlug, j.targetSlug))
+    if (!tId) {
+      throw new Error(`Job ${j.slug} references unknown Target ${j.customerSlug}/${j.targetSlug}`)
+    }
+    const createdAt = customerCreatedAtBySlug.get(j.customerSlug) ?? now
+    const row = jobRow(j, cId, tId, createdAt)
+    jobRows.push(row)
+    jobIdBySlug.set(jobKey(j.customerSlug, j.slug), row.id)
+  }
+  await upsertBatched(db, jobs, jobRows)
+
+  log({ kind: 'phase', message: 'Upserting Channels' })
+  const channelRows: ReturnType<typeof channelRow>[] = []
+  const channelIdByKey = new Map<string, string>()
+  for (const c of channelSpecs) {
+    const cId = customerIdBySlug.get(c.customerSlug)
+    if (!cId) throw new Error(`Channel ${c.slug} references unknown Customer ${c.customerSlug}`)
+    const createdAt = customerCreatedAtBySlug.get(c.customerSlug) ?? now
+    const row = channelRow(c, cId, createdAt)
+    channelRows.push(row)
+    channelIdByKey.set(channelKey(c.customerSlug, c.slug), row.id)
+  }
+  await upsertBatched(db, channels, channelRows)
+
+  log({ kind: 'phase', message: 'Upserting AlertRules' })
+  const alertRuleRows: ReturnType<typeof alertRuleRow>[] = []
+  for (const r of alertRuleSpecs) {
+    const cId = customerIdBySlug.get(r.customerSlug)
+    if (!cId) continue
+    const jId = r.jobSlug ? (jobIdBySlug.get(jobKey(r.customerSlug, r.jobSlug)) ?? null) : null
+    const channelIds = r.channelSlugs
+      .map((slug) => channelIdByKey.get(channelKey(r.customerSlug, slug)))
+      .filter((v): v is string => Boolean(v))
+    const createdAt = customerCreatedAtBySlug.get(r.customerSlug) ?? now
+    alertRuleRows.push(alertRuleRow(r, cId, jId, channelIds, createdAt))
+  }
+  await upsertBatched(db, alertRules, alertRuleRows)
+
+  log({ kind: 'phase', message: `Generating Runs for ${jobSpecs.length} Jobs` })
+  const windowEnd = now
+  const windowStart = new Date(windowEnd.getTime() - profile.historyDays * 86400_000)
+
+  const customerTimezoneBySlug = new Map(customerSpecs.map((c) => [c.slug, c.timezone]))
+
+  let totalRuns = 0
+  let totalAttempts = 0
+
+  // Per-job: generate, insert in batches, then move on. Avoid holding the full
+  // history set in memory for the stress profile.
+  for (const spec of jobSpecs) {
+    const jobId = jobIdBySlug.get(jobKey(spec.customerSlug, spec.slug))
+    const customerId = customerIdBySlug.get(spec.customerSlug)
+    if (!jobId || !customerId) continue
+    const customerTimezone = customerTimezoneBySlug.get(spec.customerSlug) ?? 'America/Phoenix'
+    const { runs: runRows, attempts: attemptRows } = generateRunsForJob(
+      {
+        spec,
+        jobId,
+        customerId,
+        customerSlug: spec.customerSlug,
+        customerTimezone,
+      },
+      windowStart,
+      windowEnd,
+    )
+
+    if (runRows.length === 0) continue
+    await insertBatched(db, runs, runRows)
+    await insertBatched(db, attempts, attemptRows)
+    totalRuns += runRows.length
+    totalAttempts += attemptRows.length
+    log({ kind: 'progress', message: `${spec.customerSlug}/${spec.slug}`, rows: runRows.length })
+  }
+
+  // Stamp recent alert-firing signals so the alerts surface shows life.
+  await stampRecentAlertSignals(db, alertRuleRows, channelRows, windowEnd)
+
+  return {
+    customers: customerRows.length,
+    operators: operatorRows.length,
+    targets: targetRows.length,
+    jobs: jobRows.length,
+    channels: channelRows.length,
+    alertRules: alertRuleRows.length,
+    runs: totalRuns,
+    attempts: totalAttempts,
+  }
+}
+
+async function stampRecentAlertSignals(
+  db: Database,
+  alertRuleRows: ReadonlyArray<{ id: string }>,
+  channelRows: ReadonlyArray<{ id: string }>,
+  windowEnd: Date,
+): Promise<void> {
+  const rng = createPrng('boop:demo:alert-signals')
+  // ~70% of rules have fired recently; pick a timestamp within the last 14 days.
+  for (const r of alertRuleRows) {
+    if (!rng.bool(0.7)) continue
+    const hoursAgo = rng.int(1, 14 * 24)
+    const ts = new Date(windowEnd.getTime() - hoursAgo * 3600_000)
+    await db
+      .update(alertRules)
+      .set({ lastFiredAt: ts, updatedAt: ts })
+      .where(sql`${alertRules.id} = ${r.id}`)
+  }
+
+  for (const c of channelRows) {
+    if (!rng.bool(0.6)) continue
+    const hoursAgo = rng.int(1, 14 * 24)
+    const ts = new Date(windowEnd.getTime() - hoursAgo * 3600_000)
+    const isTested = rng.bool(0.4)
+    await db
+      .update(channels)
+      .set({
+        lastUsedAt: ts,
+        ...(isTested
+          ? {
+              lastTestAlertAt: new Date(ts.getTime() - rng.int(0, 86400_000)),
+              lastTestAlertStatus: rng.bool(0.9) ? 'delivered' : 'failed',
+              lastTestAlertReason: null,
+            }
+          : {}),
+        updatedAt: ts,
+      })
+      .where(sql`${channels.id} = ${c.id}`)
+  }
+}
+
+// Drizzle's generic insert is variadic over table shape; the seed orchestrator
+// passes pre-validated rows through, so we widen to `any` at this boundary only.
+type AnyDb = {
+  insert: (table: SQLiteTable) => {
+    values: (rows: ReadonlyArray<Record<string, unknown>>) => {
+      onConflictDoUpdate: (args: { target: unknown; set: Record<string, unknown> }) => Promise<void>
+      onConflictDoNothing: (args: { target: unknown }) => Promise<void>
+    }
+  }
+}
+
+async function upsertBatched<T extends SQLiteTable>(
+  db: Database,
+  table: T,
+  rows: ReadonlyArray<Record<string, unknown>>,
+): Promise<void> {
+  if (rows.length === 0) return
+  const cols = getTableColumns(table) as Record<string, { name: string }>
+  const target = cols.id
+  if (!target) throw new Error(`upsertBatched: table ${String(table)} has no id column`)
+  const update: Record<string, unknown> = {}
+  for (const [key, col] of Object.entries(cols)) {
+    if (key === 'id' || key === 'createdAt') continue
+    update[key] = sql.raw(`excluded.${col.name}`)
+  }
+  for (let i = 0; i < rows.length; i += BATCH_INSERT_SIZE) {
+    const slice = rows.slice(i, i + BATCH_INSERT_SIZE)
+    await (db as unknown as AnyDb)
+      .insert(table)
+      .values(slice)
+      .onConflictDoUpdate({ target, set: update })
+  }
+}
+
+async function insertBatched<T extends SQLiteTable>(
+  db: Database,
+  table: T,
+  rows: ReadonlyArray<Record<string, unknown>>,
+): Promise<void> {
+  if (rows.length === 0) return
+  const cols = getTableColumns(table) as Record<string, { name: string }>
+  const target = cols.id
+  if (!target) throw new Error(`insertBatched: table ${String(table)} has no id column`)
+  for (let i = 0; i < rows.length; i += BATCH_INSERT_SIZE) {
+    const slice = rows.slice(i, i + BATCH_INSERT_SIZE)
+    await (db as unknown as AnyDb).insert(table).values(slice).onConflictDoNothing({ target })
+  }
+}
+
+function filterByField<T extends Record<string, unknown>, K extends keyof T>(
+  items: readonly T[],
+  field: K,
+  allow: 'all' | readonly string[],
+): T[] {
+  if (allow === 'all') return [...items]
+  const allowSet = new Set(allow)
+  return items.filter((item) => allowSet.has(item[field] as string))
+}
+
+function targetKey(customerSlug: string, slug: string): string {
+  return `${customerSlug}/${slug}`
+}
+function jobKey(customerSlug: string, slug: string): string {
+  return `${customerSlug}/${slug}`
+}
+function channelKey(customerSlug: string, slug: string): string {
+  return `${customerSlug}/${slug}`
+}

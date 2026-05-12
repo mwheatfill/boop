@@ -26,6 +26,7 @@
     "openapi:check": "tsx scripts/check-openapi-contract.ts",
     "audit:patterns": "tsx scripts/audit-patterns/index.ts",
     "recipe": "tsx scripts/recipe.ts",
+    "seed:demo": "tsx scripts/seed-demo/index.ts",
     "bootstrap": "bash scripts/bootstrap.sh",
     "test": "vitest run",
     "test:watch": "vitest",
