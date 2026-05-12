@@ -12,7 +12,7 @@ Before substantial work:
 
 You're an AI coding agent (Claude Code, Codex, Cursor, Aider, or similar) working in a Cloudflare Workers + TanStack Start application built from `boop`. This file is the canonical entry point. Read it first.
 
-At session start: skim [`docs/adr/README.md`](docs/adr/README.md) for the architectural decisions and read whatever spec exists (`SPEC.md`, `PRD.md`, `docs/spec/*`). Run `git log --oneline -20` for in-flight context. Doc resolution for libraries is handled by the research-first protocol re-anchored every turn via the `UserPromptSubmit` hook in [`.claude/hooks/`](.claude/hooks/).
+At session start: skim [`docs/adr/README.md`](docs/adr/README.md) for the architectural decisions, [`CONTEXT.md`](CONTEXT.md) for the domain language, and [`DESIGN.md`](DESIGN.md) for the interface rules. Read whatever spec exists (`SPEC.md`, `PRD.md`, `docs/spec/*`). Run `git log --oneline -20` for in-flight context. Doc resolution for libraries is handled by the research-first protocol re-anchored every turn via the `UserPromptSubmit` hook in [`.claude/hooks/`](.claude/hooks/).
 
 ## Stack snapshot
 

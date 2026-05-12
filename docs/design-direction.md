@@ -1,8 +1,8 @@
 # Design direction
 
-The brief for the design-language session. Not an ADR for the principle itself (which is directional, not decisional), not domain language (so not in `CONTEXT.md`), not an agent operating instruction (so not in `AGENTS.md`). A standing reference that each session picks up from.
+The brief for the design-language session. The principle frames the aesthetic; the queued surfaces define the remaining scope; the "Landed" section is the audit trail for what's been settled.
 
-The session has started. The principle frames the aesthetic; the queued surfaces define the remaining scope; the "Landed" section is the audit trail for what's been settled.
+**Decisions land in [`DESIGN.md`](../DESIGN.md) at the repo root.** This file is the brief and the session log; DESIGN.md is the standing operational reference cited by every UI PR.
 
 ## Landed
 
