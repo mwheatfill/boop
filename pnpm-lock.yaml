@@ -38,6 +38,9 @@ importers:
       jose:
         specifier: ^6.2.3
         version: 6.2.3
+      liquidjs:
+        specifier: ^10.25.7
+        version: 10.25.7
       lucide-react:
         specifier: ^1.8.0
         version: 1.14.0(react@19.2.6)
@@ -1670,6 +1673,10 @@ packages:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
 
+  commander@10.0.1:
+    resolution: {integrity: sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug==}
+    engines: {node: '>=14'}
+
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
@@ -2129,6 +2136,11 @@ packages:
   lint-staged@17.0.3:
     resolution: {integrity: sha512-wnvMRhzC3GNpjixxleiG+pAW09dHTUgBCjMS7XouAg5E7wKUc8YdfogpF7zIgvXKDbH+452O6+XpnKm6V67rPw==}
     engines: {node: '>=22.22.1'}
+    hasBin: true
+
+  liquidjs@10.25.7:
+    resolution: {integrity: sha512-rPCjJLiD4eDhQjvv964AeXFC+HbeYBbZrd7Z82Q6hqv1lX7G+5w4SJcKLn9CAAAwHI4aS3dTdo083UB79K3pDA==}
+    engines: {node: '>=16'}
     hasBin: true
 
   listr2@10.2.1:
@@ -3979,6 +3991,8 @@ snapshots:
 
   clsx@2.1.1: {}
 
+  commander@10.0.1: {}
+
   convert-source-map@2.0.0: {}
 
   cookie-es@3.1.1: {}
@@ -4340,6 +4354,10 @@ snapshots:
       tinyexec: 1.1.2
     optionalDependencies:
       yaml: 2.8.4
+
+  liquidjs@10.25.7:
+    dependencies:
+      commander: 10.0.1
 
   listr2@10.2.1:
     dependencies:

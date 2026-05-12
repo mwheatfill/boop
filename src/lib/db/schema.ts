@@ -146,6 +146,7 @@ export const attempts = sqliteTable(
     completedAt: integer('completed_at', { mode: 'timestamp_ms' }),
     httpStatus: integer('http_status'),
     failureKind: enumColumn('failure_kind', FAILURE_KINDS),
+    requestBodyR2Key: text('request_body_r2_key'),
     responseBodyR2Key: text('response_body_r2_key'),
     ...timestamps(),
   },
