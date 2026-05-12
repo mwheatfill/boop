@@ -3,6 +3,7 @@ dist
 .wrangler
 .tanstack
 .dev.vars*
+!.dev.vars.example
 coverage
 *.log
 .DS_Store

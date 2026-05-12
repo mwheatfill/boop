@@ -3,7 +3,8 @@ import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqli
 import { enumColumn, lifecycleCheck, timestamps } from './columns'
 
 const LIFECYCLE_STATUSES = ['active', 'archived'] as const
-const USER_ROLES = ['admin', 'operator'] as const
+export const USER_ROLES = ['admin', 'operator'] as const
+export type UserRole = (typeof USER_ROLES)[number]
 const TARGET_REACHABILITIES = ['public', 'tunnel'] as const
 const TARGET_AUTH_KINDS = ['none', 'bearer', 'basic', 'header'] as const
 const JOB_STATUSES = ['active', 'paused', 'archived'] as const

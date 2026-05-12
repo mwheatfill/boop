@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { queryOptions } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { createRootRouteWithContext, HeadContent, Link, Scripts } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
@@ -6,10 +7,21 @@ import type { ReactNode } from 'react'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { Toaster } from '@/components/ui/sonner'
+import { getCurrentUserFn } from '@/lib/auth/server-fns'
 import type { MyRouterContext } from '@/router-context'
 import appCss from '@/styles/app.css?url'
 
+const currentUserQueryOptions = queryOptions({
+  queryKey: ['auth', 'currentUser'],
+  queryFn: () => getCurrentUserFn(),
+  staleTime: Number.POSITIVE_INFINITY,
+})
+
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+  beforeLoad: async ({ context }) => {
+    const currentUser = await context.queryClient.ensureQueryData(currentUserQueryOptions)
+    return { currentUser }
+  },
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
