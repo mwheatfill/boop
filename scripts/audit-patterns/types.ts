@@ -1,4 +1,4 @@
-export type AuditName = 'shadcn' | 'tanstack' | 'preferences' | 'workflows'
+export type AuditName = 'shadcn' | 'tanstack' | 'preferences' | 'workflows' | 'design'
 export type Severity = 'error' | 'warn'
 
 export interface Finding {

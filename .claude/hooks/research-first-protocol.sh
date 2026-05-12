@@ -46,4 +46,15 @@ HARD PROHIBITIONS:
   lookup-order before committing. See lookup-order.md "Don't".
 - No multi-line comments defending a workaround. If a step needs >1 line of
   comment to justify unusual flags, you missed a higher layer. Re-resolve.
+
+UI ADDENDUM (when the task touches src/components/**, src/routes/**, or src/styles/**):
+- DESIGN.md is a REQUIRED CITE source alongside Intent skills / MCPs / vendor docs.
+  Name "DESIGN.md § N <section-title>" (e.g., "DESIGN.md § 3 Visual tokens" or
+  "DESIGN.md § 9 Empty states") in the CITE step.
+- Use TOKEN classes, never palette classes. text-primary not text-blue-500.
+  bg-card not bg-zinc-900. text-success/warning/info/destructive not
+  text-green-600/amber-500/blue-500/red-500. Arbitrary colors (text-[#abc],
+  bg-[oklch(...)]) and hardcoded JSX color literals are forbidden.
+- scripts/audit-patterns/design.ts enforces DESIGN.md § 12 anti-patterns at CI
+  time. Failing them is a CI failure, not advisory.
 PROTOCOL
