@@ -1,9 +1,11 @@
 import { useForm } from '@tanstack/react-form'
+import { useRef } from 'react'
 import { SlugField } from '@/components/SlugField'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { FieldErrors } from '@/lib/errors'
+import { slugify } from '@/lib/slug/slugify'
 import type { CustomerCreateInput, CustomerUpdateInput } from '@/shared/schemas/customer'
 
 interface CustomerFormProps {
@@ -25,6 +27,8 @@ function firstError(errors: FieldErrors | undefined, field: string): string | un
 }
 
 export function CustomerForm({ variant, initialValues, submitLabel, onSubmit }: CustomerFormProps) {
+  const slugManuallyEdited = useRef(variant === 'edit')
+
   const form = useForm({
     defaultValues: {
       ...initialValues,
@@ -62,7 +66,15 @@ export function CustomerForm({ variant, initialValues, submitLabel, onSubmit }: 
         void form.handleSubmit()
       }}
     >
-      <form.Field name="name">
+      <form.Field
+        name="name"
+        listeners={{
+          onChange: ({ value }) => {
+            if (slugManuallyEdited.current) return
+            form.setFieldValue('slug', slugify(value))
+          },
+        }}
+      >
         {(field) => (
           <div className="flex flex-col gap-2">
             <Label htmlFor={field.name}>Name</Label>
@@ -76,18 +88,20 @@ export function CustomerForm({ variant, initialValues, submitLabel, onSubmit }: 
         )}
       </form.Field>
 
-      <form.Subscribe selector={(s) => [s.values.name, s.values._serverFieldErrors] as const}>
-        {([name, serverErrors]) => (
+      <form.Subscribe selector={(s) => s.values._serverFieldErrors}>
+        {(serverErrors) => (
           <form.Field name="slug">
             {(field) => (
               <SlugField
                 id={field.name}
                 name={field.name}
                 value={field.state.value}
-                derivedFrom={name}
                 readOnly={variant === 'edit'}
                 error={firstError(serverErrors, 'slug')}
-                onChange={(next) => field.handleChange(next)}
+                onChange={(next) => {
+                  slugManuallyEdited.current = true
+                  field.handleChange(next)
+                }}
                 helpText={
                   variant === 'create'
                     ? 'Auto-filled from name. Read-only after create.'

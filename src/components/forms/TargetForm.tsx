@@ -1,4 +1,5 @@
 import { useForm } from '@tanstack/react-form'
+import { useRef } from 'react'
 import { SlugField } from '@/components/SlugField'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { FieldErrors } from '@/lib/errors'
+import { slugify } from '@/lib/slug/slugify'
 import type { TargetCreateInput, TargetUpdateInput } from '@/shared/schemas/target'
 import { TARGET_AUTH_KINDS, TARGET_METHODS, TARGET_REACHABILITIES } from '@/shared/schemas/target'
 
@@ -37,6 +39,8 @@ function firstError(errors: FieldErrors | undefined, field: string): string | un
 }
 
 export function TargetForm({ variant, initialValues, submitLabel, onSubmit }: TargetFormProps) {
+  const slugManuallyEdited = useRef(variant === 'edit')
+
   const form = useForm({
     defaultValues: {
       ...initialValues,
@@ -69,7 +73,15 @@ export function TargetForm({ variant, initialValues, submitLabel, onSubmit }: Ta
         void form.handleSubmit()
       }}
     >
-      <form.Field name="name">
+      <form.Field
+        name="name"
+        listeners={{
+          onChange: ({ value }) => {
+            if (slugManuallyEdited.current) return
+            form.setFieldValue('slug', slugify(value))
+          },
+        }}
+      >
         {(field) => (
           <div className="flex flex-col gap-2">
             <Label htmlFor={field.name}>Name</Label>
@@ -83,18 +95,20 @@ export function TargetForm({ variant, initialValues, submitLabel, onSubmit }: Ta
         )}
       </form.Field>
 
-      <form.Subscribe selector={(s) => [s.values.name, s.values._serverFieldErrors] as const}>
-        {([name, serverErrors]) => (
+      <form.Subscribe selector={(s) => s.values._serverFieldErrors}>
+        {(serverErrors) => (
           <form.Field name="slug">
             {(field) => (
               <SlugField
                 id={field.name}
                 name={field.name}
                 value={field.state.value}
-                derivedFrom={name}
                 readOnly={variant === 'edit'}
                 error={firstError(serverErrors, 'slug')}
-                onChange={(next) => field.handleChange(next)}
+                onChange={(next) => {
+                  slugManuallyEdited.current = true
+                  field.handleChange(next)
+                }}
                 helpText={
                   variant === 'create'
                     ? 'Auto-filled from name. Read-only after create.'
