@@ -6,6 +6,13 @@ import {
   CustomerSchema,
   CustomerUpdateInput,
 } from '../src/shared/schemas/customer'
+import {
+  JobCreateInput,
+  JobSchema,
+  JobSummarySchema,
+  JobUpdateInput,
+} from '../src/shared/schemas/job'
+import { AttemptSummarySchema, RunSchema } from '../src/shared/schemas/run'
 import { TargetCreateInput, TargetSchema, TargetUpdateInput } from '../src/shared/schemas/target'
 
 export const document = createDocument({
@@ -27,6 +34,12 @@ export const document = createDocument({
       Target: TargetSchema,
       TargetCreateInput,
       TargetUpdateInput,
+      Job: JobSchema,
+      JobSummary: JobSummarySchema,
+      JobCreateInput,
+      JobUpdateInput,
+      Run: RunSchema,
+      AttemptSummary: AttemptSummarySchema,
     },
   },
 })
