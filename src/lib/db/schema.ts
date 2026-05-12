@@ -95,6 +95,8 @@ export const jobs = sqliteTable(
     lastFireAt: integer('last_fire_at', { mode: 'timestamp_ms' }),
     nextFireAt: integer('next_fire_at', { mode: 'timestamp_ms' }),
     fireInProgress: integer('fire_in_progress', { mode: 'boolean' }).notNull().default(false),
+    maxAttempts: integer('max_attempts').notNull().default(3),
+    overallDeadlineMs: integer('overall_deadline_ms').notNull().default(60_000),
     status: enumColumn('status', JOB_STATUSES).notNull().default('active'),
     ...timestamps(),
   },

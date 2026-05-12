@@ -5,7 +5,15 @@ import { newId } from '@/lib/db/ids'
 import { attempts, customers, jobs, runs, targets } from '@/lib/db/schema'
 import { logError, logInfo } from '@/lib/log'
 import { claimJob, releaseJob } from './claim'
-import { ClaimFailedError, JobNotDispatchableError } from './errors'
+import {
+  ClaimFailedError,
+  isRetryableDispatchError,
+  JobNotDispatchableError,
+  RenderError,
+  TargetHttpError,
+  TargetNetworkError,
+  TargetTimeoutError,
+} from './errors'
 import { r2KeyFor } from './r2-keys'
 import { renderTemplate } from './render'
 
@@ -17,14 +25,35 @@ export interface DispatchEnv {
 export interface DispatchDeps {
   db: Database
   bodies: R2Bucket
+  sleep?: (ms: number) => Promise<void>
 }
 
 type Job = typeof jobs.$inferSelect
 type Customer = typeof customers.$inferSelect
+type Target = typeof targets.$inferSelect
 type FailureKind = NonNullable<(typeof attempts.$inferSelect)['failureKind']>
 type Outcome = NonNullable<(typeof runs.$inferSelect)['outcome']>
 
-const DEFAULT_TIMEOUT_MS = 30_000
+const DEFAULT_ATTEMPT_TIMEOUT_MS = 30_000
+const BACKOFF_BASE_MS = 30_000
+
+const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+function backoffMs(attemptIndex: number): number {
+  return 2 ** attemptIndex * BACKOFF_BASE_MS
+}
+
+function classifyHttpFailure(status: number): FailureKind {
+  if (status >= 400 && status < 500) return 'http_4xx'
+  if (status >= 500 && status < 600) return 'http_5xx'
+  return 'non_2xx_other'
+}
+
+function outcomeFor(lastError: unknown): Outcome {
+  if (lastError === null) return 'success'
+  if (lastError instanceof TargetTimeoutError) return 'timeout'
+  return 'failure'
+}
 
 async function readJoined(db: Database, jobId: string) {
   const row = await db
@@ -50,14 +79,47 @@ function parseHeaders(rendered: string): HeadersInit {
   }
 }
 
-function classifyHttpFailure(status: number): FailureKind {
-  if (status >= 400 && status < 500) return 'http_4xx'
-  if (status >= 500 && status < 600) return 'http_5xx'
-  return 'non_2xx_other'
+interface AttemptOutcome {
+  httpStatus: number | null
+  failureKind: FailureKind | null
+  error: TargetTimeoutError | TargetNetworkError | TargetHttpError | null
+}
+
+async function performAttempt(
+  bodies: R2Bucket,
+  target: Target,
+  renderedBody: string,
+  renderedHeaders: string,
+  responseKey: string,
+): Promise<AttemptOutcome> {
+  const hasBody = target.method !== 'GET' && target.method !== 'HEAD'
+  try {
+    const response = await fetch(target.url, {
+      method: target.method,
+      headers: parseHeaders(renderedHeaders),
+      ...(hasBody && { body: renderedBody }),
+      signal: AbortSignal.timeout(DEFAULT_ATTEMPT_TIMEOUT_MS),
+    })
+    await bodies.put(responseKey, response.body)
+    if (response.ok) {
+      return { httpStatus: response.status, failureKind: null, error: null }
+    }
+    const httpErr = new TargetHttpError(response.status)
+    return {
+      httpStatus: response.status,
+      failureKind: classifyHttpFailure(response.status),
+      error: httpErr,
+    }
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      return { httpStatus: null, failureKind: 'timeout', error: new TargetTimeoutError() }
+    }
+    return { httpStatus: null, failureKind: 'network', error: new TargetNetworkError(err) }
+  }
 }
 
 export async function runDispatch(
-  { db, bodies }: DispatchDeps,
+  { db, bodies, sleep = defaultSleep }: DispatchDeps,
   jobId: string,
   scheduledAt: Date,
 ): Promise<void> {
@@ -80,6 +142,7 @@ export async function runDispatch(
 
     const runId = newId('run')
     const startedAt = new Date()
+    const deadlineAt = startedAt.getTime() + job.overallDeadlineMs
     await db.insert(runs).values({
       id: runId,
       jobId: job.id,
@@ -89,78 +152,131 @@ export async function runDispatch(
       status: 'running',
     })
 
-    const renderCtx = {
-      runId,
-      attemptNumber: 1,
-      customerName: customer.name,
-      customerTimezone: effectiveTimezone(job, customer),
-      now: startedAt,
-    }
-    const [renderedBody, renderedHeaders] = await Promise.all([
-      renderTemplate(job.bodyTemplate, renderCtx),
-      renderTemplate(job.headersTemplate, renderCtx),
-    ])
-
-    const attemptId = newId('att')
-    const attemptStartedAt = new Date()
-    const requestR2Key = r2KeyFor(customer.id, runId, 1, 'request')
-    const responseR2Key = r2KeyFor(customer.id, runId, 1, 'response')
-
-    await db.insert(attempts).values({
-      id: attemptId,
-      runId,
-      attemptNumber: 1,
-      startedAt: attemptStartedAt,
-      requestBodyR2Key: requestR2Key,
-    })
-    await bodies.put(requestR2Key, renderedBody)
-
-    let httpStatus: number | null = null
-    let failureKind: FailureKind | null = null
-
-    const hasBody = target.method !== 'GET' && target.method !== 'HEAD'
+    let renderedBody: string
+    let renderedHeaders: string
     try {
-      const response = await fetch(target.url, {
-        method: target.method,
-        headers: parseHeaders(renderedHeaders),
-        ...(hasBody && { body: renderedBody }),
-        signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
-      })
-      httpStatus = response.status
-      await bodies.put(responseR2Key, response.body)
-      if (!response.ok) failureKind = classifyHttpFailure(response.status)
+      const renderCtx = {
+        runId,
+        attemptNumber: 1,
+        customerName: customer.name,
+        customerTimezone: effectiveTimezone(job, customer),
+        now: startedAt,
+      }
+      ;[renderedBody, renderedHeaders] = await Promise.all([
+        renderTemplate(job.bodyTemplate, renderCtx),
+        renderTemplate(job.headersTemplate, renderCtx),
+      ])
     } catch (err) {
-      failureKind =
-        err instanceof DOMException && err.name === 'TimeoutError' ? 'timeout' : 'network'
-      logError('dispatch.fetch_failed', err, { jobId, runId })
+      const now = new Date()
+      await db
+        .update(runs)
+        .set({ status: 'completed', outcome: 'failure', completedAt: now, updatedAt: now })
+        .where(eq(runs.id, runId))
+      throw new RenderError(err)
     }
 
-    const attemptCompletedAt = new Date()
-    await db
-      .update(attempts)
-      .set({
-        completedAt: attemptCompletedAt,
-        httpStatus,
-        failureKind,
-        responseBodyR2Key: httpStatus !== null ? responseR2Key : null,
-        updatedAt: attemptCompletedAt,
+    let lastError: TargetTimeoutError | TargetNetworkError | TargetHttpError | null = null
+    let lastHttpStatus: number | null = null
+    let lastFailureKind: FailureKind | null = null
+    let timedOutByDeadline = false
+
+    for (let attemptIndex = 0; attemptIndex < job.maxAttempts; attemptIndex++) {
+      const attemptNumber = attemptIndex + 1
+      const attemptId = newId('att')
+      const attemptStartedAt = new Date()
+      const requestKey = r2KeyFor(customer.id, runId, attemptNumber, 'request')
+      const responseKey = r2KeyFor(customer.id, runId, attemptNumber, 'response')
+
+      await db.insert(attempts).values({
+        id: attemptId,
+        runId,
+        attemptNumber,
+        startedAt: attemptStartedAt,
+        requestBodyR2Key: requestKey,
       })
-      .where(eq(attempts.id, attemptId))
+      await bodies.put(requestKey, renderedBody)
 
-    const outcome: Outcome =
-      failureKind === null ? 'success' : failureKind === 'timeout' ? 'timeout' : 'failure'
+      const result = await performAttempt(
+        bodies,
+        target,
+        renderedBody,
+        renderedHeaders,
+        responseKey,
+      )
+      const attemptCompletedAt = new Date()
+      await db
+        .update(attempts)
+        .set({
+          completedAt: attemptCompletedAt,
+          httpStatus: result.httpStatus,
+          failureKind: result.failureKind,
+          responseBodyR2Key: result.httpStatus !== null ? responseKey : null,
+          updatedAt: attemptCompletedAt,
+        })
+        .where(eq(attempts.id, attemptId))
 
+      if (result.error === null) {
+        lastError = null
+        lastHttpStatus = result.httpStatus
+        lastFailureKind = null
+        break
+      }
+
+      lastError = result.error
+      lastHttpStatus = result.httpStatus
+      lastFailureKind = result.failureKind
+
+      if (!isRetryableDispatchError(result.error)) break
+      if (attemptIndex + 1 >= job.maxAttempts) break
+
+      const delay = backoffMs(attemptIndex)
+      if (Date.now() + delay >= deadlineAt) {
+        timedOutByDeadline = true
+        break
+      }
+      logError('dispatch.attempt_retrying', result.error, { jobId, runId, attemptNumber, delay })
+      await sleep(delay)
+      if (Date.now() >= deadlineAt) {
+        timedOutByDeadline = true
+        break
+      }
+    }
+
+    const completedAt = new Date()
+    if (timedOutByDeadline && lastError !== null) {
+      const timeoutErr = new TargetTimeoutError()
+      const [latestAttempt] = await db
+        .select({ id: attempts.id })
+        .from(attempts)
+        .where(eq(attempts.runId, runId))
+        .orderBy(attempts.attemptNumber)
+      if (latestAttempt) {
+        await db
+          .update(attempts)
+          .set({ failureKind: 'timeout', updatedAt: completedAt })
+          .where(eq(attempts.id, latestAttempt.id))
+      }
+      lastError = timeoutErr
+      lastFailureKind = 'timeout'
+    }
+
+    const outcome = outcomeFor(lastError)
     await db
       .update(runs)
-      .set({
-        status: 'completed',
-        outcome,
-        completedAt: attemptCompletedAt,
-        updatedAt: attemptCompletedAt,
-      })
+      .set({ status: 'completed', outcome, completedAt, updatedAt: completedAt })
       .where(eq(runs.id, runId))
 
-    logInfo('dispatch.run_completed', { jobId, runId, outcome, httpStatus })
+    logInfo('dispatch.run_completed', {
+      jobId,
+      runId,
+      outcome,
+      lastHttpStatus,
+      lastFailureKind,
+    })
+
+    if (lastError !== null && isRetryableDispatchError(lastError)) {
+      throw lastError
+    }
   } finally {
     await releaseJob(db, jobId)
   }

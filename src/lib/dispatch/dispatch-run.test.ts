@@ -5,10 +5,22 @@ import { newId } from '@/lib/db/ids'
 import { attempts, customers, jobs, runs, targets } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { runDispatch } from './dispatch-run'
-import { ClaimFailedError } from './errors'
+import {
+  ClaimFailedError,
+  RenderError,
+  TargetHttpError,
+  TargetNetworkError,
+  TargetTimeoutError,
+} from './errors'
 import { createTestR2 } from './test-r2'
 
-async function seedFixture(db: Database) {
+interface FixtureOverrides {
+  maxAttempts?: number
+  overallDeadlineMs?: number
+  bodyTemplate?: string
+}
+
+async function seedFixture(db: Database, overrides: FixtureOverrides = {}) {
   const customerId = newId('cust')
   const targetId = newId('tgt')
   const jobId = newId('job')
@@ -33,11 +45,17 @@ async function seedFixture(db: Database) {
     slug: 'ping',
     triggerKind: 'cron',
     cronExpression: '* * * * *',
-    bodyTemplate: 'run={{ run_id }} at={{ now | iso_date }}',
+    bodyTemplate: overrides.bodyTemplate ?? 'run={{ run_id }} at={{ now | iso_date }}',
     headersTemplate: '{ "x-run": "{{ run_id }}" }',
+    ...(overrides.maxAttempts !== undefined && { maxAttempts: overrides.maxAttempts }),
+    ...(overrides.overallDeadlineMs !== undefined && {
+      overallDeadlineMs: overrides.overallDeadlineMs,
+    }),
   })
   return { customerId, jobId }
 }
+
+const noSleep = () => Promise.resolve()
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -50,90 +68,199 @@ describe('dispatchRun (happy path)', () => {
     const { customerId, jobId } = await seedFixture(db)
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok-body', { status: 200 }))
 
-    await runDispatch({ db, bodies }, jobId, new Date('2026-05-12T14:30:00.000Z'))
+    await runDispatch({ db, bodies, sleep: noSleep }, jobId, new Date('2026-05-12T14:30:00.000Z'))
 
     const [runRow] = await db.select().from(runs).where(eq(runs.jobId, jobId))
     expect(runRow?.status).toBe('completed')
     expect(runRow?.outcome).toBe('success')
     expect(runRow?.customerId).toBe(customerId)
 
-    const [attemptRow] = await db
+    const allAttempts = await db
       .select()
       .from(attempts)
       .where(eq(attempts.runId, runRow?.id ?? ''))
+    expect(allAttempts).toHaveLength(1)
+    const attemptRow = allAttempts[0]
     expect(attemptRow?.attemptNumber).toBe(1)
     expect(attemptRow?.httpStatus).toBe(200)
     expect(attemptRow?.failureKind).toBeNull()
-
-    const reqKey = `runs/${customerId}/${runRow?.id}/1.request`
-    const resKey = `runs/${customerId}/${runRow?.id}/1.response`
-    expect(attemptRow?.requestBodyR2Key).toBe(reqKey)
-    expect(attemptRow?.responseBodyR2Key).toBe(resKey)
-    expect(await (await bodies.get(reqKey))?.text()).toMatch(/^run=run_/)
-    expect(await (await bodies.get(resKey))?.text()).toBe('ok-body')
+    expect(attemptRow?.requestBodyR2Key).toBe(`runs/${customerId}/${runRow?.id}/1.request`)
+    expect(attemptRow?.responseBodyR2Key).toBe(`runs/${customerId}/${runRow?.id}/1.response`)
+    expect(await (await bodies.get(attemptRow?.requestBodyR2Key ?? ''))?.text()).toMatch(
+      /^run=run_/,
+    )
+    expect(await (await bodies.get(attemptRow?.responseBodyR2Key ?? ''))?.text()).toBe('ok-body')
 
     const [jobRow] = await db.select().from(jobs).where(eq(jobs.id, jobId))
     expect(jobRow?.fireInProgress).toBe(false)
   })
+})
 
-  it('marks failure_kind=http_5xx when Target returns 500', async () => {
+describe('dispatchRun (retry semantics)', () => {
+  it('retries 503 503 → 200: success with three Attempts', async () => {
     const db = createTestDb()
     const bodies = createTestR2()
-    const { jobId } = await seedFixture(db)
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('bad', { status: 500 }))
+    const { jobId } = await seedFixture(db, { overallDeadlineMs: 60 * 60 * 1000 })
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('a', { status: 503 }))
+      .mockResolvedValueOnce(new Response('b', { status: 503 }))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }))
 
-    await runDispatch({ db, bodies }, jobId, new Date())
+    await runDispatch({ db, bodies, sleep: noSleep }, jobId, new Date())
 
     const [runRow] = await db.select().from(runs).where(eq(runs.jobId, jobId))
-    expect(runRow?.outcome).toBe('failure')
-    const [attemptRow] = await db
+    expect(runRow?.outcome).toBe('success')
+    const all = await db
       .select()
       .from(attempts)
       .where(eq(attempts.runId, runRow?.id ?? ''))
-    expect(attemptRow?.failureKind).toBe('http_5xx')
-    expect(attemptRow?.httpStatus).toBe(500)
+    expect(all).toHaveLength(3)
+    expect(all.map((a) => a.httpStatus)).toEqual([503, 503, 200])
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
   })
 
-  it('marks failure_kind=network when fetch throws', async () => {
+  it('exhausts max_attempts on persistent 5xx: outcome=failure, throws TargetHttpError', async () => {
     const db = createTestDb()
     const bodies = createTestR2()
-    const { jobId } = await seedFixture(db)
+    const { jobId } = await seedFixture(db, { overallDeadlineMs: 60 * 60 * 1000 })
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () => new Response('nope', { status: 503 }),
+    )
+
+    await expect(
+      runDispatch({ db, bodies, sleep: noSleep }, jobId, new Date()),
+    ).rejects.toBeInstanceOf(TargetHttpError)
+
+    const [runRow] = await db.select().from(runs).where(eq(runs.jobId, jobId))
+    expect(runRow?.status).toBe('completed')
+    expect(runRow?.outcome).toBe('failure')
+    const all = await db
+      .select()
+      .from(attempts)
+      .where(eq(attempts.runId, runRow?.id ?? ''))
+    expect(all).toHaveLength(3)
+    expect(all.at(-1)?.failureKind).toBe('http_5xx')
+  })
+
+  it('4xx is permanent: one Attempt, outcome=failure, no throw', async () => {
+    const db = createTestDb()
+    const bodies = createTestR2()
+    const { jobId } = await seedFixture(db, { overallDeadlineMs: 60 * 60 * 1000 })
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => new Response('bad', { status: 404 }))
+
+    await runDispatch({ db, bodies, sleep: noSleep }, jobId, new Date())
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    const [runRow] = await db.select().from(runs).where(eq(runs.jobId, jobId))
+    expect(runRow?.outcome).toBe('failure')
+    const all = await db
+      .select()
+      .from(attempts)
+      .where(eq(attempts.runId, runRow?.id ?? ''))
+    expect(all).toHaveLength(1)
+    expect(all[0]?.failureKind).toBe('http_4xx')
+  })
+
+  it('network error retries until exhausted, throws TargetNetworkError', async () => {
+    const db = createTestDb()
+    const bodies = createTestR2()
+    const { jobId } = await seedFixture(db, { overallDeadlineMs: 60 * 60 * 1000 })
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('dns lookup failed'))
 
-    await runDispatch({ db, bodies }, jobId, new Date())
+    await expect(
+      runDispatch({ db, bodies, sleep: noSleep }, jobId, new Date()),
+    ).rejects.toBeInstanceOf(TargetNetworkError)
 
     const [runRow] = await db.select().from(runs).where(eq(runs.jobId, jobId))
     expect(runRow?.outcome).toBe('failure')
-    const [attemptRow] = await db
+    const all = await db
       .select()
       .from(attempts)
       .where(eq(attempts.runId, runRow?.id ?? ''))
-    expect(attemptRow?.failureKind).toBe('network')
-    expect(attemptRow?.httpStatus).toBeNull()
-    expect(attemptRow?.responseBodyR2Key).toBeNull()
+    expect(all).toHaveLength(3)
+    expect(all.at(-1)?.failureKind).toBe('network')
+    expect(all.at(-1)?.responseBodyR2Key).toBeNull()
   })
 
-  it('releases the claim even when the dispatch throws after claim', async () => {
+  it('overall deadline exceeded: outcome=timeout, last Attempt failure_kind=timeout', async () => {
     const db = createTestDb()
     const bodies = createTestR2()
-    const { jobId } = await seedFixture(db)
-    await db.update(jobs).set({ status: 'paused' }).where(eq(jobs.id, jobId))
+    const { jobId } = await seedFixture(db, { overallDeadlineMs: 1 })
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response('a', { status: 503 }))
 
-    await expect(runDispatch({ db, bodies }, jobId, new Date())).rejects.toThrow(
-      /not dispatchable: paused/,
-    )
-    const [row] = await db.select().from(jobs).where(eq(jobs.id, jobId))
-    expect(row?.fireInProgress).toBe(false)
+    await expect(
+      runDispatch({ db, bodies, sleep: noSleep }, jobId, new Date()),
+    ).rejects.toBeInstanceOf(TargetTimeoutError)
+
+    const [runRow] = await db.select().from(runs).where(eq(runs.jobId, jobId))
+    expect(runRow?.outcome).toBe('timeout')
+    const all = await db
+      .select()
+      .from(attempts)
+      .where(eq(attempts.runId, runRow?.id ?? ''))
+    expect(all.at(-1)?.failureKind).toBe('timeout')
   })
 
+  it('per-attempt fetch TimeoutError throws TargetTimeoutError and is retryable', async () => {
+    const db = createTestDb()
+    const bodies = createTestR2()
+    const { jobId } = await seedFixture(db, { maxAttempts: 2, overallDeadlineMs: 60 * 60 * 1000 })
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new DOMException('timed out', 'TimeoutError'))
+
+    await expect(
+      runDispatch({ db, bodies, sleep: noSleep }, jobId, new Date()),
+    ).rejects.toBeInstanceOf(TargetTimeoutError)
+
+    const [runRow] = await db.select().from(runs).where(eq(runs.jobId, jobId))
+    expect(runRow?.outcome).toBe('timeout')
+    const all = await db
+      .select()
+      .from(attempts)
+      .where(eq(attempts.runId, runRow?.id ?? ''))
+    expect(all).toHaveLength(2)
+    expect(all.every((a) => a.failureKind === 'timeout')).toBe(true)
+  })
+})
+
+describe('dispatchRun (control-flow errors)', () => {
   it('throws ClaimFailedError when a concurrent dispatch holds the claim', async () => {
     const db = createTestDb()
     const bodies = createTestR2()
     const { jobId } = await seedFixture(db)
     await db.update(jobs).set({ fireInProgress: true }).where(eq(jobs.id, jobId))
 
-    await expect(runDispatch({ db, bodies }, jobId, new Date())).rejects.toBeInstanceOf(
-      ClaimFailedError,
+    await expect(
+      runDispatch({ db, bodies, sleep: noSleep }, jobId, new Date()),
+    ).rejects.toBeInstanceOf(ClaimFailedError)
+  })
+
+  it('releases the claim even when the Job is paused', async () => {
+    const db = createTestDb()
+    const bodies = createTestR2()
+    const { jobId } = await seedFixture(db)
+    await db.update(jobs).set({ status: 'paused' }).where(eq(jobs.id, jobId))
+
+    await expect(runDispatch({ db, bodies, sleep: noSleep }, jobId, new Date())).rejects.toThrow(
+      /not dispatchable: paused/,
     )
+    const [row] = await db.select().from(jobs).where(eq(jobs.id, jobId))
+    expect(row?.fireInProgress).toBe(false)
+  })
+
+  it('throws RenderError when the body template is malformed', async () => {
+    const db = createTestDb()
+    const bodies = createTestR2()
+    const { jobId } = await seedFixture(db, { bodyTemplate: '{{ now | nonsense }}' })
+    vi.spyOn(globalThis, 'fetch')
+
+    await expect(
+      runDispatch({ db, bodies, sleep: noSleep }, jobId, new Date()),
+    ).rejects.toBeInstanceOf(RenderError)
+    const [runRow] = await db.select().from(runs).where(eq(runs.jobId, jobId))
+    expect(runRow?.outcome).toBe('failure')
+    expect(runRow?.status).toBe('completed')
   })
 })
