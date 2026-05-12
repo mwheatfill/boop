@@ -32,14 +32,16 @@ type Flags = {
 function parseFlags(argv: string[]): Flags {
   const out: Flags = { ref: "main", force: false, rest: [] };
   const takeValue = (flag: string, i: number): string => {
-    if (i >= argv.length) {
+    const v = argv[i];
+    if (v === undefined) {
       console.error(`${flag} requires a value`);
       process.exit(1);
     }
-    return argv[i];
+    return v;
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
+    if (a === undefined) continue;
     if (a === "--from") out.from = takeValue(a, ++i);
     else if (a === "--ref") out.ref = takeValue(a, ++i);
     else if (a === "--force") out.force = true;
