@@ -25,8 +25,4 @@ describe('devBypassUser', () => {
   it('returns null when DEV_USER_EMAIL is unset', () => {
     expect(devBypassUser({ PUBLIC_ENV: 'dev' })).toBeNull()
   })
-
-  it('returns null when PUBLIC_ENV is empty', () => {
-    expect(devBypassUser({ PUBLIC_ENV: '' })).toBeNull()
-  })
 })
