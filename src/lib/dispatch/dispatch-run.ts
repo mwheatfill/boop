@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { enqueueAlert } from '@/lib/alert-queue/producer'
+import { enqueueAlertBatch } from '@/lib/alert-queue/producer'
 import type { AlertQueueMessage } from '@/lib/alert-queue/types'
 import { evaluateRulesForRun } from '@/lib/alert-rules/evaluator'
 import type { Database } from '@/lib/db/client'
@@ -58,7 +58,7 @@ async function evaluateAndEnqueueAlerts(
         ruleKind: pair.ruleKind,
       })),
     )
-    await Promise.all(messages.map((m) => enqueueAlert(alertQueue, m)))
+    await enqueueAlertBatch(alertQueue, messages)
     logInfo('alert.evaluated', {
       jobId,
       runId,

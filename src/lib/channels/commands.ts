@@ -1,33 +1,17 @@
 import { and, eq } from 'drizzle-orm'
 import { canArchiveChannel } from '@/lib/archive-policy/archive-policy'
+import { normalizeSlug, resolveCustomerId } from '@/lib/customers/resolve'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { channels, customers } from '@/lib/db/schema'
+import { channels } from '@/lib/db/schema'
 import {
   ArchiveBlockedError,
   FieldValidationError,
   isUniqueConstraintViolation,
   NotFoundError,
 } from '@/lib/errors'
-import { slugify } from '@/lib/slug/slugify'
 import type { Channel, ChannelCreateInput, ChannelUpdateInput } from '@/shared/schemas/channel'
 import { getChannelBySlug } from './queries'
-
-function normalizeSlug(raw: string): string {
-  const slug = slugify(raw)
-  if (slug.length === 0) {
-    throw new FieldValidationError({ slug: ['Slug must contain letters or digits'] })
-  }
-  return slug
-}
-
-async function resolveCustomerId(db: Database, customerSlug: string): Promise<string> {
-  const row = (
-    await db.select().from(customers).where(eq(customers.slug, customerSlug)).limit(1)
-  )[0]
-  if (!row) throw new NotFoundError('Customer', customerSlug)
-  return row.id
-}
 
 function serializeConfig(config: ChannelCreateInput['config']): string {
   const { kind: _kind, ...rest } = config

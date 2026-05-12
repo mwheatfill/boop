@@ -1,31 +1,15 @@
 import { and, eq, inArray } from 'drizzle-orm'
+import { normalizeSlug, resolveCustomerId } from '@/lib/customers/resolve'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { alertRules, channels, customers } from '@/lib/db/schema'
+import { alertRules, channels } from '@/lib/db/schema'
 import { FieldValidationError, isUniqueConstraintViolation, NotFoundError } from '@/lib/errors'
-import { slugify } from '@/lib/slug/slugify'
 import type {
   AlertRule,
   AlertRuleCreateInput,
   AlertRuleUpdateInput,
 } from '@/shared/schemas/alert-rule'
 import { getAlertRuleBySlug } from './queries'
-
-function normalizeSlug(raw: string): string {
-  const slug = slugify(raw)
-  if (slug.length === 0) {
-    throw new FieldValidationError({ slug: ['Slug must contain letters or digits'] })
-  }
-  return slug
-}
-
-async function resolveCustomerId(db: Database, customerSlug: string): Promise<string> {
-  const row = (
-    await db.select().from(customers).where(eq(customers.slug, customerSlug)).limit(1)
-  )[0]
-  if (!row) throw new NotFoundError('Customer', customerSlug)
-  return row.id
-}
 
 async function validateChannelIds(
   db: Database,

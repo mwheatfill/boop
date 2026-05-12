@@ -1,17 +1,10 @@
 import { and, asc, eq } from 'drizzle-orm'
+import { resolveCustomerId } from '@/lib/customers/resolve'
 import type { Database } from '@/lib/db/client'
-import { channels, customers } from '@/lib/db/schema'
+import { channels } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
 import type { Channel } from '@/shared/schemas/channel'
 import { rowToChannel } from './row-mapper'
-
-async function resolveCustomerId(db: Database, customerSlug: string): Promise<string> {
-  const row = (
-    await db.select().from(customers).where(eq(customers.slug, customerSlug)).limit(1)
-  )[0]
-  if (!row) throw new NotFoundError('Customer', customerSlug)
-  return row.id
-}
 
 export async function listChannelsForCustomer(
   db: Database,

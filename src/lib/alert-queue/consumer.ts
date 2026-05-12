@@ -71,16 +71,24 @@ async function markRuleFired(db: Database, ruleId: string, now: Date) {
     .where(eq(alertRules.id, ruleId))
 }
 
-function ackTerminal(
+const MAX_DELIVERY_ATTEMPTS = 5
+
+function routeAdapterResult(
   message: Message<AlertQueueMessage>,
   result: AdapterResult,
   fields: Record<string, unknown>,
 ) {
   if (result.ok) {
     logInfo('alert.delivered', fields)
-  } else {
-    logError('alert.failed', new Error(result.reason), { ...fields, retryable: result.retryable })
+    message.ack()
+    return
   }
+  if (result.retryable && message.attempts < MAX_DELIVERY_ATTEMPTS) {
+    logError('alert.retry_scheduled', new Error(result.reason), fields)
+    message.retry({ delaySeconds: retryDelaySeconds(message.attempts) })
+    return
+  }
+  logError('alert.failed', new Error(result.reason), { ...fields, retryable: result.retryable })
   message.ack()
 }
 
@@ -114,19 +122,13 @@ async function processTestMessage(
   const result = await adapterFor(channel.kind)({ channel, alertContext })
   await markChannelTestResult(db, channel.id, result, now)
   if (result.ok) await markChannelDelivered(db, channel.id, now)
-  const fields = {
+  routeAdapterResult(message, result, {
     channelId: channel.id,
     channelKind: channel.kind,
     customerSlug: customer?.slug,
     test: true,
     attemptNumber: message.attempts,
-  }
-  if (!result.ok && result.retryable && message.attempts < 5) {
-    logError('alert.retry_scheduled', new Error(result.reason), fields)
-    message.retry({ delaySeconds: retryDelaySeconds(message.attempts) })
-    return
-  }
-  ackTerminal(message, result, fields)
+  })
 }
 
 async function processRealMessage(
@@ -158,26 +160,18 @@ async function processRealMessage(
   })
   const now = new Date()
   const result = await adapterFor(channel.kind)({ channel, alertContext })
-  const enriched = {
-    ...fields,
-    channelKind: channel.kind,
-    customerSlug: bundle.customer.slug,
-    jobSlug: bundle.job.slug,
-  }
   if (result.ok) {
     await Promise.all([
       markChannelDelivered(db, channel.id, now),
       markRuleFired(db, message.body.ruleId, now),
     ])
-    ackTerminal(message, result, enriched)
-    return
   }
-  if (result.retryable && message.attempts < 5) {
-    logError('alert.retry_scheduled', new Error(result.reason), enriched)
-    message.retry({ delaySeconds: retryDelaySeconds(message.attempts) })
-    return
-  }
-  ackTerminal(message, result, enriched)
+  routeAdapterResult(message, result, {
+    ...fields,
+    channelKind: channel.kind,
+    customerSlug: bundle.customer.slug,
+    jobSlug: bundle.job.slug,
+  })
 }
 
 export async function handleAlertMessage(

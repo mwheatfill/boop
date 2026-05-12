@@ -6,3 +6,11 @@ export async function enqueueAlert(
 ): Promise<void> {
   await queue.send(message)
 }
+
+export async function enqueueAlertBatch(
+  queue: Queue<AlertQueueMessage>,
+  messages: readonly AlertQueueMessage[],
+): Promise<void> {
+  if (messages.length === 0) return
+  await queue.sendBatch(messages.map((body) => ({ body })))
+}

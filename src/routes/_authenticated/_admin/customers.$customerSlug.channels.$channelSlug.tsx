@@ -7,6 +7,13 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { channelQueryOptions } from '@/lib/channels/query-options'
 import { archiveChannelFn, restoreChannelFn, sendTestAlertFn } from '@/lib/channels/server-fns'
+import type { Channel } from '@/shared/schemas/channel'
+
+function testStatusToneClass(status: Channel['lastTestAlertStatus']): string {
+  if (status === 'delivered') return 'text-success'
+  if (status === 'failed') return 'text-destructive'
+  return 'text-warning'
+}
 
 export const Route = createFileRoute(
   '/_authenticated/_admin/customers/$customerSlug/channels/$channelSlug',
@@ -141,15 +148,7 @@ function ChannelDetailPage() {
         {channel.lastTestAlertAt ? (
           <p className="text-sm text-muted-foreground">
             {new Date(channel.lastTestAlertAt).toLocaleString()} ·{' '}
-            <span
-              className={
-                channel.lastTestAlertStatus === 'delivered'
-                  ? 'text-success'
-                  : channel.lastTestAlertStatus === 'failed'
-                    ? 'text-destructive'
-                    : 'text-warning'
-              }
-            >
+            <span className={testStatusToneClass(channel.lastTestAlertStatus)}>
               {channel.lastTestAlertStatus ?? 'pending'}
             </span>
             {channel.lastTestAlertReason ? ` — ${channel.lastTestAlertReason}` : null}

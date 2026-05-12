@@ -1,6 +1,7 @@
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, sql } from 'drizzle-orm'
+import { resolveCustomerId } from '@/lib/customers/resolve'
 import type { Database } from '@/lib/db/client'
-import { alertRules, customers } from '@/lib/db/schema'
+import { alertRules } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
 import {
   type AlertRule,
@@ -39,14 +40,6 @@ export function rowToAlertRule(row: AlertRuleRow): AlertRule {
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
-}
-
-async function resolveCustomerId(db: Database, customerSlug: string): Promise<string> {
-  const row = (
-    await db.select().from(customers).where(eq(customers.slug, customerSlug)).limit(1)
-  )[0]
-  if (!row) throw new NotFoundError('Customer', customerSlug)
-  return row.id
 }
 
 export async function listAlertRulesForCustomer(
@@ -91,9 +84,9 @@ export async function countCustomerRulesForJob(
   customerSlug: string,
 ): Promise<number> {
   const customerId = await resolveCustomerId(db, customerSlug)
-  const rows = await db
-    .select({ id: alertRules.id })
+  const [row] = await db
+    .select({ count: sql<number>`count(*)` })
     .from(alertRules)
     .where(and(eq(alertRules.customerId, customerId), eq(alertRules.status, 'active')))
-  return rows.length
+  return row?.count ?? 0
 }
