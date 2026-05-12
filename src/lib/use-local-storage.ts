@@ -81,6 +81,7 @@ export function useLocalStorage<T>(
     (next: T | ((prev: T) => T)) => {
       setValue((prev) => {
         const resolved = typeof next === 'function' ? (next as (p: T) => T)(prev) : next
+        if (Object.is(resolved, prev)) return prev
         try {
           const raw = JSON.stringify(resolved)
           localStorage.setItem(key, raw)

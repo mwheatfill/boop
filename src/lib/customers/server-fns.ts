@@ -8,7 +8,7 @@ import type { Customer } from '@/shared/schemas/customer'
 import { CustomerCreateInput, CustomerUpdateInput } from '@/shared/schemas/customer'
 import { z } from '@/shared/schemas/openapi'
 import { archiveCustomer, createCustomer, restoreCustomer, updateCustomer } from './commands'
-import { countCustomers, getCustomerBySlug, listCustomers } from './queries'
+import { countCustomers, getCustomerBySlug, getOrgTimezone, listCustomers } from './queries'
 
 export const listCustomersFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
@@ -22,6 +22,14 @@ export const listCustomersFn = createServerFn({ method: 'GET' })
 export const countCustomersFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .handler(async () => countCustomers(createDb(env.DB)))
+
+export const getOrgTimezoneFn = createServerFn({ method: 'GET' })
+  .middleware([authMiddleware])
+  .handler(
+    async (): Promise<{ timezone: string }> => ({
+      timezone: await getOrgTimezone(createDb(env.DB)),
+    }),
+  )
 
 export const getCustomerFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])

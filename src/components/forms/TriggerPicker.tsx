@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { CronPreview } from '@/components/forms/CronPreview'
 import { CRON_QUICK_PICKS } from '@/components/forms/cron-quick-picks'
 import { firesPerDay, IntervalChips } from '@/components/forms/IntervalChips'
+import { TimezoneCombobox } from '@/components/forms/TimezoneCombobox'
 import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -70,14 +71,10 @@ export function TriggerPicker({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="cron-timezone" className="text-xs">
-              Timezone
-            </Label>
-            <Input
-              id="cron-timezone"
-              value={value.triggerTimezone}
-              placeholder={customerTimezone}
-              onChange={(e) => set('triggerTimezone', e.currentTarget.value)}
+            <Label className="text-xs">Timezone</Label>
+            <TimezoneCombobox
+              value={value.triggerTimezone || customerTimezone}
+              onValueChange={(tz) => set('triggerTimezone', tz)}
             />
           </div>
         </div>

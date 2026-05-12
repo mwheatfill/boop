@@ -43,3 +43,21 @@ export async function countCustomers(db: Database): Promise<number> {
   const rows = await db.select({ id: customers.id }).from(customers)
   return rows.length
 }
+
+const ORG_TIMEZONE_FALLBACK = 'America/Phoenix'
+
+export async function getOrgTimezone(db: Database): Promise<string> {
+  const orgRows = await db
+    .select({ timezone: customers.timezone })
+    .from(customers)
+    .where(eq(customers.slug, 'switchthink'))
+    .limit(1)
+  if (orgRows[0]) return orgRows[0].timezone
+
+  const earliest = await db
+    .select({ timezone: customers.timezone })
+    .from(customers)
+    .orderBy(asc(customers.createdAt))
+    .limit(1)
+  return earliest[0]?.timezone ?? ORG_TIMEZONE_FALLBACK
+}

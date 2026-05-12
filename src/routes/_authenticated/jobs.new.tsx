@@ -1,22 +1,31 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { JobModal } from '@/components/forms/JobModal'
-import { listCustomersFn } from '@/lib/customers/server-fns'
+import { isAdmin } from '@/lib/auth/is-admin'
+import { listCustomersQueryOptions, orgTimezoneQueryOptions } from '@/lib/customers/query-options'
 
-const customersOptions = queryOptions({
-  queryKey: ['customers', { includeArchived: false }],
-  queryFn: () => listCustomersFn({ data: { includeArchived: false } }),
-})
+const customersOptions = listCustomersQueryOptions(false)
 
 export const Route = createFileRoute('/_authenticated/jobs/new')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(customersOptions),
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(customersOptions),
+      context.queryClient.ensureQueryData(orgTimezoneQueryOptions),
+    ])
+  },
   component: NewJobAgnostic,
 })
 
 function NewJobAgnostic() {
   const navigate = useNavigate()
+  const { currentUser } = Route.useRouteContext()
   const { data: customers } = useSuspenseQuery(customersOptions)
   return (
-    <JobModal variant="create" customers={customers} onClose={() => navigate({ to: '/jobs' })} />
+    <JobModal
+      variant="create"
+      customers={customers}
+      isAdmin={isAdmin(currentUser)}
+      onClose={() => navigate({ to: '/jobs' })}
+    />
   )
 }
