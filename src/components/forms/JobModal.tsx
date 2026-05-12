@@ -358,12 +358,7 @@ export function JobModal({
 
           <PillButton
             label="Trigger"
-            value={triggerSummary({
-              triggerKind,
-              cronExpression,
-              intervalSeconds,
-              triggerTimezone: null,
-            })}
+            value={triggerSummary({ triggerKind, cronExpression, intervalSeconds })}
             state="filled"
             expanded
             aria-controls="trigger-section"

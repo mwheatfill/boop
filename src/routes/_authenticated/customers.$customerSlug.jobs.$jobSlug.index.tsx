@@ -9,7 +9,7 @@ import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { triggerSummary } from '@/lib/jobs/format'
+import { triggerSummaryWithTimezone } from '@/lib/jobs/format'
 import {
   archiveJobFn,
   getJobFn,
@@ -127,7 +127,7 @@ function JobDetailPage() {
       <section className="grid gap-3 sm:grid-cols-3">
         <div className="flex flex-col gap-1">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Trigger</p>
-          <p className="font-mono text-sm">{triggerSummary(job)}</p>
+          <p className="font-mono text-sm">{triggerSummaryWithTimezone(job)}</p>
         </div>
         <div className="flex flex-col gap-1">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Last run</p>
