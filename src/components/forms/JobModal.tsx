@@ -283,6 +283,7 @@ export function JobModal({
     <EntityModal
       open
       onClose={onClose}
+      size="wide"
       title={variant === 'create' ? 'New Job' : `Edit ${initialJob?.name ?? 'Job'}`}
       dirty={isDirty && !isSubmitting}
       primaryAction={{

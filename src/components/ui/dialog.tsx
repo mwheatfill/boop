@@ -31,14 +31,26 @@ function DialogBackdrop({ className, ...props }: DialogPrimitive.Backdrop.Props)
 
 const DialogOverlay = DialogBackdrop
 
-function DialogContent({ className, children, ...props }: DialogPrimitive.Popup.Props) {
+type DialogContentSize = 'default' | 'wide'
+
+interface DialogContentProps extends DialogPrimitive.Popup.Props {
+  size?: DialogContentSize
+}
+
+const DIALOG_WIDTH_BY_SIZE: Record<DialogContentSize, string> = {
+  default: 'w-[clamp(320px,90vw,600px)]',
+  wide: 'w-[clamp(320px,92vw,880px)]',
+}
+
+function DialogContent({ className, children, size = 'default', ...props }: DialogContentProps) {
   return (
     <DialogPortal>
       <DialogBackdrop />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          'group/dialog-content fixed top-1/2 left-1/2 z-50 flex w-[clamp(320px,90vw,600px)] max-h-[85vh] -translate-x-1/2 -translate-y-1/2 flex-col gap-5 overflow-y-auto rounded-lg border border-border bg-card p-6 text-card-foreground shadow-lg ring-1 ring-foreground/10 outline-none duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-[nested-dialog-open]:scale-[0.98] data-[nested-dialog-open]:opacity-90',
+          'group/dialog-content fixed top-1/2 left-1/2 z-50 flex max-h-[85vh] -translate-x-1/2 -translate-y-1/2 flex-col gap-5 overflow-y-auto rounded-lg border border-border bg-card p-6 text-card-foreground shadow-lg ring-1 ring-foreground/10 outline-none duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-[nested-dialog-open]:scale-[0.98] data-[nested-dialog-open]:opacity-90',
+          DIALOG_WIDTH_BY_SIZE[size],
           className,
         )}
         {...props}

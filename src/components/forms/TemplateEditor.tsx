@@ -1,7 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
+import { autocompletion } from '@codemirror/autocomplete'
+import { liquid } from '@codemirror/lang-liquid'
+import { linter, lintGutter } from '@codemirror/lint'
+import { EditorView } from '@codemirror/view'
+import CodeMirror from '@uiw/react-codemirror'
+import { useMemo } from 'react'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { previewBody, previewHeaders, syntheticRenderContext } from '@/lib/dispatch/render-preview'
+import { syntheticRenderContext } from '@/lib/dispatch/render-preview'
+import { boopTheme } from './codemirror-theme'
+import { liquidLintSource } from './liquid-lint'
+import { useLiquidPreview } from './use-liquid-preview'
+import {
+  makeVariableCompletionSource,
+  type SecretCompletion,
+  type VariableCompletion,
+} from './variable-completion-source'
 
 interface TemplateEditorProps {
   id: string
@@ -12,10 +24,13 @@ interface TemplateEditorProps {
   customerName: string
   customerTimezone: string
   helpText?: string
-  rows?: number
+  height?: string
+  readOnly?: boolean
+  variables?: VariableCompletion[]
+  secrets?: SecretCompletion[]
 }
 
-const DEBOUNCE_MS = 200
+const DEFAULT_HEIGHT = '240px'
 
 export function TemplateEditor({
   id,
@@ -26,43 +41,65 @@ export function TemplateEditor({
   customerName,
   customerTimezone,
   helpText,
-  rows = 6,
+  height = DEFAULT_HEIGHT,
+  readOnly = false,
+  variables,
+  secrets,
 }: TemplateEditorProps) {
   const context = useMemo(
     () => syntheticRenderContext({ customerName, customerTimezone }),
     [customerName, customerTimezone],
   )
-  const [rendered, setRendered] = useState('')
-  const [error, setError] = useState<string | undefined>(undefined)
 
-  useEffect(() => {
-    let canceled = false
-    const timer = setTimeout(async () => {
-      const result =
-        variant === 'headers'
-          ? await previewHeaders(value, context)
-          : await previewBody(value, context)
-      if (canceled) return
-      setRendered(result.rendered)
-      setError(result.error)
-    }, DEBOUNCE_MS)
-    return () => {
-      canceled = true
-      clearTimeout(timer)
-    }
-  }, [value, variant, context])
+  const preview = useLiquidPreview({ template: value, context, variant })
+
+  const extensions = useMemo(
+    () => [
+      liquid(),
+      autocompletion({
+        override: [
+          makeVariableCompletionSource({
+            ...(variables ? { variables } : {}),
+            ...(secrets ? { secrets } : {}),
+          }),
+        ],
+        activateOnTyping: true,
+      }),
+      linter(liquidLintSource, { delay: 250 }),
+      lintGutter(),
+      EditorView.lineWrapping,
+    ],
+    [variables, secrets],
+  )
 
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Textarea
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.currentTarget.value)}
-          rows={rows}
-          className="font-mono text-xs"
-        />
+      <div className="grid gap-2 md:grid-cols-[3fr_2fr]">
+        <div className="overflow-hidden rounded-md border border-border bg-card">
+          <CodeMirror
+            value={value}
+            height={height}
+            theme={boopTheme}
+            extensions={extensions}
+            onChange={onChange}
+            editable={!readOnly}
+            readOnly={readOnly}
+            basicSetup={{
+              lineNumbers: false,
+              foldGutter: false,
+              highlightActiveLine: false,
+              highlightActiveLineGutter: false,
+              dropCursor: !readOnly,
+              indentOnInput: true,
+              bracketMatching: true,
+              closeBrackets: !readOnly,
+              autocompletion: false,
+            }}
+            aria-label={label}
+            id={id}
+          />
+        </div>
         <div
           aria-live="polite"
           className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 px-3 py-2"
@@ -70,11 +107,11 @@ export function TemplateEditor({
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Preview
           </p>
-          {error ? (
-            <p className="text-xs text-destructive">{error}</p>
+          {preview.error ? (
+            <p className="text-xs text-destructive">{preview.error}</p>
           ) : (
             <pre className="whitespace-pre-wrap break-words font-mono text-xs text-foreground">
-              {rendered || <span className="text-muted-foreground">(empty)</span>}
+              {preview.rendered || <span className="text-muted-foreground">(empty)</span>}
             </pre>
           )}
         </div>
