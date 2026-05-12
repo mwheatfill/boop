@@ -25,6 +25,17 @@ pnpm exec wrangler queues create boop-alerts-prod
 pnpm exec wrangler queues create boop-alerts-dlq-prod
 ```
 
+The dev environment (top-level `wrangler.jsonc` block, used by `deploy-dev`) needs the matching `-dev` siblings:
+
+```sh
+pnpm exec wrangler d1 create boop-dev
+pnpm exec wrangler r2 bucket create boop-bodies-dev
+pnpm exec wrangler queues create boop-dispatch-dev
+pnpm exec wrangler queues create boop-dispatch-dlq-dev
+pnpm exec wrangler queues create boop-alerts-dev
+pnpm exec wrangler queues create boop-alerts-dlq-dev
+```
+
 Durable Object class registration happens automatically on the first `wrangler deploy --env production`.
 
 ## 2. Wire the custom domain
