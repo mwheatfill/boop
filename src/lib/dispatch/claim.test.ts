@@ -20,6 +20,7 @@ async function seedJob() {
     id: targetId,
     customerId,
     name: 'Health',
+    slug: 'health',
     url: 'https://example.test/ping',
     method: 'GET',
   })

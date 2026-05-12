@@ -58,6 +58,7 @@ export const targets = sqliteTable(
       .notNull()
       .references(() => customers.id, { onDelete: 'restrict' }),
     name: text('name').notNull(),
+    slug: text('slug').notNull(),
     url: text('url').notNull(),
     method: text('method').notNull(),
     authKind: enumColumn('auth_kind', TARGET_AUTH_KINDS).notNull().default('none'),
@@ -67,6 +68,7 @@ export const targets = sqliteTable(
     ...timestamps(),
   },
   (table) => [
+    uniqueIndex('targets_customer_slug_idx').on(table.customerId, table.slug),
     index('targets_customer_status_idx').on(table.customerId, table.status),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
     lifecycleCheck(table.reachability, TARGET_REACHABILITIES),

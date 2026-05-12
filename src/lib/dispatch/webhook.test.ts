@@ -38,6 +38,7 @@ async function seedJobForWebhook(db: Database, o: JobOverrides = {}) {
     id: targetId,
     customerId,
     name: 'Health',
+    slug: 'health',
     url: 'https://example.test/ping',
     method: 'POST',
   })

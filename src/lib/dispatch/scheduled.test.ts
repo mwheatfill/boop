@@ -32,6 +32,7 @@ async function seedTarget(db: Database, customerId: string) {
     id: targetId,
     customerId,
     name: 'Health',
+    slug: 'health',
     url: 'https://example.test/ping',
     method: 'GET',
   })
