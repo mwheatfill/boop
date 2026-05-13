@@ -31,7 +31,13 @@ export function openLocalD1(): LocalDbHandle {
       `Multiple D1 sqlite files found in ${dir} (${files.join(', ')}). Remove the stale ones before seeding.`,
     )
   }
-  const filePath = join(dir, files[0]!)
+  const [sqliteFile] = files
+  if (!sqliteFile) {
+    throw new Error(
+      `No D1 sqlite file found in ${dir}. Run \`pnpm db:migrate:local\` to materialize one.`,
+    )
+  }
+  const filePath = join(dir, sqliteFile)
   const sqlite = new Database(filePath)
   sqlite.pragma('foreign_keys = ON')
   sqlite.pragma('journal_mode = WAL')

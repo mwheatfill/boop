@@ -1,5 +1,14 @@
 import { Link } from '@tanstack/react-router'
-import { Activity, Bell, Building2, History, Home, Pin, SendHorizonal } from 'lucide-react'
+import {
+  Activity,
+  Bell,
+  BookTemplate,
+  Building2,
+  History,
+  Home,
+  Pin,
+  SendHorizonal,
+} from 'lucide-react'
 import type { ComponentType, ReactNode } from 'react'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { UserMenu } from '@/components/UserMenu'
@@ -26,7 +35,7 @@ interface AppSidebarProps {
 
 interface NavItem {
   label: string
-  to: '/' | '/jobs' | '/customers' | '/runs' | '/channels' | '/alert-rules'
+  to: '/' | '/jobs' | '/customers' | '/runs' | '/templates' | '/channels' | '/alert-rules'
   icon: ComponentType<{ 'aria-hidden'?: boolean }>
   exact?: boolean
   adminOnly?: boolean
@@ -35,6 +44,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { label: 'Home', to: '/', icon: Home, exact: true },
   { label: 'Jobs', to: '/jobs', icon: Activity },
+  { label: 'Templates', to: '/templates', icon: BookTemplate },
   { label: 'Customers', to: '/customers', icon: Building2 },
   { label: 'Runs', to: '/runs', icon: History },
   { label: 'Channels', to: '/channels', icon: SendHorizonal, adminOnly: true },

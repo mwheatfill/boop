@@ -2,7 +2,7 @@ import { useForm, useStore } from '@tanstack/react-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { CustomerModal } from '@/components/forms/CustomerModal'
 import { EntityModal } from '@/components/forms/EntityModal'
@@ -17,6 +17,7 @@ import { TargetModal } from '@/components/forms/TargetModal'
 import { TemplateEditor } from '@/components/forms/TemplateEditor'
 import { TriggerPicker } from '@/components/forms/TriggerPicker'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
+import { TemplateGallery } from '@/components/templates/TemplateGallery'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { customerSecretsQueryOptions } from '@/lib/customer-secrets/query-options'
@@ -24,6 +25,8 @@ import { PICKER_KEYS, PICKER_RECENT_LIMITS } from '@/lib/forms/picker-keys'
 import { useEntityDefault } from '@/lib/forms/use-entity-default'
 import { useLastUsed } from '@/lib/forms/use-last-used'
 import { usePickerRecents } from '@/lib/forms/use-picker-recents'
+import { instantiateFromTemplate } from '@/lib/job-templates/instantiate'
+import { listJobTemplatesQueryOptions } from '@/lib/job-templates/query-options'
 import { triggerSummaryWithTimezone } from '@/lib/jobs/format'
 import { createJobFn, updateJobFn } from '@/lib/jobs/server-fns'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
@@ -31,6 +34,7 @@ import { slugify } from '@/lib/slug/slugify'
 import { listTargetsQueryOptions } from '@/lib/targets/query-options'
 import type { Customer } from '@/shared/schemas/customer'
 import type { Job, TriggerKind } from '@/shared/schemas/job'
+import type { JobTemplate } from '@/shared/schemas/job-template'
 import type { Target } from '@/shared/schemas/target'
 
 type CustomerOption = Pick<Customer, 'slug' | 'name' | 'timezone' | 'variables'>
@@ -57,6 +61,7 @@ interface JobModalProps {
   customers: CustomerOption[]
   initialJob?: Job
   initialTargets?: Target[]
+  initialTemplateId?: string | undefined
   isAdmin: boolean
   onClose: () => void
 }
@@ -68,6 +73,12 @@ const ADMIN_ONLY_REASON = 'Admin only'
 
 const BODY_HELP_TEXT =
   'LiquidJS. Available: {{ run_id }}, {{ attempt_number }}, {{ customer_name }}, {{ customer_timezone }}, {{ now }}, plus operator-defined variables. {% boop_secret "name" %} pulls a Customer secret at fire time.'
+
+type TemplateApplyOptions = {
+  template: JobTemplate
+  customerSlug: string
+  fallbackTimezone: string
+}
 
 function buildVariableRows(
   customerVars: Record<string, string>,
@@ -111,6 +122,7 @@ export function JobModal({
   customers,
   initialJob,
   initialTargets,
+  initialTemplateId,
   isAdmin,
   onClose,
 }: JobModalProps) {
@@ -159,6 +171,8 @@ export function JobModal({
   const [nestedTargetOpen, setNestedTargetOpen] = useState(false)
   const [nestedCustomerOpen, setNestedCustomerOpen] = useState(false)
   const [nestedCustomerSeed, setNestedCustomerSeed] = useState('')
+  const [view, setView] = useState<'form' | 'templates'>('form')
+  const [targetPlaceholder, setTargetPlaceholder] = useState<string | null>(null)
 
   const form = useForm({
     defaultValues: {
@@ -284,6 +298,10 @@ export function JobModal({
     ...customerSecretsQueryOptions(customerSlug),
     enabled: customerSlug.length > 0,
   })
+  const templatesQuery = useQuery({
+    ...listJobTemplatesQueryOptions(customerSlug || undefined),
+    enabled: variant === 'create',
+  })
   const secretNames = useMemo(
     () => (secretsQuery.data?.secrets ?? []).map((s) => ({ name: s.name })),
     [secretsQuery.data],
@@ -320,6 +338,58 @@ export function JobModal({
 
   const selectedCustomer = customers.find((c) => c.slug === customerSlug) ?? initialCustomer ?? null
   const selectedTarget = targets.find((t) => t.slug === form.state.values.targetSlug) ?? null
+
+  const applyTemplate = useCallback(
+    ({ template, customerSlug, fallbackTimezone }: TemplateApplyOptions) => {
+      const input = instantiateFromTemplate(template, customerSlug)
+      const trigger = input.trigger
+
+      form.setFieldValue('name', input.name)
+      form.setFieldValue('slug', slugify(input.name))
+      form.setFieldValue('customerSlug', input.customerSlug)
+      form.setFieldValue('targetSlug', input.targetSlug)
+      form.setFieldValue('triggerKind', trigger.triggerKind)
+      form.setFieldValue(
+        'cronExpression',
+        trigger.triggerKind === 'cron' ? trigger.cronExpression : DEFAULT_CRON,
+      )
+      form.setFieldValue(
+        'intervalSeconds',
+        trigger.triggerKind === 'interval' ? trigger.intervalSeconds : DEFAULT_INTERVAL,
+      )
+      form.setFieldValue(
+        'triggerTimezone',
+        trigger.triggerKind === 'cron' ? trigger.triggerTimezone : fallbackTimezone,
+      )
+      form.setFieldValue('bodyTemplate', input.bodyTemplate)
+      form.setFieldValue('headersTemplate', input.headersTemplate)
+      form.setFieldValue('variables', input.variables ?? {})
+      form.setFieldValue('maxAttempts', input.maxAttempts)
+      form.setFieldValue('overallDeadlineMs', input.overallDeadlineMs)
+      setTargetPlaceholder(template.scope === 'workspace' ? template.targetRef : null)
+    },
+    [form],
+  )
+
+  useEffect(() => {
+    if (!initialTemplateId || variant !== 'create') return
+    const template = templatesQuery.data?.find((t) => t.id === initialTemplateId)
+    if (!template) return
+    const templateCustomerSlug = customerSlug || selectedCustomer?.slug
+    if (!templateCustomerSlug) return
+    applyTemplate({
+      template,
+      customerSlug: templateCustomerSlug,
+      fallbackTimezone: selectedCustomer?.timezone ?? 'UTC',
+    })
+  }, [
+    initialTemplateId,
+    templatesQuery.data,
+    variant,
+    customerSlug,
+    selectedCustomer,
+    applyTemplate,
+  ])
 
   const customerCreateAffordance = isAdmin
     ? {
@@ -409,158 +479,210 @@ export function JobModal({
           )}
         </form.Field>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <SearchableCombobox<CustomerOption>
-            label="Customer"
-            required
-            disabled={variant === 'edit'}
-            items={customers}
-            recents={customerRecents.recents}
-            value={selectedCustomer}
-            onValueChange={(next) => {
-              if (!next) return
-              form.setFieldValue('customerSlug', next.slug)
-              form.setFieldValue('triggerTimezone', next.timezone)
-              form.setFieldValue('targetSlug', '')
-            }}
-            getId={(c) => c.slug}
-            getLabel={(c) => c.name}
-            getSecondary={(c) => c.slug}
-            searchKeywords={(c) => [c.slug]}
-            createAffordance={customerCreateAffordance}
-          />
-
-          {targets.length === 0 && customerSlug ? (
+        {variant === 'create' ? (
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
-              variant="outline"
               size="sm"
-              onClick={() => setNestedTargetOpen(true)}
-              disabled={!isAdmin}
-              className="rounded-full"
+              variant={view === 'form' ? 'default' : 'outline'}
+              onClick={() => setView('form')}
             >
-              <Plus aria-hidden /> New Target
+              Start from scratch
             </Button>
-          ) : (
-            <SearchableCombobox<Target>
-              label="Target"
-              required
-              disabled={!customerSlug}
-              items={targets}
-              recents={targetRecents.recents}
-              value={selectedTarget}
-              onValueChange={(next) => {
-                if (!next) return
-                form.setFieldValue('targetSlug', next.slug)
-              }}
-              getId={(t) => t.slug}
-              getLabel={(t) => t.name}
-              getSecondary={(t) => t.method}
-              searchKeywords={(t) => [t.slug, t.url]}
-              createAffordance={targetCreateAffordance}
-            />
-          )}
+            <Button
+              type="button"
+              size="sm"
+              variant={view === 'templates' ? 'default' : 'outline'}
+              onClick={() => setView('templates')}
+            >
+              Use a template
+            </Button>
+          </div>
+        ) : null}
 
-          <PillButton
-            label="Trigger"
-            value={triggerSummaryWithTimezone({
-              triggerKind,
-              cronExpression,
-              intervalSeconds,
-              triggerTimezone,
-            })}
-            state="filled"
-          />
-
-          <form.Subscribe selector={(s) => s.values.variables}>
-            {(vars) => {
-              const customerKeys = Object.keys(selectedCustomer?.variables ?? {}).length
-              const jobKeys = Object.keys(vars).length
-              return (
-                <PillButton
-                  label="Variables"
-                  value={
-                    customerKeys + jobKeys === 0 ? 'None' : `${customerKeys + jobKeys} effective`
-                  }
-                  state={customerKeys + jobKeys === 0 ? 'empty' : 'filled'}
-                />
-              )
+        {view === 'templates' ? (
+          <TemplateGallery
+            compact
+            templates={templatesQuery.data ?? []}
+            onSelect={(template) => {
+              const templateCustomerSlug = customerSlug || selectedCustomer?.slug
+              if (!templateCustomerSlug) return
+              applyTemplate({
+                template,
+                customerSlug: templateCustomerSlug,
+                fallbackTimezone: selectedCustomer?.timezone ?? 'UTC',
+              })
+              setView('form')
             }}
-          </form.Subscribe>
-
-          <form.Subscribe selector={(s) => s.values.bodyTemplate}>
-            {(body) => (
-              <PillButton
-                label="Body"
-                value={body ? 'Set' : 'Empty'}
-                state={body ? 'filled' : 'empty'}
-              />
-            )}
-          </form.Subscribe>
-        </div>
-
-        <section id="trigger-section" className="rounded-md border border-border bg-muted/20 p-3">
-          <TriggerPicker
-            value={{ triggerKind, cronExpression, intervalSeconds, triggerTimezone }}
-            onChange={(next) => {
-              form.setFieldValue('triggerKind', next.triggerKind)
-              form.setFieldValue('cronExpression', next.cronExpression)
-              form.setFieldValue('intervalSeconds', next.intervalSeconds)
-              form.setFieldValue('triggerTimezone', next.triggerTimezone)
-            }}
-            customerSlug={customerSlug}
-            customerTimezone={selectedCustomer?.timezone ?? 'UTC'}
-            {...(variant === 'edit' && initialJob?.triggerKind === 'webhook'
-              ? { webhookEditJobSlug: initialJob.slug }
-              : {})}
           />
-        </section>
+        ) : (
+          <>
+            {targetPlaceholder ? (
+              <p className="rounded-md border border-info/30 bg-info/10 px-3 py-2 text-sm text-info">
+                This workspace template expects a Target for `{targetPlaceholder}`. Pick the
+                matching Customer Target before creating the Job.
+              </p>
+            ) : null}
 
-        <section
-          id="variables-section"
-          className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-3"
-        >
-          <p className="text-xs text-muted-foreground/70">
-            Effective variables for this Job's templates. Customer-level entries are inherited; Job
-            entries with the same name override.
-          </p>
-          <form.Field name="variables">
-            {(field) => (
-              <KeyValueListEditor
-                rows={buildVariableRows(selectedCustomer?.variables ?? {}, field.state.value)}
-                onChange={(next) => {
-                  const overridesAndJobOnly = next.filter(
-                    (r) => r.source !== 'customer' && r.name.length > 0,
-                  )
-                  field.handleChange(rowsToVariableMap(overridesAndJobOnly))
+            <div className="flex flex-wrap items-center gap-2">
+              <SearchableCombobox<CustomerOption>
+                label="Customer"
+                required
+                disabled={variant === 'edit'}
+                items={customers}
+                recents={customerRecents.recents}
+                value={selectedCustomer}
+                onValueChange={(next) => {
+                  if (!next) return
+                  form.setFieldValue('customerSlug', next.slug)
+                  form.setFieldValue('triggerTimezone', next.timezone)
+                  form.setFieldValue('targetSlug', '')
                 }}
-                addLabel="Add Job variable"
+                getId={(c) => c.slug}
+                getLabel={(c) => c.name}
+                getSecondary={(c) => c.slug}
+                searchKeywords={(c) => [c.slug]}
+                createAffordance={customerCreateAffordance}
               />
-            )}
-          </form.Field>
-        </section>
 
-        <section id="body-section" className="rounded-md border border-border bg-muted/20 p-3">
-          <form.Field name="bodyTemplate">
-            {(field) => (
-              <TemplateEditor
-                id={field.name}
-                label="Body"
-                value={field.state.value}
-                onChange={(v) => field.handleChange(v)}
-                variant="body"
-                customerName={selectedCustomer?.name ?? ''}
-                customerTimezone={selectedCustomer?.timezone ?? 'UTC'}
-                variables={buildAutocompleteVariables(
-                  selectedCustomer?.variables ?? {},
-                  form.state.values.variables,
-                )}
-                secrets={secretNames}
-                helpText={BODY_HELP_TEXT}
+              {targets.length === 0 && customerSlug ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setNestedTargetOpen(true)}
+                  disabled={!isAdmin}
+                  className="rounded-full"
+                >
+                  <Plus aria-hidden /> New Target
+                </Button>
+              ) : (
+                <SearchableCombobox<Target>
+                  label="Target"
+                  required
+                  disabled={!customerSlug}
+                  items={targets}
+                  recents={targetRecents.recents}
+                  value={selectedTarget}
+                  onValueChange={(next) => {
+                    if (!next) return
+                    form.setFieldValue('targetSlug', next.slug)
+                  }}
+                  getId={(t) => t.slug}
+                  getLabel={(t) => t.name}
+                  getSecondary={(t) => t.method}
+                  searchKeywords={(t) => [t.slug, t.url]}
+                  createAffordance={targetCreateAffordance}
+                />
+              )}
+
+              <PillButton
+                label="Trigger"
+                value={triggerSummaryWithTimezone({
+                  triggerKind,
+                  cronExpression,
+                  intervalSeconds,
+                  triggerTimezone,
+                })}
+                state="filled"
               />
-            )}
-          </form.Field>
-        </section>
+
+              <form.Subscribe selector={(s) => s.values.variables}>
+                {(vars) => {
+                  const customerKeys = Object.keys(selectedCustomer?.variables ?? {}).length
+                  const jobKeys = Object.keys(vars).length
+                  return (
+                    <PillButton
+                      label="Variables"
+                      value={
+                        customerKeys + jobKeys === 0
+                          ? 'None'
+                          : `${customerKeys + jobKeys} effective`
+                      }
+                      state={customerKeys + jobKeys === 0 ? 'empty' : 'filled'}
+                    />
+                  )
+                }}
+              </form.Subscribe>
+
+              <form.Subscribe selector={(s) => s.values.bodyTemplate}>
+                {(body) => (
+                  <PillButton
+                    label="Body"
+                    value={body ? 'Set' : 'Empty'}
+                    state={body ? 'filled' : 'empty'}
+                  />
+                )}
+              </form.Subscribe>
+            </div>
+
+            <section
+              id="trigger-section"
+              className="rounded-md border border-border bg-muted/20 p-3"
+            >
+              <TriggerPicker
+                value={{ triggerKind, cronExpression, intervalSeconds, triggerTimezone }}
+                onChange={(next) => {
+                  form.setFieldValue('triggerKind', next.triggerKind)
+                  form.setFieldValue('cronExpression', next.cronExpression)
+                  form.setFieldValue('intervalSeconds', next.intervalSeconds)
+                  form.setFieldValue('triggerTimezone', next.triggerTimezone)
+                }}
+                customerSlug={customerSlug}
+                customerTimezone={selectedCustomer?.timezone ?? 'UTC'}
+                {...(variant === 'edit' && initialJob?.triggerKind === 'webhook'
+                  ? { webhookEditJobSlug: initialJob.slug }
+                  : {})}
+              />
+            </section>
+
+            <section
+              id="variables-section"
+              className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-3"
+            >
+              <p className="text-xs text-muted-foreground/70">
+                Effective variables for this Job's templates. Customer-level entries are inherited;
+                Job entries with the same name override.
+              </p>
+              <form.Field name="variables">
+                {(field) => (
+                  <KeyValueListEditor
+                    rows={buildVariableRows(selectedCustomer?.variables ?? {}, field.state.value)}
+                    onChange={(next) => {
+                      const overridesAndJobOnly = next.filter(
+                        (r) => r.source !== 'customer' && r.name.length > 0,
+                      )
+                      field.handleChange(rowsToVariableMap(overridesAndJobOnly))
+                    }}
+                    addLabel="Add Job variable"
+                  />
+                )}
+              </form.Field>
+            </section>
+
+            <section id="body-section" className="rounded-md border border-border bg-muted/20 p-3">
+              <form.Field name="bodyTemplate">
+                {(field) => (
+                  <TemplateEditor
+                    id={field.name}
+                    label="Body"
+                    value={field.state.value}
+                    onChange={(v) => field.handleChange(v)}
+                    variant="body"
+                    customerName={selectedCustomer?.name ?? ''}
+                    customerTimezone={selectedCustomer?.timezone ?? 'UTC'}
+                    variables={buildAutocompleteVariables(
+                      selectedCustomer?.variables ?? {},
+                      form.state.values.variables,
+                    )}
+                    secrets={secretNames}
+                    helpText={BODY_HELP_TEXT}
+                  />
+                )}
+              </form.Field>
+            </section>
+          </>
+        )}
 
         {formError ? <p className="text-sm text-destructive">{String(formError)}</p> : null}
       </form>

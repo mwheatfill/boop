@@ -3,7 +3,9 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { JobModal } from '@/components/forms/JobModal'
 import { isAdmin } from '@/lib/auth/is-admin'
 import { getCustomerFn, listCustomersFn } from '@/lib/customers/server-fns'
+import { listJobTemplatesQueryOptions } from '@/lib/job-templates/query-options'
 import { listTargetsForCustomerFn } from '@/lib/targets/server-fns'
+import { z } from '@/shared/schemas/openapi'
 
 const customerOptions = (slug: string) =>
   queryOptions({
@@ -23,17 +25,20 @@ const targetsOptions = (customerSlug: string) =>
   })
 
 export const Route = createFileRoute('/_authenticated/customers/$customerSlug/jobs/new')({
+  validateSearch: z.object({ from: z.string().optional() }),
   loader: ({ context, params }) =>
     Promise.all([
       context.queryClient.ensureQueryData(customerOptions(params.customerSlug)),
       context.queryClient.ensureQueryData(customersOptions),
       context.queryClient.ensureQueryData(targetsOptions(params.customerSlug)),
+      context.queryClient.ensureQueryData(listJobTemplatesQueryOptions(params.customerSlug)),
     ]),
   component: NewJobRoute,
 })
 
 function NewJobRoute() {
   const { customerSlug } = Route.useParams()
+  const search = Route.useSearch()
   const navigate = useNavigate()
   const { currentUser } = Route.useRouteContext()
   const { data: customer } = useSuspenseQuery(customerOptions(customerSlug))
@@ -46,6 +51,7 @@ function NewJobRoute() {
       presetCustomer={customer}
       customers={customers}
       initialTargets={targets}
+      initialTemplateId={search.from}
       isAdmin={isAdmin(currentUser)}
       onClose={() => navigate({ to: '/customers/$customerSlug', params: { customerSlug } })}
     />

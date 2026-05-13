@@ -7,6 +7,7 @@ import { AlertsAppliedPanel } from '@/components/alerts/AlertsAppliedPanel'
 import { ContentChrome } from '@/components/ContentChrome'
 import { JobActionsMenu } from '@/components/forms/JobActionsMenu'
 import { RecentRunsPanel } from '@/components/forms/RecentRunsPanel'
+import { SaveJobTemplateModal } from '@/components/forms/SaveJobTemplateModal'
 import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
 import { useShortcut } from '@/components/keyboard/use-shortcut'
 import { PinButton } from '@/components/PinButton'
@@ -42,6 +43,7 @@ function JobDetailPage() {
   const queryClient = useQueryClient()
   const { data: job } = useSuspenseQuery(jobOptions(customerSlug, jobSlug))
   const [archiveBlock, setArchiveBlock] = useState<string | null>(null)
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false)
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['customers', customerSlug] })
@@ -101,6 +103,11 @@ function JobDetailPage() {
     },
     { description: 'Edit Job', section: 'page' },
   )
+
+  useShortcut('n l', () => setSaveTemplateOpen(true), {
+    description: 'Save as template',
+    section: 'page',
+  })
 
   return (
     <div className="flex flex-col gap-8">
@@ -175,6 +182,7 @@ function JobDetailPage() {
                 })
               }}
               onRestore={simpleAction(restoreJobFn, 'Restored')}
+              onSaveAsTemplate={() => setSaveTemplateOpen(true)}
             />
             <ContentChrome />
           </div>
@@ -250,6 +258,10 @@ function JobDetailPage() {
         <h2 className="text-lg font-medium">Recent Runs</h2>
         <RecentRunsPanel jobId={job.id} customerSlug={customerSlug} jobSlug={jobSlug} />
       </section>
+
+      {saveTemplateOpen ? (
+        <SaveJobTemplateModal job={job} onClose={() => setSaveTemplateOpen(false)} />
+      ) : null}
     </div>
   )
 }

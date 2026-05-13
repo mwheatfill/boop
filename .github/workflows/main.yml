@@ -116,6 +116,7 @@ jobs:
           else
             echo "No migrations to apply (empty schema)."
           fi
+          pnpm exec wrangler d1 execute DB --remote --file scripts/starter-recipes.sql
 
       - name: Deploy to dev
         # cloudflare/wrangler-action is Cloudflare's canonical CI deploy
