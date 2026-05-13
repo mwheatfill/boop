@@ -53,7 +53,7 @@ function ChannelDetailPage() {
         toast.error(result.message ?? 'Could not queue test alert')
         return
       }
-      toast.message('Test alert queued — watch for status below.')
+      toast.message('Test alert queued, watch for status below.')
       await queryClient.invalidateQueries({
         queryKey: ['customers', customerSlug, 'channels', channelSlug],
       })

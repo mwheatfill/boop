@@ -1,4 +1,17 @@
 const ZERO_DECIMAL_CURRENCIES = new Set(['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'UGX'])
+const DEFAULT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
+const DEFAULT_PERCENT_FORMATTER = new Intl.NumberFormat('en-US', {
+  style: 'percent',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+})
+const DEFAULT_LOCAL_DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+})
 
 function fractionDigitsFor(currency: string): number {
   return ZERO_DECIMAL_CURRENCIES.has(currency.toUpperCase()) ? 0 : 2
@@ -13,10 +26,12 @@ export function formatMoney(minorUnits: number, currency: string, locale = 'en-U
 }
 
 export function formatNumber(value: number, locale = 'en-US'): string {
+  if (locale === 'en-US') return DEFAULT_NUMBER_FORMATTER.format(value)
   return new Intl.NumberFormat(locale).format(value)
 }
 
 export function formatPercent(ratio: number, locale = 'en-US', fractionDigits = 0): string {
+  if (locale === 'en-US' && fractionDigits === 0) return DEFAULT_PERCENT_FORMATTER.format(ratio)
   return new Intl.NumberFormat(locale, {
     style: 'percent',
     minimumFractionDigits: fractionDigits,
@@ -35,6 +50,10 @@ export function relativeAgo(ms: number, now = Date.now()): string {
 }
 
 const tzDateFormatterCache = new Map<string, Intl.DateTimeFormat>()
+
+export function formatLocalDateTime(iso: string): string {
+  return DEFAULT_LOCAL_DATE_TIME_FORMATTER.format(new Date(iso))
+}
 
 export function formatInTimezone(iso: string, timeZone: string): string {
   let fmt = tzDateFormatterCache.get(timeZone)

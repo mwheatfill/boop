@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { DateTime } from '@/components/DateTime'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,10 +32,6 @@ async function copyToClipboard(value: string) {
 interface CustomerSecretsPanelProps {
   customerSlug: string
   canEdit: boolean
-}
-
-function formatTimestamp(iso: string): string {
-  return new Date(iso).toLocaleString()
 }
 
 export function CustomerSecretsPanel({ customerSlug, canEdit }: CustomerSecretsPanelProps) {
@@ -105,8 +102,8 @@ export function CustomerSecretsPanel({ customerSlug, canEdit }: CustomerSecretsP
               <div className="flex flex-col gap-0.5">
                 <span className="font-mono text-xs text-foreground">{s.name}</span>
                 <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                  Created {formatTimestamp(s.createdAt)} ·{' '}
-                  {s.lastUsedAt ? `last used ${formatTimestamp(s.lastUsedAt)}` : 'Never used'}
+                  Created <DateTime value={s.createdAt} /> · last used{' '}
+                  <DateTime value={s.lastUsedAt} fallback="never" />
                 </span>
               </div>
               {canEdit ? (

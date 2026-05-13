@@ -22,7 +22,10 @@ export function usePickerRecents<T>(
 
   const recents = useMemo(() => {
     const byId = new Map(items.map((item) => [getId(item), item]))
-    return ids.map((id) => byId.get(id)).filter((item): item is T => item != null)
+    return ids.flatMap((id) => {
+      const item = byId.get(id)
+      return item ? [item] : []
+    })
   }, [ids, items, getId])
 
   const recordUse = useCallback(

@@ -2,6 +2,7 @@ import { queryOptions, useQueryClient, useSuspenseQuery } from '@tanstack/react-
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Play } from 'lucide-react'
 import { toast } from 'sonner'
+import { DateTime } from '@/components/DateTime'
 import { AttemptCard } from '@/components/forms/AttemptCard'
 import { RunStatusBadge } from '@/components/RunStatusBadge'
 import { Button } from '@/components/ui/button'
@@ -77,7 +78,7 @@ function RunDetailPage() {
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-semibold tracking-tight">Run {run.id}</h1>
             <p className="text-sm text-muted-foreground">
-              {run.triggerSource} · scheduled {new Date(run.scheduledAt).toLocaleString()}
+              {run.triggerSource} · scheduled <DateTime value={run.scheduledAt} />
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -104,18 +105,20 @@ function RunDetailPage() {
       <section className="grid gap-3 sm:grid-cols-4">
         <div>
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Scheduled</p>
-          <p className="text-sm">{new Date(run.scheduledAt).toLocaleString()}</p>
+          <p className="text-sm">
+            <DateTime value={run.scheduledAt} />
+          </p>
         </div>
         <div>
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Started</p>
           <p className="text-sm">
-            {run.startedAt ? new Date(run.startedAt).toLocaleString() : '—'}
+            <DateTime value={run.startedAt} fallback="Not started" />
           </p>
         </div>
         <div>
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Completed</p>
           <p className="text-sm">
-            {run.completedAt ? new Date(run.completedAt).toLocaleString() : '—'}
+            <DateTime value={run.completedAt} fallback="Not completed" />
           </p>
         </div>
         <div>

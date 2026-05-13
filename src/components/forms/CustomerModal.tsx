@@ -158,7 +158,6 @@ export function CustomerModal(props: CustomerModalProps) {
                 value={field.state.value}
                 placeholder="Name this Customer…"
                 onChange={(e) => field.handleChange(e.currentTarget.value)}
-                autoFocus
                 className="h-auto border-0 bg-transparent px-0 text-xl font-medium tracking-tight shadow-none placeholder:text-muted-foreground/50 focus-visible:ring-0"
               />
               <form.Field name="slug">

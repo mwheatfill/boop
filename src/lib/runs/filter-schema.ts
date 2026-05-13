@@ -15,10 +15,10 @@ const csvArray = <T extends string>(values: readonly T[]) =>
       if (typeof value === 'string') {
         if (value === '') return [] as T[]
         const set = new Set<string>(values)
-        return value
-          .split(',')
-          .map((s) => s.trim())
-          .filter((s): s is T => set.has(s))
+        return value.split(',').flatMap((raw): T[] => {
+          const trimmed = raw.trim()
+          return set.has(trimmed) ? [trimmed as T] : []
+        })
       }
       return value
     })
@@ -29,10 +29,10 @@ const csvSlugs = z
   .union([z.string(), z.array(z.string())])
   .transform((value): string[] => {
     if (typeof value === 'string') {
-      return value
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
+      return value.split(',').flatMap((raw) => {
+        const trimmed = raw.trim()
+        return trimmed ? [trimmed] : []
+      })
     }
     return value
   })

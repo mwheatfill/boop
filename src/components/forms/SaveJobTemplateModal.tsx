@@ -125,7 +125,6 @@ export function SaveJobTemplateModal({ job, onClose }: SaveJobTemplateModalProps
                 value={field.state.value}
                 onChange={(event) => field.handleChange(event.currentTarget.value)}
                 placeholder="Template name"
-                autoFocus
               />
               <form.Field name="slug">
                 {(slugField) => (

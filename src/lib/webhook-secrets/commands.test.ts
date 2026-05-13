@@ -83,7 +83,7 @@ describe('rotateSecret', () => {
 
     const rows = await db.select().from(webhookSecrets).where(eq(webhookSecrets.jobId, jobId))
     expect(rows).toHaveLength(3)
-    const expiries = rows.filter((r) => r.expiresAt !== null).map((r) => r.expiresAt?.getTime())
+    const expiries = rows.flatMap((r) => (r.expiresAt ? [r.expiresAt.getTime()] : []))
     expect(expiries).toContain(firstRotateAt.getTime() + 24 * 3_600_000)
     expect(expiries).toContain(secondRotateAt.getTime() + 12 * 3_600_000)
   })

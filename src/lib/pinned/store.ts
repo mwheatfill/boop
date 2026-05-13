@@ -33,7 +33,7 @@ export function parsePins(raw: unknown): PinnedEntity[] | null {
 }
 
 export function sortPins(pins: PinnedEntity[]): PinnedEntity[] {
-  return [...pins].sort((a, b) =>
-    a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }),
-  )
+  return pins
+    .slice()
+    .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }))
 }

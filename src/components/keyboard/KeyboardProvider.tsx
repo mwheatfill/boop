@@ -2,8 +2,8 @@ import {
   createContext,
   type ReactNode,
   type RefObject,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -36,7 +36,7 @@ interface KeyboardContextValue {
 const KeyboardContext = createContext<KeyboardContextValue | null>(null)
 
 export function useKeyboard(): KeyboardContextValue {
-  const ctx = useContext(KeyboardContext)
+  const ctx = use(KeyboardContext)
   if (!ctx) throw new Error('useKeyboard must be used inside <KeyboardProvider>')
   return ctx
 }

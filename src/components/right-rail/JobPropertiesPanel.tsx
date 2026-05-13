@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
+import { DateTime } from '@/components/DateTime'
 import { StatusBadge } from '@/components/StatusBadge'
 import { triggerSummaryWithTimezone } from '@/lib/jobs/format'
 import { getJobFn } from '@/lib/jobs/server-fns'
@@ -46,10 +47,10 @@ export function JobPropertiesPanel({ customerSlug, jobSlug }: JobPropertiesPanel
             {triggerSummaryWithTimezone(job)}
           </PropertyRow>
           <PropertyRow label="Last run">
-            {job.lastFireAt ? new Date(job.lastFireAt).toLocaleString() : '—'}
+            <DateTime value={job.lastFireAt} fallback="No Runs yet" />
           </PropertyRow>
           <PropertyRow label="Next run">
-            {job.nextFireAt ? new Date(job.nextFireAt).toLocaleString() : '—'}
+            <DateTime value={job.nextFireAt} fallback="Not scheduled" />
           </PropertyRow>
           <PropertyRow label="Max attempts">{job.maxAttempts}</PropertyRow>
           <PropertyRow label="Overall deadline">{`${Math.round(job.overallDeadlineMs / 1000)}s`}</PropertyRow>

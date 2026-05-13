@@ -97,10 +97,10 @@ function buildConfig(values: ChannelFormValues) {
   if (values.kind === 'email') {
     return {
       kind: 'email' as const,
-      recipients: values.emailRecipients
-        .split(/[\s,;]+/)
-        .map((s) => s.trim())
-        .filter(Boolean),
+      recipients: values.emailRecipients.split(/[\s,;]+/).flatMap((s) => {
+        const recipient = s.trim()
+        return recipient ? [recipient] : []
+      }),
       subject_template: values.emailSubject,
       body_template: values.emailBody,
     }
@@ -119,9 +119,9 @@ function parseHeaders(raw: string): Record<string, string> {
     const parsed = JSON.parse(raw || '{}')
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
       return Object.fromEntries(
-        Object.entries(parsed as Record<string, unknown>)
-          .filter(([, v]) => typeof v === 'string')
-          .map(([k, v]) => [k, v as string]),
+        Object.entries(parsed as Record<string, unknown>).flatMap(([key, value]) =>
+          typeof value === 'string' ? [[key, value]] : [],
+        ),
       )
     }
   } catch {
@@ -264,7 +264,6 @@ export function ChannelModal({
                 value={field.state.value}
                 placeholder="Name this Channel…"
                 onChange={(e) => field.handleChange(e.currentTarget.value)}
-                autoFocus
                 className="h-auto border-0 bg-transparent px-0 text-xl font-medium tracking-tight shadow-none placeholder:text-muted-foreground/50 focus-visible:ring-0"
               />
               <form.Field name="slug">

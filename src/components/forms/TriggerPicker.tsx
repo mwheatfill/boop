@@ -78,7 +78,7 @@ export function TriggerPicker({
             />
           </div>
         </div>
-        <div className="rounded-md border border-border bg-muted/30 px-3 py-3">
+        <div className="rounded-md border border-border bg-muted/30 p-3">
           <CronPreview
             expression={value.cronExpression}
             timezone={value.triggerTimezone || customerTimezone}

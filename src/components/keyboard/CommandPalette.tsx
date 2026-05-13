@@ -94,7 +94,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
       filter={(value, search, keywords) => fuzzyScore(value, search, keywords ?? [])}
       loop
     >
-      <CommandInput placeholder="Search Customers, Jobs, actions…" autoFocus />
+      <CommandInput placeholder="Search Customers, Jobs, actions..." />
       <CommandList>
         <CommandEmpty>No matches.</CommandEmpty>
 

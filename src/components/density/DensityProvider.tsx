@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo } from 'react'
+import { createContext, type ReactNode, use, useCallback, useEffect, useMemo } from 'react'
 import { useLocalStorage } from '@/lib/use-local-storage'
 
 export type Density = 'compact' | 'spacious'
@@ -41,7 +41,7 @@ export function DensityProvider({ children }: { children: ReactNode }) {
 }
 
 export function useDensity(): DensityContextValue {
-  const ctx = useContext(DensityContext)
+  const ctx = use(DensityContext)
   if (!ctx) throw new Error('useDensity must be used inside <DensityProvider>')
   return ctx
 }

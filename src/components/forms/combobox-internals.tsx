@@ -35,18 +35,16 @@ export function partitionByQuery<T>(
     }
   }
 
-  const scored = items
-    .map((item) => ({
-      item,
-      score: fuzzyScore(getLabel(item), trimmed, searchKeywords?.(item) ?? []),
-    }))
-    .filter((entry) => entry.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map((entry) => entry.item)
+  const scored = items.flatMap((item) => {
+    const score = fuzzyScore(getLabel(item), trimmed, searchKeywords?.(item) ?? [])
+    return score > 0 ? [{ item, score }] : []
+  })
+  scored.sort((a, b) => b.score - a.score)
+  const matches = scored.map((entry) => entry.item)
 
   return {
-    recents: scored.filter((item) => recentIds.has(getId(item))),
-    others: scored.filter((item) => !recentIds.has(getId(item))),
+    recents: matches.filter((item) => recentIds.has(getId(item))),
+    others: matches.filter((item) => !recentIds.has(getId(item))),
   }
 }
 

@@ -32,14 +32,14 @@ export function ThemeToggle() {
             onClick={() => setTheme(value)}
             suppressHydrationWarning
             className={cn(
-              'inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors',
+              'inline-flex size-7 items-center justify-center rounded-md transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               active
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="size-4" />
           </button>
         )
       })}

@@ -1,6 +1,6 @@
 'use client'
 
-import { type CSSProperties, createContext, type ReactNode, useContext, useId } from 'react'
+import { type CSSProperties, createContext, type ReactNode, use, useId } from 'react'
 import { Legend, ResponsiveContainer, Tooltip } from 'recharts'
 import { cn } from '@/lib/utils'
 
@@ -23,7 +23,7 @@ export type ChartConfig = Record<string, ChartConfigItem>
 const ChartContext = createContext<{ config: ChartConfig; id: string } | null>(null)
 
 export function useChartConfig() {
-  const ctx = useContext(ChartContext)
+  const ctx = use(ChartContext)
   if (!ctx) throw new Error('useChartConfig must be used inside <ChartContainer>')
   return ctx
 }

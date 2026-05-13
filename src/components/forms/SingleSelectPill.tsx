@@ -52,7 +52,7 @@ export function SingleSelectPill<T>({
       <PopoverContent className={`${popoverWidthClass} p-1`}>
         {items.length === 0 ? (
           emptyMessage ? (
-            <p className="px-2 py-2 text-xs text-muted-foreground">{emptyMessage}</p>
+            <p className="p-2 text-xs text-muted-foreground">{emptyMessage}</p>
           ) : null
         ) : (
           <ul className="flex max-h-64 flex-col gap-px overflow-y-auto">

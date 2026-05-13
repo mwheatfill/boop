@@ -89,7 +89,7 @@ function columnsFor(): ColumnDef<JobSummary>[] {
       cell: ({ row }) =>
         row.original.nextFireAt
           ? formatInTimezone(row.original.nextFireAt, effectiveTimezone(row.original))
-          : '—',
+          : 'Not scheduled',
     },
     {
       accessorKey: 'lastRunStartedAt',
@@ -97,7 +97,7 @@ function columnsFor(): ColumnDef<JobSummary>[] {
       cell: ({ row }) =>
         row.original.lastRunStartedAt
           ? formatInTimezone(row.original.lastRunStartedAt, effectiveTimezone(row.original))
-          : '—',
+          : 'No Runs yet',
     },
     {
       accessorKey: 'status',
