@@ -27,6 +27,7 @@ const baseContext: AlertContext = {
 function webhookChannel(overrides: Partial<Channel['config']> = {}): Channel {
   return {
     id: 'chn_w',
+    scope: 'customer',
     customerId: 'cust_1',
     kind: 'webhook',
     name: 'Status webhook',

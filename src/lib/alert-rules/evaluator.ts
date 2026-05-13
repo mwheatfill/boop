@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, or } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { alertRules, runs } from '@/lib/db/schema'
 import { logError } from '@/lib/log'
@@ -100,9 +100,12 @@ export async function evaluateRulesForRun({
     .from(alertRules)
     .where(
       and(
-        eq(alertRules.customerId, customerId),
         eq(alertRules.status, 'active'),
-        sql`${alertRules.jobId} IS NULL`,
+        or(
+          eq(alertRules.scope, 'workspace'),
+          and(eq(alertRules.scope, 'customer'), eq(alertRules.customerId, customerId)),
+          and(eq(alertRules.scope, 'job'), eq(alertRules.jobId, jobId)),
+        ),
       ),
     )
   const rules = ruleRows.map(parseRuleRow).filter((r): r is LoadedRule => r !== null)

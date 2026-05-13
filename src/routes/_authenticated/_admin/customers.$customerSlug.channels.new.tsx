@@ -13,7 +13,7 @@ function NewChannelPage() {
   return (
     <ChannelModal
       variant="create"
-      customerSlug={customerSlug}
+      owner={{ scope: 'customer', customerSlug }}
       onClose={() =>
         navigate({ to: '/customers/$customerSlug/channels', params: { customerSlug } })
       }
