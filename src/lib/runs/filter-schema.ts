@@ -4,7 +4,6 @@ import { z } from '@/shared/schemas/openapi'
 import { FAILURE_KINDS, RUN_OUTCOMES, RUN_STATUSES } from '@/shared/schemas/run'
 
 export const TRIGGER_SOURCES = ['cron', 'interval', 'webhook', 'manual'] as const
-export type TriggerSource = (typeof TRIGGER_SOURCES)[number]
 
 const RANGE_PRESETS = ['24h', '7d', 'custom'] as const
 

@@ -1,9 +1,8 @@
 import { and, desc, eq, inArray, type SQL, sql } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
-import { attempts, customers, jobs, runs, targets } from '@/lib/db/schema'
+import { customers, jobs, runs, targets } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
 import type { Job, JobSummary, TriggerKind } from '@/shared/schemas/job'
-import type { AttemptSummary, FAILURE_KINDS } from '@/shared/schemas/run'
 
 interface ListFilters {
   customerId?: string
@@ -139,25 +138,6 @@ export async function getJobDetail(
   const row = joined[0]
   if (!row) throw new NotFoundError('Job', `${customerSlug}/${jobSlug}`)
   return toJob(row)
-}
-
-export async function listAttemptsForRun(db: Database, runId: string): Promise<AttemptSummary[]> {
-  const rows = await db
-    .select()
-    .from(attempts)
-    .where(eq(attempts.runId, runId))
-    .orderBy(attempts.attemptNumber)
-  return rows.map(
-    (r): AttemptSummary => ({
-      id: r.id,
-      runId: r.runId,
-      attemptNumber: r.attemptNumber,
-      startedAt: r.startedAt.toISOString(),
-      completedAt: r.completedAt?.toISOString() ?? null,
-      httpStatus: r.httpStatus,
-      failureKind: (r.failureKind as (typeof FAILURE_KINDS)[number]) ?? null,
-    }),
-  )
 }
 
 export function effectiveTimezone(job: Pick<Job, 'triggerTimezone' | 'customerTimezone'>): string {
