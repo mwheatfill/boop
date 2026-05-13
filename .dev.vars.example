@@ -8,3 +8,11 @@ POLICY_AUD=<your-application-AUD-tag>
 # logs a warning on each use and is hard-gated to PUBLIC_ENV=dev so it
 # cannot accidentally activate in production.
 DEV_USER_EMAIL=dev@switchthink.com
+
+# Customer-secrets envelope KEK. Base64-encoded raw 32-byte AES-256 key.
+# Generate one with:
+#   node -e "console.log(Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64'))"
+# Then `wrangler secret put BOOP_SECRETS_KEK` (dev + prod) and replace the
+# placeholder below. Rotating this key re-encrypts every customer secret;
+# don't change it without a planned re-encryption pass.
+BOOP_SECRETS_KEK=replace-me-with-a-base64-32-byte-key

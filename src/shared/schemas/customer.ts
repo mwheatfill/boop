@@ -1,3 +1,4 @@
+import { VariableMapSchema } from './customer-variables'
 import { nameField, slugField } from './fields'
 import { z } from './openapi'
 import { tzSchema } from './timezone'
@@ -12,6 +13,7 @@ export const CustomerSchema = z
     timezone: tzSchema,
     autotaskCompanyId: z.string().nullable().meta({ example: '12345' }),
     status: z.enum(['active', 'archived']),
+    variables: VariableMapSchema,
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
   })
@@ -38,6 +40,7 @@ export const CustomerUpdateInput = z
     name: nameField,
     timezone: tzSchema,
     autotaskCompanyId: autotaskCompanyIdField,
+    variables: VariableMapSchema.optional(),
   })
   .meta({ id: 'CustomerUpdateInput' })
 

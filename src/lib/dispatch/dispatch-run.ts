@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { enqueueAlertBatch } from '@/lib/alert-queue/producer'
 import type { AlertQueueMessage } from '@/lib/alert-queue/types'
 import { evaluateRulesForRun } from '@/lib/alert-rules/evaluator'
+import { fetchActiveSecretPlaintext } from '@/lib/customer-secrets/commands'
 import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
@@ -26,6 +27,7 @@ export interface DispatchEnv {
   DB: D1Database
   BODIES: R2Bucket
   ALERT_QUEUE?: Queue<AlertQueueMessage>
+  BOOP_SECRETS_KEK?: string
 }
 
 export interface DispatchDeps {
@@ -34,6 +36,7 @@ export interface DispatchDeps {
   sleep?: (ms: number) => Promise<void>
   preCreatedRunId?: string
   alertQueue?: Queue<AlertQueueMessage>
+  kek?: string
 }
 
 async function evaluateAndEnqueueAlerts(
@@ -187,7 +190,7 @@ async function cancelPreCreatedRun(db: Database, runId: string, reason: string):
 }
 
 export async function runDispatch(
-  { db, bodies, sleep = defaultSleep, preCreatedRunId, alertQueue }: DispatchDeps,
+  { db, bodies, sleep = defaultSleep, preCreatedRunId, alertQueue, kek }: DispatchDeps,
   jobId: string,
   scheduledAt: Date,
   triggerSource: TriggerSource = 'cron',
@@ -236,12 +239,21 @@ export async function runDispatch(
     let renderedBody: string
     let renderedHeaders: string
     try {
+      const effectiveVariables = { ...customer.variables, ...job.variables }
       const renderCtx = {
         runId,
         attemptNumber: 1,
         customerName: customer.name,
         customerTimezone: effectiveTimezone(job, customer),
+        customerId: customer.id,
         now: startedAt,
+        variables: effectiveVariables,
+        ...(kek
+          ? {
+              secretResolver: (name: string) =>
+                fetchActiveSecretPlaintext({ db, kek }, customer.id, name),
+            }
+          : {}),
       }
       ;[renderedBody, renderedHeaders] = await Promise.all([
         renderTemplate(job.bodyTemplate, renderCtx),
@@ -379,6 +391,7 @@ export async function dispatchRun(
       db: createDb(env.DB),
       bodies: env.BODIES,
       ...(env.ALERT_QUEUE ? { alertQueue: env.ALERT_QUEUE } : {}),
+      ...(env.BOOP_SECRETS_KEK ? { kek: env.BOOP_SECRETS_KEK } : {}),
     },
     jobId,
     scheduledAt,

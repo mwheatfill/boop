@@ -54,6 +54,7 @@ export async function updateCustomer(
       name: input.name.trim(),
       timezone: input.timezone,
       autotaskCompanyId: input.autotaskCompanyId ?? null,
+      ...(input.variables !== undefined ? { variables: input.variables } : {}),
       updatedAt: new Date(),
     })
     .where(eq(customers.slug, slug))

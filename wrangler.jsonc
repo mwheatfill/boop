@@ -16,6 +16,12 @@
     "PUBLIC_ENV": "dev",
     "PUBLIC_APP_ORIGIN": "http://localhost:5173"
   },
+  // Secrets, per cloudflare-docs (Workers Configuration > Secrets), are
+  // declared here for type generation + deploy-time validation; their
+  // values are set with `wrangler secret put` (prod) or `.dev.vars` (local).
+  "secrets": {
+    "required": ["BOOP_SECRETS_KEK"]
+  },
   "triggers": {
     "crons": ["* * * * *"]
   },
@@ -89,6 +95,9 @@
         "PUBLIC_APP_NAME": "boop-prod",
         "PUBLIC_ENV": "production",
         "PUBLIC_APP_ORIGIN": "https://boop.example.com"
+      },
+      "secrets": {
+        "required": ["BOOP_SECRETS_KEK"]
       },
       "triggers": {
         "crons": ["* * * * *"]

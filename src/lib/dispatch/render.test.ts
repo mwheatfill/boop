@@ -9,6 +9,7 @@ function ctx(overrides: Partial<Parameters<typeof renderTemplate>[1]> = {}) {
     attemptNumber: 1,
     customerName: 'Acme',
     customerTimezone: 'UTC',
+    customerId: 'cust_acme',
     now: fixedNow,
     ...overrides,
   }
@@ -47,9 +48,49 @@ describe('renderTemplate', () => {
     expect(out).toBe('')
   })
 
-  it('throws "not yet implemented" for the boop_secret tag', async () => {
-    await expect(renderTemplate('{% boop_secret "key" %}', ctx())).rejects.toThrow(
-      /not yet implemented/,
-    )
+  describe('{% boop_secret %} tag', () => {
+    it('calls the resolver with the literal key name and emits the plaintext', async () => {
+      const calls: string[] = []
+      const resolver = async (name: string) => {
+        calls.push(name)
+        return 'sk_live_42'
+      }
+      const out = await renderTemplate('Authorization: Bearer {% boop_secret "stripe" %}', {
+        ...ctx(),
+        secretResolver: resolver,
+      })
+      expect(out).toBe('Authorization: Bearer sk_live_42')
+      expect(calls).toEqual(['stripe'])
+    })
+
+    it('redacts to <<secret:name>> in preview mode without calling the resolver', async () => {
+      let resolverCalled = false
+      const resolver = async () => {
+        resolverCalled = true
+        return 'should-not-appear'
+      }
+      const out = await renderTemplate('{% boop_secret "stripe" %}', {
+        ...ctx(),
+        previewMode: true,
+        secretResolver: resolver,
+      })
+      expect(out).toBe('<<secret:stripe>>')
+      expect(resolverCalled).toBe(false)
+    })
+
+    it('throws when no resolver is supplied in fire mode', async () => {
+      await expect(renderTemplate('{% boop_secret "k" %}', ctx())).rejects.toThrow(
+        /no secret resolver was provided/,
+      )
+    })
+
+    it('propagates resolver errors so the dispatcher can mark the Run failed', async () => {
+      const resolver = async () => {
+        throw new Error('Secret not found: missing')
+      }
+      await expect(
+        renderTemplate('{% boop_secret "missing" %}', { ...ctx(), secretResolver: resolver }),
+      ).rejects.toThrow(/Secret not found: missing/)
+    })
   })
 })

@@ -25,6 +25,10 @@ export const customers = sqliteTable(
     timezone: text('timezone').notNull(),
     autotaskCompanyId: text('autotask_company_id'),
     status: enumColumn('status', LIFECYCLE_STATUSES).notNull().default('active'),
+    variables: text('variables', { mode: 'json' })
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
     seedTag: text('seed_tag'),
     ...timestamps(),
   },
@@ -98,6 +102,10 @@ export const jobs = sqliteTable(
     triggerTimezone: text('trigger_timezone'),
     bodyTemplate: text('body_template').notNull().default(''),
     headersTemplate: text('headers_template').notNull().default('{}'),
+    variables: text('variables', { mode: 'json' })
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
     lastFireAt: integer('last_fire_at', { mode: 'timestamp_ms' }),
     nextFireAt: integer('next_fire_at', { mode: 'timestamp_ms' }),
     fireInProgress: integer('fire_in_progress', { mode: 'boolean' }).notNull().default(false),
@@ -253,5 +261,28 @@ export const authoringSessions = sqliteTable(
   (table) => [
     index('authoring_sessions_user_state_idx').on(table.userId, table.state),
     lifecycleCheck(table.state, AUTHORING_SESSION_STATES),
+  ],
+)
+
+export const customerSecrets = sqliteTable(
+  'customer_secrets',
+  {
+    id: text('id').primaryKey(),
+    customerId: text('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    valueHash: text('value_hash').notNull(),
+    valueCiphertext: text('value_ciphertext').notNull(),
+    valueIv: text('value_iv').notNull(),
+    revokedAt: integer('revoked_at', { mode: 'timestamp_ms' }),
+    lastUsedAt: integer('last_used_at', { mode: 'timestamp_ms' }),
+    ...timestamps(),
+  },
+  (table) => [
+    uniqueIndex('customer_secrets_active_name_idx')
+      .on(table.customerId, table.name)
+      .where(sql`${table.revokedAt} IS NULL`),
+    index('customer_secrets_customer_idx').on(table.customerId),
   ],
 )

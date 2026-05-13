@@ -2,7 +2,14 @@ import { useForm, useStore } from '@tanstack/react-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
+import { CustomerSecretsPanel } from '@/components/forms/CustomerSecretsPanel'
 import { EntityModal } from '@/components/forms/EntityModal'
+import {
+  KeyValueListEditor,
+  type KeyValueRow,
+  rowsToVariableMap,
+  variableMapToRows,
+} from '@/components/forms/KeyValueListEditor'
 import { TimezoneCombobox } from '@/components/forms/TimezoneCombobox'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
 import { Input } from '@/components/ui/input'
@@ -18,6 +25,7 @@ interface CustomerFormValues {
   slug: string
   timezone: string
   autotaskCompanyId: string
+  variables: KeyValueRow[]
 }
 
 interface CreateProps {
@@ -51,12 +59,14 @@ export function CustomerModal(props: CustomerModalProps) {
           slug: props.initialCustomer.slug,
           timezone: props.initialCustomer.timezone,
           autotaskCompanyId: props.initialCustomer.autotaskCompanyId ?? '',
+          variables: variableMapToRows(props.initialCustomer.variables),
         }
       : {
           name: props.initialName ?? '',
           slug: props.initialName ? slugify(props.initialName) : '',
           timezone: orgTimezone,
           autotaskCompanyId: '',
+          variables: [],
         }
 
   const form = useForm({
@@ -76,6 +86,7 @@ export function CustomerModal(props: CustomerModalProps) {
                 name: value.name,
                 timezone: value.timezone,
                 ...(value.autotaskCompanyId ? { autotaskCompanyId: value.autotaskCompanyId } : {}),
+                variables: rowsToVariableMap(value.variables),
               }
 
         const result: MutationResult<Customer> =
@@ -203,6 +214,36 @@ export function CustomerModal(props: CustomerModalProps) {
             </div>
           )}
         </form.Field>
+
+        {props.variant === 'edit' ? (
+          <>
+            <section className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-3">
+              <Label className="text-xs font-medium text-muted-foreground">Variables</Label>
+              <p className="text-xs text-muted-foreground/70">
+                Available to every Job for this Customer as {'{{ variable_name }}'}. Jobs may
+                override by name.
+              </p>
+              <form.Field name="variables">
+                {(field) => (
+                  <KeyValueListEditor
+                    rows={field.state.value}
+                    onChange={(rows) => field.handleChange(rows)}
+                  />
+                )}
+              </form.Field>
+            </section>
+
+            <section className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-3">
+              <Label className="text-xs font-medium text-muted-foreground">Secrets</Label>
+              <p className="text-xs text-muted-foreground/70">
+                Encrypted at rest, referenced from templates with{' '}
+                <code className="font-mono">{'{% boop_secret "name" %}'}</code>. boop redacts the
+                value in preview and shows the plaintext only at create + rotate.
+              </p>
+              <CustomerSecretsPanel customerSlug={props.initialCustomer.slug} canEdit />
+            </section>
+          </>
+        ) : null}
 
         {formError ? <p className="text-sm text-destructive">{String(formError)}</p> : null}
       </form>

@@ -9,6 +9,7 @@ export const ID_PREFIXES = [
   'rul',
   'ses',
   'whs',
+  'csec',
 ] as const
 
 export type IdPrefix = (typeof ID_PREFIXES)[number]

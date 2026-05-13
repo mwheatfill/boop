@@ -1,12 +1,17 @@
-import { Liquid, type TagToken, type TopLevelToken, Value } from 'liquidjs'
+import { Liquid, type TagToken, type TopLevelToken, toPromise, Value } from 'liquidjs'
+
+export type SecretResolver = (name: string) => Promise<string>
 
 export interface RenderContext {
   runId: string
   attemptNumber: number
   customerName: string
   customerTimezone: string
+  customerId: string
   now: Date
   variables?: Record<string, unknown>
+  secretResolver?: SecretResolver
+  previewMode?: boolean
 }
 
 const ISO_DATE_FORMAT = new Map<string, Intl.DateTimeFormat>()
@@ -46,6 +51,13 @@ function isTzWrapped(value: unknown): value is TzWrapped {
   return typeof value === 'object' && value !== null && (value as TzWrapped).__boopTz === true
 }
 
+export class SecretResolverMissingError extends Error {
+  constructor() {
+    super('boop_secret used but no secret resolver was provided to renderTemplate')
+    this.name = 'SecretResolverMissingError'
+  }
+}
+
 const engine = new Liquid({
   strictFilters: true,
   strictVariables: false,
@@ -68,12 +80,27 @@ engine.registerFilter('iso_date', (value: unknown): string => {
   return toDate(value).toISOString()
 })
 
+interface SecretResolverHolder {
+  fn?: SecretResolver
+}
+
 engine.registerTag('boop_secret', {
   parse(tagToken: TagToken, _remainTokens: TopLevelToken[]) {
     this.value = new Value(tagToken.args, engine)
   },
-  render() {
-    throw new Error('boop_secret: secrets backend not yet implemented')
+  async render(ctx) {
+    const raw = await toPromise(this.value.value(ctx))
+    if (typeof raw !== 'string' || raw.length === 0) {
+      throw new TypeError('boop_secret: expected a non-empty string argument')
+    }
+    const preview = (await toPromise(ctx.get(['__preview_mode']))) === true
+    if (preview) return `<<secret:${raw}>>`
+    const holder = (await toPromise(ctx.get(['__secret_resolver']))) as
+      | SecretResolverHolder
+      | undefined
+    const resolver = holder?.fn
+    if (!resolver) throw new SecretResolverMissingError()
+    return resolver(raw)
   },
 })
 
@@ -95,5 +122,10 @@ export async function renderTemplate(template: string, context: RenderContext): 
     customer_timezone: context.customerTimezone,
     now: context.now,
     ...(context.variables ?? {}),
+    __customer_id: context.customerId,
+    __preview_mode: context.previewMode === true,
+    __secret_resolver: {
+      ...(context.secretResolver ? { fn: context.secretResolver } : {}),
+    } satisfies SecretResolverHolder,
   })
 }

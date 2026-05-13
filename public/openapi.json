@@ -13,6 +13,16 @@
         "description": "IANA timezone identifier.",
         "example": "America/New_York"
       },
+      "VariableName": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{0,63}$",
+        "example": "tenant_id"
+      },
+      "VariableValue": {
+        "type": "string",
+        "maxLength": 4096,
+        "example": "acme-123"
+      },
       "CronExpression": {
         "type": "string",
         "description": "Five-field cron expression with one-minute granularity. Seconds and year fields not supported.",
@@ -169,6 +179,11 @@
         "required": [
           "kind"
         ]
+      },
+      "CustomerSecretName": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{0,63}$",
+        "example": "stripe_api_key"
       },
       "Run": {
         "type": "object",
@@ -860,6 +875,16 @@
             "slow_run": "#/components/schemas/AlertRuleConfigSlowRun"
           }
         }
+      },
+      "VariableMap": {
+        "type": "object",
+        "propertyNames": {
+          "$ref": "#/components/schemas/VariableName"
+        },
+        "additionalProperties": {
+          "$ref": "#/components/schemas/VariableValue"
+        },
+        "description": "Operator-defined variables. Keys match ^[a-z][a-z0-9_]{0,63}$. Up to 64 entries. Customer-level entries are inherited by Jobs; Job-level entries override by name."
       },
       "ChannelConfigTeamsOutput": {
         "type": "object",
@@ -1790,6 +1815,9 @@
               "archived"
             ]
           },
+          "variables": {
+            "$ref": "#/components/schemas/VariableMap"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -1808,6 +1836,7 @@
           "timezone",
           "autotaskCompanyId",
           "status",
+          "variables",
           "createdAt",
           "updatedAt"
         ],
@@ -1859,6 +1888,9 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 64
+          },
+          "variables": {
+            "$ref": "#/components/schemas/VariableMap"
           }
         },
         "required": [
@@ -2170,6 +2202,9 @@
           "headersTemplate": {
             "type": "string"
           },
+          "variables": {
+            "$ref": "#/components/schemas/VariableMap"
+          },
           "maxAttempts": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -2240,6 +2275,7 @@
           "triggerTimezone",
           "bodyTemplate",
           "headersTemplate",
+          "variables",
           "maxAttempts",
           "overallDeadlineMs",
           "lastFireAt",
@@ -2405,6 +2441,9 @@
             "type": "string",
             "maxLength": 8192
           },
+          "variables": {
+            "$ref": "#/components/schemas/VariableMap"
+          },
           "maxAttempts": {
             "default": 3,
             "type": "integer",
@@ -2517,6 +2556,9 @@
             "default": "{}",
             "type": "string",
             "maxLength": 8192
+          },
+          "variables": {
+            "$ref": "#/components/schemas/VariableMap"
           },
           "maxAttempts": {
             "default": 3,
@@ -3321,6 +3363,114 @@
         ],
         "additionalProperties": false,
         "description": "Synthetic context handed to Channel adapters for template rendering."
+      },
+      "CustomerSecretSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "$ref": "#/components/schemas/CustomerSecretName"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revokedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "lastUsedAt",
+          "revokedAt"
+        ],
+        "additionalProperties": false,
+        "description": "Metadata for a Customer-scoped secret. The plaintext is returned exactly once from create + rotate; subsequent fetches return only this summary."
+      },
+      "CustomerSecretCreateInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/CustomerSecretName"
+          },
+          "plaintext": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "name",
+          "plaintext"
+        ],
+        "additionalProperties": false
+      },
+      "CustomerSecretRotateInput": {
+        "type": "object",
+        "properties": {
+          "plaintext": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "plaintext"
+        ],
+        "additionalProperties": false
+      },
+      "CustomerSecretRevealedResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "$ref": "#/components/schemas/CustomerSecretName"
+          },
+          "plaintext": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "plaintext",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "description": "Returned exactly once from create and rotate. boop never returns the plaintext again."
       }
     }
   }
