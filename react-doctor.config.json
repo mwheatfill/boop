@@ -1,0 +1,6 @@
+{
+  "$comment": "Project-wide suppressions for react-doctor rules that don't apply to our stack. See AGENTS.md for the audit cadence.",
+  "ignore": {
+    "rules": ["react-doctor/no-prevent-default", "react-doctor/js-set-map-lookups"]
+  }
+}
