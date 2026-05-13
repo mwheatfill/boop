@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useReducer } from 'react'
 import { toast } from 'sonner'
 import { DateTime } from '@/components/DateTime'
 import {
@@ -34,54 +34,115 @@ interface CustomerSecretsPanelProps {
   canEdit: boolean
 }
 
+interface CustomerSecretsState {
+  creating: boolean
+  newName: string
+  newPlaintext: string
+  justRevealed: SecretRevealedResponse | null
+  pending: boolean
+  revoking: SecretSummary | null
+}
+
+type CustomerSecretsAction =
+  | { type: 'create-opened' }
+  | { type: 'create-canceled' }
+  | { type: 'create-name-changed'; value: string }
+  | { type: 'create-plaintext-changed'; value: string }
+  | { type: 'create-submitted' }
+  | { type: 'create-succeeded'; revealed: SecretRevealedResponse }
+  | { type: 'request-failed' }
+  | { type: 'reveal-dismissed' }
+  | { type: 'revoke-requested'; secret: SecretSummary }
+  | { type: 'revoke-canceled' }
+  | { type: 'revoke-submitted' }
+  | { type: 'revoke-succeeded' }
+
+const initialCustomerSecretsState: CustomerSecretsState = {
+  creating: false,
+  newName: '',
+  newPlaintext: '',
+  justRevealed: null,
+  pending: false,
+  revoking: null,
+}
+
+function customerSecretsReducer(
+  state: CustomerSecretsState,
+  action: CustomerSecretsAction,
+): CustomerSecretsState {
+  switch (action.type) {
+    case 'create-opened':
+      return { ...state, creating: true }
+    case 'create-canceled':
+      return { ...state, creating: false, newName: '', newPlaintext: '' }
+    case 'create-name-changed':
+      return { ...state, newName: action.value }
+    case 'create-plaintext-changed':
+      return { ...state, newPlaintext: action.value }
+    case 'create-submitted':
+    case 'revoke-submitted':
+      return { ...state, pending: true }
+    case 'create-succeeded':
+      return {
+        ...state,
+        creating: false,
+        newName: '',
+        newPlaintext: '',
+        justRevealed: action.revealed,
+        pending: false,
+      }
+    case 'request-failed':
+      return { ...state, pending: false }
+    case 'reveal-dismissed':
+      return { ...state, justRevealed: null }
+    case 'revoke-requested':
+      return { ...state, revoking: action.secret }
+    case 'revoke-canceled':
+      return { ...state, revoking: null }
+    case 'revoke-succeeded':
+      return { ...state, pending: false, revoking: null }
+  }
+}
+
 export function CustomerSecretsPanel({ customerSlug, canEdit }: CustomerSecretsPanelProps) {
   const queryClient = useQueryClient()
   const { data } = useQuery(customerSecretsQueryOptions(customerSlug))
   const secrets = data?.secrets ?? []
 
-  const [creating, setCreating] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newPlaintext, setNewPlaintext] = useState('')
-  const [justRevealed, setJustRevealed] = useState<SecretRevealedResponse | null>(null)
-  const [pending, setPending] = useState(false)
-  const [revoking, setRevoking] = useState<SecretSummary | null>(null)
+  const [state, dispatch] = useReducer(customerSecretsReducer, initialCustomerSecretsState)
+  const { creating, newName, newPlaintext, justRevealed, pending, revoking } = state
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['customers', customerSlug, 'secrets'] })
 
   async function handleCreate() {
     if (!newName || !newPlaintext) return
-    setPending(true)
+    dispatch({ type: 'create-submitted' })
     try {
       const revealed = await createCustomerSecretFn({
         data: { customerSlug, name: newName, plaintext: newPlaintext },
       })
-      setJustRevealed(revealed)
-      setNewName('')
-      setNewPlaintext('')
-      setCreating(false)
       await invalidate()
+      dispatch({ type: 'create-succeeded', revealed })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create secret')
-    } finally {
-      setPending(false)
+      dispatch({ type: 'request-failed' })
     }
   }
 
   async function handleRevoke() {
     if (!revoking) return
-    setPending(true)
+    dispatch({ type: 'revoke-submitted' })
     try {
       await revokeCustomerSecretFn({
         data: { customerSlug, name: revoking.name },
       })
-      setRevoking(null)
       await invalidate()
       toast.success(`Revoked ${revoking.name}`)
+      dispatch({ type: 'revoke-succeeded' })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to revoke')
-    } finally {
-      setPending(false)
+      dispatch({ type: 'request-failed' })
     }
   }
 
@@ -112,7 +173,7 @@ export function CustomerSecretsPanel({ customerSlug, canEdit }: CustomerSecretsP
                   variant="ghost"
                   size="icon"
                   aria-label={`Revoke ${s.name}`}
-                  onClick={() => setRevoking(s)}
+                  onClick={() => dispatch({ type: 'revoke-requested', secret: s })}
                 >
                   <Trash2 className="size-3.5" aria-hidden />
                 </Button>
@@ -128,7 +189,7 @@ export function CustomerSecretsPanel({ customerSlug, canEdit }: CustomerSecretsP
           variant="ghost"
           size="sm"
           className="self-start"
-          onClick={() => setCreating(true)}
+          onClick={() => dispatch({ type: 'create-opened' })}
         >
           <Plus className="size-3.5" aria-hidden /> New secret
         </Button>
@@ -144,7 +205,9 @@ export function CustomerSecretsPanel({ customerSlug, canEdit }: CustomerSecretsP
               <Input
                 id="new-secret-name"
                 value={newName}
-                onChange={(e) => setNewName(e.currentTarget.value)}
+                onChange={(e) =>
+                  dispatch({ type: 'create-name-changed', value: e.currentTarget.value })
+                }
                 placeholder="stripe_api_key"
                 className="h-7 font-mono text-xs"
               />
@@ -157,7 +220,9 @@ export function CustomerSecretsPanel({ customerSlug, canEdit }: CustomerSecretsP
                 id="new-secret-value"
                 value={newPlaintext}
                 type="password"
-                onChange={(e) => setNewPlaintext(e.currentTarget.value)}
+                onChange={(e) =>
+                  dispatch({ type: 'create-plaintext-changed', value: e.currentTarget.value })
+                }
                 placeholder="sk_live_…"
                 className="h-7 font-mono text-xs"
               />
@@ -168,11 +233,7 @@ export function CustomerSecretsPanel({ customerSlug, canEdit }: CustomerSecretsP
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => {
-                setCreating(false)
-                setNewName('')
-                setNewPlaintext('')
-              }}
+              onClick={() => dispatch({ type: 'create-canceled' })}
               disabled={pending}
             >
               Cancel
@@ -189,7 +250,10 @@ export function CustomerSecretsPanel({ customerSlug, canEdit }: CustomerSecretsP
         </div>
       ) : null}
 
-      <AlertDialog open={justRevealed !== null} onOpenChange={(o) => !o && setJustRevealed(null)}>
+      <AlertDialog
+        open={justRevealed !== null}
+        onOpenChange={(o) => !o && dispatch({ type: 'reveal-dismissed' })}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Secret stored. Save it now.</AlertDialogTitle>
@@ -212,14 +276,17 @@ export function CustomerSecretsPanel({ customerSlug, canEdit }: CustomerSecretsP
             </div>
           ) : null}
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setJustRevealed(null)}>
+            <AlertDialogAction onClick={() => dispatch({ type: 'reveal-dismissed' })}>
               I've saved it
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={revoking !== null} onOpenChange={(o) => !o && setRevoking(null)}>
+      <AlertDialog
+        open={revoking !== null}
+        onOpenChange={(o) => !o && dispatch({ type: 'revoke-canceled' })}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Revoke {revoking?.name}?</AlertDialogTitle>

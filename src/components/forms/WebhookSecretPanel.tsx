@@ -1,5 +1,5 @@
 import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useReducer } from 'react'
 import { toast } from 'sonner'
 import { DateTime } from '@/components/DateTime'
 import {
@@ -40,6 +40,63 @@ interface WebhookSecretPanelProps {
   origin?: string
 }
 
+interface WebhookSecretState {
+  justGenerated: WebhookSecretCreatedResponse | null
+  rotateOpen: boolean
+  revokeOpen: boolean
+  overlapHours: number
+  pending: boolean
+}
+
+type WebhookSecretAction =
+  | { type: 'generate-submitted' }
+  | { type: 'secret-generated'; secret: WebhookSecretCreatedResponse }
+  | { type: 'request-finished' }
+  | { type: 'generated-dismissed' }
+  | { type: 'rotation-open-changed'; open: boolean }
+  | { type: 'rotation-overlap-changed'; hours: number }
+  | { type: 'rotation-submitted' }
+  | { type: 'rotation-succeeded'; secret: WebhookSecretCreatedResponse }
+  | { type: 'revoke-open-changed'; open: boolean }
+  | { type: 'revoke-submitted' }
+  | { type: 'revoke-succeeded' }
+
+const initialWebhookSecretState: WebhookSecretState = {
+  justGenerated: null,
+  rotateOpen: false,
+  revokeOpen: false,
+  overlapHours: DEFAULT_OVERLAP_HOURS,
+  pending: false,
+}
+
+function webhookSecretReducer(
+  state: WebhookSecretState,
+  action: WebhookSecretAction,
+): WebhookSecretState {
+  switch (action.type) {
+    case 'generate-submitted':
+    case 'rotation-submitted':
+    case 'revoke-submitted':
+      return { ...state, pending: true }
+    case 'secret-generated':
+      return { ...state, justGenerated: action.secret, pending: false }
+    case 'request-finished':
+      return { ...state, pending: false }
+    case 'generated-dismissed':
+      return { ...state, justGenerated: null }
+    case 'rotation-open-changed':
+      return { ...state, rotateOpen: action.open }
+    case 'rotation-overlap-changed':
+      return { ...state, overlapHours: action.hours }
+    case 'rotation-succeeded':
+      return { ...state, justGenerated: action.secret, rotateOpen: false, pending: false }
+    case 'revoke-open-changed':
+      return { ...state, revokeOpen: action.open }
+    case 'revoke-succeeded':
+      return { ...state, justGenerated: null, revokeOpen: false, pending: false }
+  }
+}
+
 async function copyToClipboard(value: string, label: string) {
   try {
     await navigator.clipboard.writeText(value)
@@ -58,11 +115,8 @@ function isActive(secret: WebhookSecretSummary, now: number): boolean {
 export function WebhookSecretPanel({ customerSlug, jobSlug, origin }: WebhookSecretPanelProps) {
   const queryClient = useQueryClient()
   const { data } = useQuery(webhookSecretsOptions(customerSlug, jobSlug))
-  const [justGenerated, setJustGenerated] = useState<WebhookSecretCreatedResponse | null>(null)
-  const [rotateOpen, setRotateOpen] = useState(false)
-  const [revokeOpen, setRevokeOpen] = useState(false)
-  const [overlapHours, setOverlapHours] = useState(DEFAULT_OVERLAP_HOURS)
-  const [pending, setPending] = useState(false)
+  const [state, dispatch] = useReducer(webhookSecretReducer, initialWebhookSecretState)
+  const { justGenerated, rotateOpen, revokeOpen, overlapHours, pending } = state
 
   const inferredOrigin =
     origin ?? (typeof window !== 'undefined' ? window.location.origin : 'https://<host>')
@@ -79,40 +133,38 @@ export function WebhookSecretPanel({ customerSlug, jobSlug, origin }: WebhookSec
     })
 
   const onGenerate = async () => {
-    setPending(true)
+    dispatch({ type: 'generate-submitted' })
     try {
       const result = await generateWebhookSecretFn({ data: { customerSlug, jobSlug } })
-      setJustGenerated(result)
       await invalidate()
+      dispatch({ type: 'secret-generated', secret: result })
     } finally {
-      setPending(false)
+      dispatch({ type: 'request-finished' })
     }
   }
 
   const onRotate = async () => {
-    setPending(true)
+    dispatch({ type: 'rotation-submitted' })
     try {
       const result = await rotateWebhookSecretFn({
         data: { customerSlug, jobSlug, overlapHours },
       })
-      setJustGenerated(result)
-      setRotateOpen(false)
       await invalidate()
+      dispatch({ type: 'rotation-succeeded', secret: result })
     } finally {
-      setPending(false)
+      dispatch({ type: 'request-finished' })
     }
   }
 
   const onRevoke = async () => {
-    setPending(true)
+    dispatch({ type: 'revoke-submitted' })
     try {
       await revokeWebhookSecretsFn({ data: { customerSlug, jobSlug } })
-      setJustGenerated(null)
-      setRevokeOpen(false)
       await invalidate()
       toast.success('All secrets revoked')
+      dispatch({ type: 'revoke-succeeded' })
     } finally {
-      setPending(false)
+      dispatch({ type: 'request-finished' })
     }
   }
 
@@ -139,20 +191,26 @@ export function WebhookSecretPanel({ customerSlug, jobSlug, origin }: WebhookSec
 
       <div className="border-t border-border pt-4">
         {justGenerated ? (
-          <JustGeneratedState created={justGenerated} onDismiss={() => setJustGenerated(null)} />
+          <JustGeneratedState
+            created={justGenerated}
+            onDismiss={() => dispatch({ type: 'generated-dismissed' })}
+          />
         ) : newestActive ? (
           <ActiveState
             newest={newestActive}
             rotating={rotating ?? null}
-            onRotate={() => setRotateOpen(true)}
-            onRevoke={() => setRevokeOpen(true)}
+            onRotate={() => dispatch({ type: 'rotation-open-changed', open: true })}
+            onRevoke={() => dispatch({ type: 'revoke-open-changed', open: true })}
           />
         ) : (
           <EmptyState onGenerate={onGenerate} disabled={pending} />
         )}
       </div>
 
-      <AlertDialog open={rotateOpen} onOpenChange={setRotateOpen}>
+      <AlertDialog
+        open={rotateOpen}
+        onOpenChange={(open) => dispatch({ type: 'rotation-open-changed', open })}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Rotate signing secret</AlertDialogTitle>
@@ -169,7 +227,9 @@ export function WebhookSecretPanel({ customerSlug, jobSlug, origin }: WebhookSec
               min={1}
               max={168}
               value={overlapHours}
-              onChange={(e) => setOverlapHours(Number(e.target.value))}
+              onChange={(e) =>
+                dispatch({ type: 'rotation-overlap-changed', hours: Number(e.target.value) })
+              }
             />
             <p className="text-xs text-muted-foreground">Between 1 and 168 hours (7 days).</p>
           </div>
@@ -182,7 +242,10 @@ export function WebhookSecretPanel({ customerSlug, jobSlug, origin }: WebhookSec
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={revokeOpen} onOpenChange={setRevokeOpen}>
+      <AlertDialog
+        open={revokeOpen}
+        onOpenChange={(open) => dispatch({ type: 'revoke-open-changed', open })}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Revoke all signing secrets?</AlertDialogTitle>

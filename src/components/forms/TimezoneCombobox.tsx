@@ -1,6 +1,6 @@
 'use client'
 import { Check } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useReducer } from 'react'
 import { SearchableCombobox } from '@/components/forms/SearchableCombobox'
 import { PICKER_KEYS, PICKER_RECENT_LIMITS } from '@/lib/forms/picker-keys'
 import { usePickerRecents } from '@/lib/forms/use-picker-recents'
@@ -40,6 +40,27 @@ function optionKeywords(option: TimezoneOption, offset: string): string[] {
   return keywords
 }
 
+interface TimezoneComboboxState {
+  now: Date
+  open: boolean
+}
+
+type TimezoneComboboxAction =
+  | { type: 'open-changed'; open: boolean }
+  | { type: 'clock-ticked'; now: Date }
+
+function timezoneComboboxReducer(
+  state: TimezoneComboboxState,
+  action: TimezoneComboboxAction,
+): TimezoneComboboxState {
+  switch (action.type) {
+    case 'open-changed':
+      return { ...state, open: action.open, now: action.open ? new Date() : state.now }
+    case 'clock-ticked':
+      return { ...state, now: action.now }
+  }
+}
+
 export function TimezoneCombobox({
   label = 'Timezone',
   required,
@@ -49,8 +70,11 @@ export function TimezoneCombobox({
 }: TimezoneComboboxProps) {
   const options = useMemo(buildOptions, [])
   const byIana = useMemo(() => new Map(options.map((o) => [o.iana, o])), [options])
-  const [now, setNow] = useState(() => new Date())
-  const [open, setOpen] = useState(false)
+  const [state, dispatch] = useReducer(timezoneComboboxReducer, undefined, () => ({
+    now: new Date(),
+    open: false,
+  }))
+  const { now, open } = state
 
   const selectedOption = byIana.get(value) ?? describeTimezone(value)
 
@@ -63,8 +87,7 @@ export function TimezoneCombobox({
 
   useEffect(() => {
     if (!open) return
-    setNow(new Date())
-    const tick = setInterval(() => setNow(new Date()), 30_000)
+    const tick = setInterval(() => dispatch({ type: 'clock-ticked', now: new Date() }), 30_000)
     return () => clearInterval(tick)
   }, [open])
 
@@ -91,7 +114,7 @@ export function TimezoneCombobox({
       }}
       getId={(o) => o.iana}
       getLabel={(o) => o.city}
-      onOpenChange={setOpen}
+      onOpenChange={(nextOpen) => dispatch({ type: 'open-changed', open: nextOpen })}
       searchKeywords={(o) => optionKeywords(o, offsets.get(o.iana) ?? '')}
       placeholder="Search timezones…"
       popupWidthClass="w-[22rem]"
