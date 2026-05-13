@@ -21,7 +21,7 @@
   // declared here for type generation + deploy-time validation; their
   // values are set with `wrangler secret put` (prod) or `.dev.vars` (local).
   "secrets": {
-    "required": ["BOOP_SECRETS_KEK"]
+    "required": ["BOOP_SECRETS_KEK", "TEAM_DOMAIN", "POLICY_AUD"]
   },
   "triggers": {
     "crons": ["* * * * *"]

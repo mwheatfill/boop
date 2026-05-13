@@ -21,7 +21,7 @@ At session start: skim [`docs/adr/README.md`](docs/adr/README.md) for the archit
 | Runtime | Cloudflare Workers (Wrangler 4, single `wrangler.jsonc` with `env.production` block; production builds set `CLOUDFLARE_ENV=production`) |
 | Framework | TanStack Start (SSR + file-based routing + API routes) |
 | Database | Cloudflare D1 + Drizzle ORM (empty schema by default; Neon Postgres available via recipe) |
-| Auth | `getCurrentUser(request)` abstraction in `src/lib/auth/`; returns `null` until an auth recipe is installed (e.g. `auth/better-auth`, `auth/cloudflare-access`) |
+| Auth | `getCurrentUser(request, env)` abstraction in `src/lib/auth/` (ADR-005). Implementation: Cloudflare Access fronted by Entra OIDC, validating `Cf-Access-Jwt-Assertion` against the team's JWKS via `jose` ([ADR-026](docs/adr/026-cloudflare-access-with-entra-oidc.md)). Provisioning runbook: [`docs/agents/cloudflare-access-provisioning.md`](docs/agents/cloudflare-access-provisioning.md) |
 | AI | Recipe-only. Install `ai/chat-route` + a provider recipe (e.g. `microsoft-foundry/chat-completion`); template ships nothing AI-related |
 | Email | Recipe-only. Install `email/send-pipeline` + a transport recipe (e.g. `email/graph-shared-mailbox`); template ships nothing email-related |
 | UI | shadcn/ui style `base-vega` (Base UI primitives via `@base-ui/react` + the "vega" visual theme), Tailwind v4, `next-themes` for theme provider |
@@ -56,7 +56,7 @@ ADRs in `docs/adr/`. Read the ADR before contemplating an override; deviations r
 - D1 default for the data layer; Neon via recipe ([ADR-003](docs/adr/003-d1-default-data-layer.md))
 - Drizzle as the ORM ([ADR-004](docs/adr/004-drizzle-orm.md))
 - Auth provider abstraction (`getCurrentUser`) ([ADR-005](docs/adr/005-auth-provider-abstraction.md))
-- Better Auth as the default auth recipe ([ADR-006](docs/adr/006-better-auth-with-entra-default.md))
+- Better Auth as the template-family default auth recipe ([ADR-006](docs/adr/006-better-auth-with-entra-default.md)) — **superseded for boop** by [ADR-026](docs/adr/026-cloudflare-access-with-entra-oidc.md)
 - AI is recipe-only; AI SDK + AI Gateway ([ADR-007](docs/adr/007-foundry-via-ai-gateway.md))
 - UI / visual layer (shadcn-base-vega centered) ([ADR-008](docs/adr/008-ui-visual-layer.md))
 - Opinionated stack with mechanical pattern enforcement ([ADR-009](docs/adr/009-opinionated-stack-and-pattern-enforcement.md))
@@ -67,6 +67,7 @@ ADRs in `docs/adr/`. Read the ADR before contemplating an override; deviations r
 - Cron parser, date/time approach, timezone on the data model ([ADR-017](docs/adr/017-cron-and-time.md))
 - Current-by-default for third-party version pins ([ADR-020](docs/adr/020-current-by-default-third-party-pins.md))
 - Design language pass 2: dark-first, three-anchor theme, cool-blue UI accent ([ADR-022](docs/adr/022-design-language-pass-2.md))
+- Cloudflare Access (fronted by Entra OIDC) is boop's auth implementation ([ADR-026](docs/adr/026-cloudflare-access-with-entra-oidc.md))
 
 ## Agent skills
 
