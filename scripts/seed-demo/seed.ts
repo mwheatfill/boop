@@ -131,9 +131,10 @@ export async function seedDemoData(db: Database, options: SeedOptions): Promise<
     const cId = customerIdBySlug.get(r.customerSlug)
     if (!cId) continue
     const jId = r.jobSlug ? (jobIdBySlug.get(jobKey(r.customerSlug, r.jobSlug)) ?? null) : null
-    const channelIds = r.channelSlugs
-      .map((slug) => channelIdByKey.get(channelKey(r.customerSlug, slug)))
-      .filter((v): v is string => Boolean(v))
+    const channelIds = r.channelSlugs.flatMap((slug) => {
+      const id = channelIdByKey.get(channelKey(r.customerSlug, slug))
+      return id ? [id] : []
+    })
     const createdAt = customerCreatedAtBySlug.get(r.customerSlug) ?? now
     alertRuleRows.push(alertRuleRow(r, cId, jId, channelIds, createdAt))
   }
@@ -145,35 +146,33 @@ export async function seedDemoData(db: Database, options: SeedOptions): Promise<
 
   const customerTimezoneBySlug = new Map(customerSpecs.map((c) => [c.slug, c.timezone]))
 
-  let totalRuns = 0
-  let totalAttempts = 0
+  const generated = await Promise.all(
+    jobSpecs.map(async (spec) => {
+      const jobId = jobIdBySlug.get(jobKey(spec.customerSlug, spec.slug))
+      const customerId = customerIdBySlug.get(spec.customerSlug)
+      if (!jobId || !customerId) return { runs: 0, attempts: 0 }
+      const customerTimezone = customerTimezoneBySlug.get(spec.customerSlug) ?? 'America/Phoenix'
+      const { runs: runRows, attempts: attemptRows } = generateRunsForJob(
+        {
+          spec,
+          jobId,
+          customerId,
+          customerSlug: spec.customerSlug,
+          customerTimezone,
+        },
+        windowStart,
+        windowEnd,
+      )
 
-  // Per-job: generate, insert in batches, then move on. Avoid holding the full
-  // history set in memory for the stress profile.
-  for (const spec of jobSpecs) {
-    const jobId = jobIdBySlug.get(jobKey(spec.customerSlug, spec.slug))
-    const customerId = customerIdBySlug.get(spec.customerSlug)
-    if (!jobId || !customerId) continue
-    const customerTimezone = customerTimezoneBySlug.get(spec.customerSlug) ?? 'America/Phoenix'
-    const { runs: runRows, attempts: attemptRows } = generateRunsForJob(
-      {
-        spec,
-        jobId,
-        customerId,
-        customerSlug: spec.customerSlug,
-        customerTimezone,
-      },
-      windowStart,
-      windowEnd,
-    )
-
-    if (runRows.length === 0) continue
-    await insertBatched(db, runs, runRows)
-    await insertBatched(db, attempts, attemptRows)
-    totalRuns += runRows.length
-    totalAttempts += attemptRows.length
-    log({ kind: 'progress', message: `${spec.customerSlug}/${spec.slug}`, rows: runRows.length })
-  }
+      if (runRows.length === 0) return { runs: 0, attempts: 0 }
+      await insertBatched(db, runs, runRows)
+      await insertBatched(db, attempts, attemptRows)
+      log({ kind: 'progress', message: `${spec.customerSlug}/${spec.slug}`, rows: runRows.length })
+      return { runs: runRows.length, attempts: attemptRows.length }
+    }),
+  )
+  const totalRuns = generated.reduce((total, item) => total + item.runs, 0)
+  const totalAttempts = generated.reduce((total, item) => total + item.attempts, 0)
 
   // Stamp recent alert-firing signals so the alerts surface shows life.
   await stampRecentAlertSignals(db, alertRuleRows, channelRows, windowEnd)
@@ -198,36 +197,40 @@ async function stampRecentAlertSignals(
 ): Promise<void> {
   const rng = createPrng('boop:demo:alert-signals')
   // ~70% of rules have fired recently; pick a timestamp within the last 14 days.
-  for (const r of alertRuleRows) {
-    if (!rng.bool(0.7)) continue
-    const hoursAgo = rng.int(1, 14 * 24)
-    const ts = new Date(windowEnd.getTime() - hoursAgo * 3600_000)
-    await db
-      .update(alertRules)
-      .set({ lastFiredAt: ts, updatedAt: ts })
-      .where(sql`${alertRules.id} = ${r.id}`)
-  }
+  await Promise.all(
+    alertRuleRows.map(async (r) => {
+      if (!rng.bool(0.7)) return
+      const hoursAgo = rng.int(1, 14 * 24)
+      const ts = new Date(windowEnd.getTime() - hoursAgo * 3600_000)
+      await db
+        .update(alertRules)
+        .set({ lastFiredAt: ts, updatedAt: ts })
+        .where(sql`${alertRules.id} = ${r.id}`)
+    }),
+  )
 
-  for (const c of channelRows) {
-    if (!rng.bool(0.6)) continue
-    const hoursAgo = rng.int(1, 14 * 24)
-    const ts = new Date(windowEnd.getTime() - hoursAgo * 3600_000)
-    const isTested = rng.bool(0.4)
-    await db
-      .update(channels)
-      .set({
-        lastUsedAt: ts,
-        ...(isTested
-          ? {
-              lastTestAlertAt: new Date(ts.getTime() - rng.int(0, 86400_000)),
-              lastTestAlertStatus: rng.bool(0.9) ? 'delivered' : 'failed',
-              lastTestAlertReason: null,
-            }
-          : {}),
-        updatedAt: ts,
-      })
-      .where(sql`${channels.id} = ${c.id}`)
-  }
+  await Promise.all(
+    channelRows.map(async (c) => {
+      if (!rng.bool(0.6)) return
+      const hoursAgo = rng.int(1, 14 * 24)
+      const ts = new Date(windowEnd.getTime() - hoursAgo * 3600_000)
+      const isTested = rng.bool(0.4)
+      await db
+        .update(channels)
+        .set({
+          lastUsedAt: ts,
+          ...(isTested
+            ? {
+                lastTestAlertAt: new Date(ts.getTime() - rng.int(0, 86400_000)),
+                lastTestAlertStatus: rng.bool(0.9) ? 'delivered' : 'failed',
+                lastTestAlertReason: null,
+              }
+            : {}),
+          updatedAt: ts,
+        })
+        .where(sql`${channels.id} = ${c.id}`)
+    }),
+  )
 }
 
 // Drizzle's generic insert is variadic over table shape; the seed orchestrator
@@ -255,13 +258,14 @@ async function upsertBatched<T extends SQLiteTable>(
     if (key === 'id' || key === 'createdAt') continue
     update[key] = sql.raw(`excluded.${col.name}`)
   }
-  for (let i = 0; i < rows.length; i += BATCH_INSERT_SIZE) {
-    const slice = rows.slice(i, i + BATCH_INSERT_SIZE)
-    await (db as unknown as AnyDb)
-      .insert(table)
-      .values(slice)
-      .onConflictDoUpdate({ target, set: update })
-  }
+  await Promise.all(
+    chunkedRows(rows).map((slice) =>
+      (db as unknown as AnyDb)
+        .insert(table)
+        .values(slice)
+        .onConflictDoUpdate({ target, set: update }),
+    ),
+  )
 }
 
 async function insertBatched<T extends SQLiteTable>(
@@ -273,10 +277,21 @@ async function insertBatched<T extends SQLiteTable>(
   const cols = getTableColumns(table) as Record<string, { name: string }>
   const target = cols.id
   if (!target) throw new Error(`insertBatched: table ${String(table)} has no id column`)
+  await Promise.all(
+    chunkedRows(rows).map((slice) =>
+      (db as unknown as AnyDb).insert(table).values(slice).onConflictDoNothing({ target }),
+    ),
+  )
+}
+
+function chunkedRows(
+  rows: ReadonlyArray<Record<string, unknown>>,
+): Array<ReadonlyArray<Record<string, unknown>>> {
+  const chunks: Array<ReadonlyArray<Record<string, unknown>>> = []
   for (let i = 0; i < rows.length; i += BATCH_INSERT_SIZE) {
-    const slice = rows.slice(i, i + BATCH_INSERT_SIZE)
-    await (db as unknown as AnyDb).insert(table).values(slice).onConflictDoNothing({ target })
+    chunks.push(rows.slice(i, i + BATCH_INSERT_SIZE))
   }
+  return chunks
 }
 
 function filterByField<T extends Record<string, unknown>, K extends keyof T>(

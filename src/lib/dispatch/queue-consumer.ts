@@ -90,7 +90,5 @@ export async function queue(
   env: DispatchQueueEnv,
   _ctx: ExecutionContext,
 ): Promise<void> {
-  for (const message of batch.messages) {
-    await handleQueueMessage(env, message)
-  }
+  await Promise.all(batch.messages.map((message) => handleQueueMessage(env, message)))
 }

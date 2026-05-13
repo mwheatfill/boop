@@ -21,7 +21,7 @@ export const Route = createFileRoute(
 
 function ChannelDetailPage() {
   const { customerSlug, channelSlug } = Route.useParams()
-  const navigate = useNavigate()
+  const goTo = useNavigate()
   const queryClient = useQueryClient()
   const { data: channel } = useSuspenseQuery(channelQueryOptions(customerSlug, channelSlug))
 
@@ -34,7 +34,7 @@ function ChannelDetailPage() {
       }
       toast.success('Archived')
       await queryClient.invalidateQueries({ queryKey: ['customers', customerSlug, 'channels'] })
-      await navigate({ to: '/customers/$customerSlug/channels', params: { customerSlug } })
+      await goTo({ to: '/customers/$customerSlug/channels', params: { customerSlug } })
     },
   })
 
@@ -63,7 +63,7 @@ function ChannelDetailPage() {
   useShortcut(
     'e',
     () =>
-      void navigate({
+      void goTo({
         to: '/customers/$customerSlug/channels/$channelSlug/edit',
         params: { customerSlug, channelSlug },
       }),

@@ -128,7 +128,7 @@ function CustomerHubPage() {
   const { customerSlug } = Route.useParams()
   const search = Route.useSearch()
   const archived = Boolean(search.archived)
-  const navigate = Route.useNavigate()
+  const goTo = Route.useNavigate()
   const { currentUser } = Route.useRouteContext()
   const isAdmin = currentUser.role === 'admin'
   const { data: customer } = useSuspenseQuery(customerQueryOptions(customerSlug))
@@ -151,7 +151,7 @@ function CustomerHubPage() {
         toast.error('Admin only.')
         return
       }
-      void navigate({ to: '/customers/$customerSlug/edit', params: { customerSlug } })
+      void goTo({ to: '/customers/$customerSlug/edit', params: { customerSlug } })
     },
     { description: 'Edit Customer', section: 'page' },
   )
@@ -199,7 +199,7 @@ function CustomerHubPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate({ search: archived ? {} : { archived: true } })}
+              onClick={() => goTo({ search: archived ? {} : { archived: true } })}
             >
               {archived ? 'Hide archived' : 'Show archived'}
             </Button>

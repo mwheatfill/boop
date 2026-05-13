@@ -52,19 +52,21 @@ const NOW = new Date('2026-05-12T12:00:00.000Z')
 describe('listActiveSecrets', () => {
   it('returns rows with revoked_at IS NULL and (expires_at IS NULL OR expires_at > now)', async () => {
     const { db, jobId } = await seedJob()
-    const active = await insertSecret(db, jobId, { createdAt: new Date(NOW.getTime() - 1000) })
-    const future = await insertSecret(db, jobId, {
-      createdAt: new Date(NOW.getTime() - 2000),
-      expiresAt: new Date(NOW.getTime() + 1000),
-    })
-    await insertSecret(db, jobId, {
-      createdAt: new Date(NOW.getTime() - 3000),
-      expiresAt: new Date(NOW.getTime() - 1),
-    })
-    await insertSecret(db, jobId, {
-      createdAt: new Date(NOW.getTime() - 4000),
-      revokedAt: new Date(NOW.getTime() - 500),
-    })
+    const [active, future] = await Promise.all([
+      insertSecret(db, jobId, { createdAt: new Date(NOW.getTime() - 1000) }),
+      insertSecret(db, jobId, {
+        createdAt: new Date(NOW.getTime() - 2000),
+        expiresAt: new Date(NOW.getTime() + 1000),
+      }),
+      insertSecret(db, jobId, {
+        createdAt: new Date(NOW.getTime() - 3000),
+        expiresAt: new Date(NOW.getTime() - 1),
+      }),
+      insertSecret(db, jobId, {
+        createdAt: new Date(NOW.getTime() - 4000),
+        revokedAt: new Date(NOW.getTime() - 500),
+      }),
+    ])
 
     const rows = await listActiveSecrets(db, jobId, NOW)
     expect(rows.map((r) => r.id)).toEqual([active, future])
@@ -78,8 +80,10 @@ describe('listActiveSecrets', () => {
 
   it('sorts results by created_at DESC', async () => {
     const { db, jobId } = await seedJob()
-    const older = await insertSecret(db, jobId, { createdAt: new Date(NOW.getTime() - 5000) })
-    const newer = await insertSecret(db, jobId, { createdAt: new Date(NOW.getTime() - 1000) })
+    const [older, newer] = await Promise.all([
+      insertSecret(db, jobId, { createdAt: new Date(NOW.getTime() - 5000) }),
+      insertSecret(db, jobId, { createdAt: new Date(NOW.getTime() - 1000) }),
+    ])
     const rows = await listActiveSecrets(db, jobId, NOW)
     expect(rows.map((r) => r.id)).toEqual([newer, older])
   })
@@ -93,11 +97,13 @@ describe('listActiveSecrets', () => {
 describe('listSecretsForJob', () => {
   it('returns every secret including revoked and expired ones, newest first', async () => {
     const { db, jobId } = await seedJob()
-    const oldRevoked = await insertSecret(db, jobId, {
-      createdAt: new Date(NOW.getTime() - 4000),
-      revokedAt: new Date(NOW.getTime() - 100),
-    })
-    const newActive = await insertSecret(db, jobId, { createdAt: new Date(NOW.getTime() - 1000) })
+    const [oldRevoked, newActive] = await Promise.all([
+      insertSecret(db, jobId, {
+        createdAt: new Date(NOW.getTime() - 4000),
+        revokedAt: new Date(NOW.getTime() - 100),
+      }),
+      insertSecret(db, jobId, { createdAt: new Date(NOW.getTime() - 1000) }),
+    ])
     const rows = await listSecretsForJob(db, jobId)
     expect(rows.map((r) => r.id)).toEqual([newActive, oldRevoked])
   })

@@ -83,27 +83,28 @@ export async function runScheduled({
   now = () => new Date(),
 }: ScheduledDeps): Promise<{ swept: number; enqueued: number }> {
   const tick = now()
-  const swept = await sweepStaleClaims(db, tick)
-  const due = await selectDueCronJobs(db, tick)
-  let enqueued = 0
-  for (const row of due) {
-    if (!row.cronExpression) continue
-    const fireNow = row.nextFireAt !== null
-    if (fireNow) {
-      await dispatchQueue.send({
-        jobId: row.jobId,
-        scheduledAt: tick,
-        triggerSource: 'cron',
-      })
-      enqueued++
-    }
-    const next = nextRunFor(row.cronExpression, row.effectiveTz, tick)
-    if (next !== null) {
-      const update: Partial<typeof jobs.$inferInsert> = { nextFireAt: next, updatedAt: tick }
-      if (fireNow) update.lastFireAt = tick
-      await db.update(jobs).set(update).where(eq(jobs.id, row.jobId))
-    }
-  }
+  const [swept, due] = await Promise.all([sweepStaleClaims(db, tick), selectDueCronJobs(db, tick)])
+  const results = await Promise.all(
+    due.map(async (row) => {
+      if (!row.cronExpression) return 0
+      const fireNow = row.nextFireAt !== null
+      if (fireNow) {
+        await dispatchQueue.send({
+          jobId: row.jobId,
+          scheduledAt: tick,
+          triggerSource: 'cron',
+        })
+      }
+      const next = nextRunFor(row.cronExpression, row.effectiveTz, tick)
+      if (next !== null) {
+        const update: Partial<typeof jobs.$inferInsert> = { nextFireAt: next, updatedAt: tick }
+        if (fireNow) update.lastFireAt = tick
+        await db.update(jobs).set(update).where(eq(jobs.id, row.jobId))
+      }
+      return fireNow ? 1 : 0
+    }),
+  )
+  const enqueued = results.reduce<number>((total, count) => total + count, 0)
   logInfo('scheduled.tick', { swept, due: due.length, enqueued })
   return { swept, enqueued }
 }

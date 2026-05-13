@@ -14,7 +14,7 @@ import {
   Users,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useKeyboard } from '@/components/keyboard/KeyboardProvider'
 import {
@@ -53,7 +53,7 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ currentUser }: CommandPaletteProps) {
   const { paletteOpen, setPaletteOpen } = useKeyboard()
-  const navigate = useNavigate()
+  const goTo = useNavigate()
   const queryClient = useQueryClient()
   const routerState = useRouterState({ select: (s) => s.location.pathname })
   const { setTheme, theme } = useTheme()
@@ -68,9 +68,10 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
   )
 
   const [recents, setRecents] = useState<RecentEntry[]>([])
-  useEffect(() => {
-    if (paletteOpen) setRecents(readRecents())
-  }, [paletteOpen])
+  const setPaletteOpenWithRecents = (open: boolean) => {
+    if (open) setRecents(readRecents())
+    setPaletteOpen(open)
+  }
 
   const currentCustomerSlug = useMemo(() => {
     const match = routerState.match(/^\/customers\/([^/]+)/)
@@ -81,15 +82,17 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
   const close = () => setPaletteOpen(false)
 
   const refreshJobs = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['jobs'] })
-    await queryClient.invalidateQueries({ queryKey: ['palette', 'jobs'] })
-    await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['jobs'] }),
+      queryClient.invalidateQueries({ queryKey: ['palette', 'jobs'] }),
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+    ])
   }
 
   return (
     <CommandDialog
       open={paletteOpen}
-      onOpenChange={setPaletteOpen}
+      onOpenChange={setPaletteOpenWithRecents}
       label="Command palette"
       filter={(value, search, keywords) => fuzzyScore(value, search, keywords ?? [])}
       loop
@@ -108,12 +111,12 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
                 onSelect={() => {
                   close()
                   if (r.entity === 'customer') {
-                    void navigate({
+                    void goTo({
                       to: '/customers/$customerSlug',
                       params: { customerSlug: r.slug },
                     })
                   } else if (r.customerSlug) {
-                    void navigate({
+                    void goTo({
                       to: '/customers/$customerSlug/jobs/$jobSlug',
                       params: { customerSlug: r.customerSlug, jobSlug: r.slug },
                     })
@@ -137,7 +140,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
                 keywords={[c.slug, c.name]}
                 onSelect={() => {
                   close()
-                  void navigate({
+                  void goTo({
                     to: '/customers/$customerSlug',
                     params: { customerSlug: c.slug },
                   })
@@ -160,7 +163,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
                 keywords={[j.slug, j.customerSlug, j.customerName]}
                 onSelect={() => {
                   close()
-                  void navigate({
+                  void goTo({
                     to: '/customers/$customerSlug/jobs/$jobSlug',
                     params: { customerSlug: j.customerSlug, jobSlug: j.slug },
                   })
@@ -232,7 +235,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
             keywords={['create', 'add']}
             onSelect={() => {
               close()
-              void navigate({ to: '/jobs/new' })
+              void goTo({ to: '/jobs/new' })
             }}
           >
             <Plus aria-hidden /> New Job
@@ -242,7 +245,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
             keywords={['template', 'recipe', 'library']}
             onSelect={() => {
               close()
-              void navigate({ to: '/templates' })
+              void goTo({ to: '/templates' })
             }}
           >
             <BookTemplate aria-hidden /> Template library
@@ -253,7 +256,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
               keywords={['create', 'add', 'tenant', 'organization']}
               onSelect={() => {
                 close()
-                void navigate({ to: '/customers/new' })
+                void goTo({ to: '/customers/new' })
               }}
             >
               <Plus aria-hidden /> New Customer
@@ -265,7 +268,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
               keywords={['create', 'add', 'endpoint', 'url']}
               onSelect={() => {
                 close()
-                void navigate({
+                void goTo({
                   to: '/customers/$customerSlug/targets/new',
                   params: { customerSlug: currentCustomerSlug },
                 })
@@ -282,7 +285,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
             keywords={['dashboard', 'home']}
             onSelect={() => {
               close()
-              void navigate({ to: '/' })
+              void goTo({ to: '/' })
             }}
           >
             <ArrowRight aria-hidden /> Go home
@@ -293,7 +296,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
             keywords={['jobs']}
             onSelect={() => {
               close()
-              void navigate({ to: '/jobs' })
+              void goTo({ to: '/jobs' })
             }}
           >
             <ArrowRight aria-hidden /> Go to Jobs
@@ -304,7 +307,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
             keywords={['customers']}
             onSelect={() => {
               close()
-              void navigate({ to: '/customers' })
+              void goTo({ to: '/customers' })
             }}
           >
             <Users aria-hidden /> Go to Customers
@@ -315,7 +318,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
             keywords={['runs', 'history']}
             onSelect={() => {
               close()
-              void navigate({ to: '/runs' })
+              void goTo({ to: '/runs' })
             }}
           >
             <ArrowRight aria-hidden /> Go to Runs
@@ -326,7 +329,7 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
             keywords={['templates', 'library', 'recipes']}
             onSelect={() => {
               close()
-              void navigate({ to: '/templates' })
+              void goTo({ to: '/templates' })
             }}
           >
             <BookTemplate aria-hidden /> Go to Templates

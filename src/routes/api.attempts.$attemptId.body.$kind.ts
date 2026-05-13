@@ -10,12 +10,12 @@ export const Route = createFileRoute('/api/attempts/$attemptId/body/$kind')({
   server: {
     handlers: {
       GET: async ({ params }) => {
-        const request = getRequest()
-        const user = await getCurrentUser(request, env)
-        if (!user) return new Response('Unauthorized', { status: 401 })
         if (params.kind !== 'request' && params.kind !== 'response') {
           return new Response('Bad Request', { status: 400 })
         }
+        const request = getRequest()
+        const user = await getCurrentUser(request, env)
+        if (!user) return new Response('Unauthorized', { status: 401 })
         const db = createDb(env.DB)
         const [row] = await db
           .select({

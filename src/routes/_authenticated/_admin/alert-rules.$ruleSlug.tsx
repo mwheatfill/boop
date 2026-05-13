@@ -24,7 +24,7 @@ export const Route = createFileRoute('/_authenticated/_admin/alert-rules/$ruleSl
 
 function WorkspaceAlertRuleDetailPage() {
   const { ruleSlug } = Route.useParams()
-  const navigate = useNavigate()
+  const goTo = useNavigate()
   const queryClient = useQueryClient()
   const { data: rule } = useSuspenseQuery(workspaceAlertRuleQueryOptions(ruleSlug))
   const { data: channels } = useSuspenseQuery(workspaceChannelsQueryOptions(true))
@@ -35,7 +35,7 @@ function WorkspaceAlertRuleDetailPage() {
     onSuccess: async () => {
       toast.success('Archived')
       await queryClient.invalidateQueries({ queryKey: ['workspace', 'alert-rules'] })
-      await navigate({ to: '/alert-rules' })
+      await goTo({ to: '/alert-rules' })
     },
   })
 
@@ -47,11 +47,10 @@ function WorkspaceAlertRuleDetailPage() {
     },
   })
 
-  useShortcut(
-    'e',
-    () => void navigate({ to: '/alert-rules/$ruleSlug/edit', params: { ruleSlug } }),
-    { description: 'Edit Alert Rule', section: 'page' },
-  )
+  useShortcut('e', () => void goTo({ to: '/alert-rules/$ruleSlug/edit', params: { ruleSlug } }), {
+    description: 'Edit Alert Rule',
+    section: 'page',
+  })
 
   return (
     <>

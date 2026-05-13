@@ -18,7 +18,7 @@ const ISO_DATE_FORMAT = new Map<string, Intl.DateTimeFormat>()
 function isoFormatterFor(timeZone: string): Intl.DateTimeFormat {
   let fmt = ISO_DATE_FORMAT.get(timeZone)
   if (!fmt) {
-    fmt = new Intl.DateTimeFormat('sv-SE', {
+    fmt = Intl.DateTimeFormat('sv-SE', {
       timeZone,
       year: 'numeric',
       month: '2-digit',

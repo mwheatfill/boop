@@ -46,8 +46,10 @@ describe('generateSecret', () => {
 
   it('produces a fresh plaintext on every call', async () => {
     const { db, jobId } = await seedJob()
-    const first = await generateSecret({ db, now: () => FIXED }, jobId)
-    const second = await generateSecret({ db, now: () => new Date(FIXED.getTime() + 1) }, jobId)
+    const [first, second] = await Promise.all([
+      generateSecret({ db, now: () => FIXED }, jobId),
+      generateSecret({ db, now: () => new Date(FIXED.getTime() + 1) }, jobId),
+    ])
     expect(first.plaintext).not.toBe(second.plaintext)
   })
 })

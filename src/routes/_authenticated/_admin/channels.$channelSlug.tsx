@@ -21,7 +21,7 @@ export const Route = createFileRoute('/_authenticated/_admin/channels/$channelSl
 
 function WorkspaceChannelDetailPage() {
   const { channelSlug } = Route.useParams()
-  const navigate = useNavigate()
+  const goTo = useNavigate()
   const queryClient = useQueryClient()
   const { data: channel } = useSuspenseQuery(workspaceChannelQueryOptions(channelSlug))
 
@@ -34,7 +34,7 @@ function WorkspaceChannelDetailPage() {
       }
       toast.success('Archived')
       await queryClient.invalidateQueries({ queryKey: ['workspace', 'channels'] })
-      await navigate({ to: '/channels' })
+      await goTo({ to: '/channels' })
     },
   })
 
@@ -60,7 +60,7 @@ function WorkspaceChannelDetailPage() {
 
   useShortcut(
     'e',
-    () => void navigate({ to: '/channels/$channelSlug/edit', params: { channelSlug } }),
+    () => void goTo({ to: '/channels/$channelSlug/edit', params: { channelSlug } }),
     { description: 'Edit Channel', section: 'page' },
   )
 

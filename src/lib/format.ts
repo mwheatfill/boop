@@ -12,6 +12,9 @@ const DEFAULT_LOCAL_DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
   hour: 'numeric',
   minute: '2-digit',
 })
+const moneyFormatterCache = new Map<string, Intl.NumberFormat>()
+const numberFormatterCache = new Map<string, Intl.NumberFormat>()
+const percentFormatterCache = new Map<string, Intl.NumberFormat>()
 
 function fractionDigitsFor(currency: string): number {
   return ZERO_DECIMAL_CURRENCIES.has(currency.toUpperCase()) ? 0 : 2
@@ -22,21 +25,38 @@ function fractionDigitsFor(currency: string): number {
 export function formatMoney(minorUnits: number, currency: string, locale = 'en-US'): string {
   const fractionDigits = fractionDigitsFor(currency)
   const major = minorUnits / 10 ** fractionDigits
-  return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(major)
+  const key = `${locale}:${currency}`
+  let formatter = moneyFormatterCache.get(key)
+  if (!formatter) {
+    formatter = Intl.NumberFormat(locale, { style: 'currency', currency })
+    moneyFormatterCache.set(key, formatter)
+  }
+  return formatter.format(major)
 }
 
 export function formatNumber(value: number, locale = 'en-US'): string {
   if (locale === 'en-US') return DEFAULT_NUMBER_FORMATTER.format(value)
-  return new Intl.NumberFormat(locale).format(value)
+  let formatter = numberFormatterCache.get(locale)
+  if (!formatter) {
+    formatter = Intl.NumberFormat(locale)
+    numberFormatterCache.set(locale, formatter)
+  }
+  return formatter.format(value)
 }
 
 export function formatPercent(ratio: number, locale = 'en-US', fractionDigits = 0): string {
   if (locale === 'en-US' && fractionDigits === 0) return DEFAULT_PERCENT_FORMATTER.format(ratio)
-  return new Intl.NumberFormat(locale, {
-    style: 'percent',
-    minimumFractionDigits: fractionDigits,
-    maximumFractionDigits: fractionDigits,
-  }).format(ratio)
+  const key = `${locale}:${fractionDigits}`
+  let formatter = percentFormatterCache.get(key)
+  if (!formatter) {
+    formatter = Intl.NumberFormat(locale, {
+      style: 'percent',
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    })
+    percentFormatterCache.set(key, formatter)
+  }
+  return formatter.format(ratio)
 }
 
 export function relativeAgo(ms: number, now = Date.now()): string {
@@ -58,7 +78,7 @@ export function formatLocalDateTime(iso: string): string {
 export function formatInTimezone(iso: string, timeZone: string): string {
   let fmt = tzDateFormatterCache.get(timeZone)
   if (!fmt) {
-    fmt = new Intl.DateTimeFormat('en-US', {
+    fmt = Intl.DateTimeFormat('en-US', {
       timeZone,
       year: 'numeric',
       month: 'numeric',
