@@ -6,6 +6,7 @@ export const ALERT_RULE_KINDS = [
   'consecutive_failures',
   'recovery',
   'slow_run',
+  'missed_schedule',
 ] as const
 export type AlertRuleKind = (typeof ALERT_RULE_KINDS)[number]
 
@@ -17,6 +18,9 @@ export const CONSECUTIVE_FAILURES_MIN = 2
 export const CONSECUTIVE_FAILURES_MAX = 50
 export const SLOW_RUN_DEFAULT_MS = 30_000
 export const SLOW_RUN_MIN_MS = 1_000
+export const MISSED_SCHEDULE_DEFAULT_MINUTES = 14 * 24 * 60
+export const MISSED_SCHEDULE_MIN_MINUTES = 1
+export const MISSED_SCHEDULE_MAX_MINUTES = 365 * 24 * 60
 
 const firstFailureConfig = z
   .object({ kind: z.literal('first_failure') })
@@ -47,12 +51,30 @@ const slowRunConfig = z
   })
   .meta({ id: 'AlertRuleConfigSlowRun' })
 
+const missedScheduleConfig = z
+  .object({
+    kind: z.literal('missed_schedule'),
+    silence_threshold_minutes: z
+      .int()
+      .min(
+        MISSED_SCHEDULE_MIN_MINUTES,
+        `Window must be at least ${MISSED_SCHEDULE_MIN_MINUTES} minute`,
+      )
+      .max(
+        MISSED_SCHEDULE_MAX_MINUTES,
+        `Window must be at most ${MISSED_SCHEDULE_MAX_MINUTES} minutes`,
+      )
+      .default(MISSED_SCHEDULE_DEFAULT_MINUTES),
+  })
+  .meta({ id: 'AlertRuleConfigMissedSchedule' })
+
 export const AlertRuleConfigSchema = z
   .discriminatedUnion('kind', [
     firstFailureConfig,
     consecutiveFailuresConfig,
     recoveryConfig,
     slowRunConfig,
+    missedScheduleConfig,
   ])
   .meta({ id: 'AlertRuleConfig' })
 
@@ -110,5 +132,7 @@ export function summarizeRuleConfig(config: AlertRuleConfig): string {
       return 'On recovery'
     case 'slow_run':
       return `When Run > ${config.threshold_ms}ms`
+    case 'missed_schedule':
+      return `When no Run starts for ${config.silence_threshold_minutes}m`
   }
 }

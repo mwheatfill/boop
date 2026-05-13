@@ -4,6 +4,7 @@ import type { Channel } from '@/shared/schemas/channel'
 import { buildTeamsCard, deliverTeams } from './teams'
 
 const baseContext: AlertContext = {
+  kind: 'run',
   customer_name: 'Acme',
   customer_slug: 'acme',
   job_name: 'Daily',
@@ -58,6 +59,32 @@ describe('buildTeamsCard', () => {
     expect(attachment).toBeDefined()
     expect(attachment?.content.actions).toEqual([
       { type: 'Action.OpenUrl', title: 'Open Run', url: baseContext.run_url },
+    ])
+  })
+
+  it('renders missed schedule cards with a Job url action', () => {
+    const card = buildTeamsCard({
+      kind: 'missed',
+      customer_name: 'Acme',
+      customer_slug: 'acme',
+      job_name: 'Daily',
+      job_slug: 'daily',
+      job_url: 'https://boop/customers/acme/jobs/daily',
+      rule_name: 'Silence alert',
+      rule_kind: 'missed_schedule',
+      last_run_at: '2026-05-10T00:00:00.000Z',
+      silence_threshold_minutes: 60,
+      trigger_source: 'cron',
+      schedule: '0 9 * * *',
+      test: false,
+    }) as Record<string, unknown>
+    const [attachment] = card.attachments as Array<{ content: { actions: unknown[] } }>
+    expect(attachment?.content.actions).toEqual([
+      {
+        type: 'Action.OpenUrl',
+        title: 'Open Job',
+        url: 'https://boop/customers/acme/jobs/daily',
+      },
     ])
   })
 })

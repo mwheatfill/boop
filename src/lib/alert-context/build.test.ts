@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { attempts, customers, jobs, runs, targets } from '@/lib/db/schema'
-import { buildAlertContext, buildSyntheticTestContext } from './build'
+import { buildAlertContext, buildMissedAlertContext, buildSyntheticTestContext } from './build'
 
 type RunRow = typeof runs.$inferSelect
 type AttemptRow = typeof attempts.$inferSelect
@@ -57,6 +57,7 @@ const job: JobRow = {
   headersTemplate: '{}',
   variables: {},
   lastFireAt: null,
+  lastMissedAlertAt: null,
   nextFireAt: null,
   fireInProgress: false,
   maxAttempts: 3,
@@ -107,6 +108,7 @@ describe('buildAlertContext', () => {
       appOrigin: 'https://boop.example.com',
     })
     expect(ctx).toMatchObject({
+      kind: 'run',
       customer_name: 'Acme',
       job_slug: 'daily-backup',
       run_url: 'https://boop.example.com/customers/acme/jobs/daily-backup/runs/run_123',
@@ -128,6 +130,8 @@ describe('buildAlertContext', () => {
       ruleKind: 'recovery',
       appOrigin: 'https://x',
     })
+    expect(ctx.kind).toBe('run')
+    if (ctx.kind !== 'run') throw new Error('expected run context')
     expect(ctx.failure_kind).toBeNull()
   })
 
@@ -142,13 +146,40 @@ describe('buildAlertContext', () => {
       ruleKind: 'first_failure',
       appOrigin: 'https://x',
     })
+    expect(ctx.kind).toBe('run')
+    if (ctx.kind !== 'run') throw new Error('expected run context')
     expect(ctx.attempt_count).toBe(1)
+  })
+})
+
+describe('buildMissedAlertContext', () => {
+  it('populates Job-centered context without Run fields', () => {
+    const ctx = buildMissedAlertContext({
+      job,
+      customer,
+      ruleName: 'Silence alert',
+      appOrigin: 'https://boop.example.com',
+      lastRunAt: '2026-05-10T00:00:00.000Z',
+      silenceThresholdMinutes: 60,
+    })
+    expect(ctx).toMatchObject({
+      kind: 'missed',
+      customer_name: 'Acme',
+      job_url: 'https://boop.example.com/customers/acme/jobs/daily-backup',
+      rule_kind: 'missed_schedule',
+      last_run_at: '2026-05-10T00:00:00.000Z',
+      silence_threshold_minutes: 60,
+      trigger_source: 'cron',
+      schedule: '0 9 * * *',
+    })
   })
 })
 
 describe('buildSyntheticTestContext', () => {
   it('marks test=true with synthetic identifiers', () => {
     const ctx = buildSyntheticTestContext('Ops Teams', 'ops-teams', 'Acme', 'acme', 'https://b')
+    expect(ctx.kind).toBe('run')
+    if (ctx.kind !== 'run') throw new Error('expected run context')
     expect(ctx.test).toBe(true)
     expect(ctx.run_id).toBe('test_ops-teams')
   })

@@ -24,6 +24,10 @@ function runUrl(origin: string, customerSlug: string, jobSlug: string, runId: st
   return `${origin}/customers/${customerSlug}/jobs/${jobSlug}/runs/${runId}`
 }
 
+function jobUrl(origin: string, customerSlug: string, jobSlug: string): string {
+  return `${origin}/customers/${customerSlug}/jobs/${jobSlug}`
+}
+
 function durationMsOf(run: RunRow): number {
   if (!run.startedAt || !run.completedAt) return 0
   return run.completedAt.getTime() - run.startedAt.getTime()
@@ -51,6 +55,7 @@ export function buildAlertContext({
   test = false,
 }: BuildAlertContextInput): AlertContext {
   return {
+    kind: 'run',
     customer_name: customer.name,
     customer_slug: customer.slug,
     job_name: job.name,
@@ -72,6 +77,46 @@ export function buildAlertContext({
   }
 }
 
+interface BuildMissedAlertContextInput {
+  job: JobRow
+  customer: CustomerRow
+  ruleName: string
+  appOrigin: string
+  lastRunAt: string | null
+  silenceThresholdMinutes: number
+}
+
+function scheduleOf(job: JobRow): string {
+  if (job.triggerKind === 'cron') return job.cronExpression ?? 'cron'
+  if (job.triggerKind === 'interval') return `${job.intervalSeconds ?? 0}s interval`
+  return 'webhook'
+}
+
+export function buildMissedAlertContext({
+  job,
+  customer,
+  ruleName,
+  appOrigin,
+  lastRunAt,
+  silenceThresholdMinutes,
+}: BuildMissedAlertContextInput): AlertContext {
+  return {
+    kind: 'missed',
+    customer_name: customer.name,
+    customer_slug: customer.slug,
+    job_name: job.name,
+    job_slug: job.slug,
+    job_url: jobUrl(appOrigin, customer.slug, job.slug),
+    rule_name: ruleName,
+    rule_kind: 'missed_schedule',
+    last_run_at: lastRunAt,
+    silence_threshold_minutes: silenceThresholdMinutes,
+    trigger_source: job.triggerKind,
+    schedule: scheduleOf(job),
+    test: false,
+  }
+}
+
 const TEST_ISO = '2026-05-12T00:00:00.000Z'
 
 export function buildSyntheticTestContext(
@@ -82,6 +127,7 @@ export function buildSyntheticTestContext(
   appOrigin: string,
 ): AlertContext {
   return {
+    kind: 'run',
     customer_name: customerName,
     customer_slug: customerSlug,
     job_name: `boop test alert (${channelName})`,

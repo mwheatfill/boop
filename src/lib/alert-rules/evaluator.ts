@@ -20,7 +20,7 @@ export interface FiringPair {
   ruleId: string
   ruleSlug: string
   ruleName: string
-  ruleKind: AlertRuleKind
+  ruleKind: Exclude<AlertRuleKind, 'missed_schedule'>
   channelIds: string[]
 }
 
@@ -79,6 +79,8 @@ function evaluateOne(
       return recovery(history)
     case 'slow_run':
       return slowRun(current, rule.config.threshold_ms)
+    case 'missed_schedule':
+      return false
   }
 }
 
@@ -137,7 +139,7 @@ export async function evaluateRulesForRun({
         ruleId: rule.id,
         ruleSlug: rule.slug,
         ruleName: rule.name,
-        ruleKind: rule.kind,
+        ruleKind: rule.kind as Exclude<AlertRuleKind, 'missed_schedule'>,
         channelIds: rule.channelIds,
       })
     }

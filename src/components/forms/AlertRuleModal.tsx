@@ -25,6 +25,9 @@ import {
   type AlertRule,
   type AlertRuleKind,
   CONSECUTIVE_FAILURES_DEFAULT_COUNT,
+  MISSED_SCHEDULE_DEFAULT_MINUTES,
+  MISSED_SCHEDULE_MAX_MINUTES,
+  MISSED_SCHEDULE_MIN_MINUTES,
   SLOW_RUN_DEFAULT_MS,
 } from '@/shared/schemas/alert-rule'
 import type { Channel } from '@/shared/schemas/channel'
@@ -48,7 +51,26 @@ const KIND_OPTIONS: KindOption[] = [
   },
   { kind: 'recovery', label: 'Recovery', description: 'First success after a failure streak' },
   { kind: 'slow_run', label: 'Slow run', description: 'Run duration exceeds a threshold' },
+  {
+    kind: 'missed_schedule',
+    label: 'Silence alert',
+    description: 'No Run starts within a window',
+  },
 ]
+
+const MISSED_SCHEDULE_PRESETS = [
+  { label: '1h', minutes: 60 },
+  { label: '6h', minutes: 6 * 60 },
+  { label: '1d', minutes: 24 * 60 },
+  { label: '1w', minutes: 7 * 24 * 60 },
+  { label: '2w', minutes: 14 * 24 * 60 },
+] as const
+
+function missedSchedulePresetClassName(active: boolean): string {
+  const base = 'rounded-full border px-2.5 py-1 text-xs transition-colors'
+  if (active) return `${base} border-primary bg-primary text-primary-foreground`
+  return `${base} border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground`
+}
 
 interface AlertRuleFormValues {
   name: string
@@ -56,6 +78,7 @@ interface AlertRuleFormValues {
   kind: AlertRuleKind
   count: number
   thresholdMs: number
+  silenceThresholdMinutes: number
   channelIds: string[]
 }
 
@@ -67,6 +90,7 @@ function initialValues(rule: AlertRule | undefined): AlertRuleFormValues {
       kind: 'first_failure',
       count: CONSECUTIVE_FAILURES_DEFAULT_COUNT,
       thresholdMs: SLOW_RUN_DEFAULT_MS,
+      silenceThresholdMinutes: MISSED_SCHEDULE_DEFAULT_MINUTES,
       channelIds: [],
     }
   }
@@ -76,12 +100,17 @@ function initialValues(rule: AlertRule | undefined): AlertRuleFormValues {
       : CONSECUTIVE_FAILURES_DEFAULT_COUNT
   const thresholdMs =
     rule.config.kind === 'slow_run' ? rule.config.threshold_ms : SLOW_RUN_DEFAULT_MS
+  const silenceThresholdMinutes =
+    rule.config.kind === 'missed_schedule'
+      ? rule.config.silence_threshold_minutes
+      : MISSED_SCHEDULE_DEFAULT_MINUTES
   return {
     name: rule.name,
     slug: rule.slug,
     kind: rule.kind,
     count,
     thresholdMs,
+    silenceThresholdMinutes,
     channelIds: rule.channelIds,
   }
 }
@@ -96,6 +125,11 @@ function buildConfig(values: AlertRuleFormValues) {
       return { kind: 'recovery' as const }
     case 'slow_run':
       return { kind: 'slow_run' as const, threshold_ms: values.thresholdMs }
+    case 'missed_schedule':
+      return {
+        kind: 'missed_schedule' as const,
+        silence_threshold_minutes: values.silenceThresholdMinutes,
+      }
   }
 }
 
@@ -370,6 +404,47 @@ export function AlertRuleModal({
                     Heads up: a threshold above 10 minutes will rarely fire for short Jobs.
                   </p>
                 ) : null}
+              </div>
+            )}
+          </form.Field>
+        ) : null}
+
+        {kind === 'missed_schedule' ? (
+          <form.Field name="silenceThresholdMinutes">
+            {(field) => (
+              <div className="flex flex-col gap-2">
+                <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground">
+                  Window without a Run
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {MISSED_SCHEDULE_PRESETS.map((preset) => {
+                    const active = field.state.value === preset.minutes
+                    return (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        className={missedSchedulePresetClassName(active)}
+                        onClick={() => field.handleChange(preset.minutes)}
+                      >
+                        {preset.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                <Input
+                  id={field.name}
+                  type="number"
+                  min={MISSED_SCHEDULE_MIN_MINUTES}
+                  max={MISSED_SCHEDULE_MAX_MINUTES}
+                  step={1}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(Number(e.currentTarget.value))}
+                  className="max-w-[220px]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Alerts when no Run starts in this window. Endpoint failures use Consecutive
+                  failures.
+                </p>
               </div>
             )}
           </form.Field>

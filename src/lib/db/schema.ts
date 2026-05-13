@@ -14,7 +14,13 @@ const RUN_OUTCOMES = ['success', 'failure', 'timeout'] as const
 const FAILURE_KINDS = ['timeout', 'network', 'http_4xx', 'http_5xx', 'non_2xx_other'] as const
 const CHANNEL_KINDS = ['teams', 'pagerduty', 'autotask', 'email', 'webhook'] as const
 const CHANNEL_SCOPES = ['workspace', 'customer'] as const
-const ALERT_RULE_KINDS = ['first_failure', 'consecutive_failures', 'recovery', 'slow_run'] as const
+const ALERT_RULE_KINDS = [
+  'first_failure',
+  'consecutive_failures',
+  'recovery',
+  'slow_run',
+  'missed_schedule',
+] as const
 const ALERT_RULE_SCOPES = ['workspace', 'customer', 'job'] as const
 const AUTHORING_SESSION_STATES = ['draft', 'confirmed', 'abandoned'] as const
 const JOB_TEMPLATE_SCOPES = ['workspace', 'customer'] as const
@@ -118,6 +124,7 @@ export const jobs = sqliteTable(
       .notNull()
       .default({}),
     lastFireAt: integer('last_fire_at', { mode: 'timestamp_ms' }),
+    lastMissedAlertAt: integer('last_missed_alert_at', { mode: 'timestamp_ms' }),
     nextFireAt: integer('next_fire_at', { mode: 'timestamp_ms' }),
     fireInProgress: integer('fire_in_progress', { mode: 'boolean' }).notNull().default(false),
     maxAttempts: integer('max_attempts').notNull().default(3),

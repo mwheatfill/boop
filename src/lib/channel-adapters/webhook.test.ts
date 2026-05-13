@@ -4,6 +4,7 @@ import type { Channel } from '@/shared/schemas/channel'
 import { deliverWebhook } from './webhook'
 
 const baseContext: AlertContext = {
+  kind: 'run',
   customer_name: 'Acme',
   customer_slug: 'acme',
   job_name: 'Daily',

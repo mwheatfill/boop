@@ -180,6 +180,24 @@
           "kind"
         ]
       },
+      "AlertRuleConfigMissedSchedule": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "missed_schedule"
+          },
+          "silence_threshold_minutes": {
+            "default": 20160,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 525600
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
       "CustomerSecretName": {
         "type": "string",
         "pattern": "^[a-z][a-z0-9_]{0,63}$",
@@ -863,6 +881,9 @@
           },
           {
             "$ref": "#/components/schemas/AlertRuleConfigSlowRun"
+          },
+          {
+            "$ref": "#/components/schemas/AlertRuleConfigMissedSchedule"
           }
         ],
         "type": "object",
@@ -872,7 +893,8 @@
             "first_failure": "#/components/schemas/AlertRuleConfigFirstFailure",
             "consecutive_failures": "#/components/schemas/AlertRuleConfigConsecutiveFailures",
             "recovery": "#/components/schemas/AlertRuleConfigRecovery",
-            "slow_run": "#/components/schemas/AlertRuleConfigSlowRun"
+            "slow_run": "#/components/schemas/AlertRuleConfigSlowRun",
+            "missed_schedule": "#/components/schemas/AlertRuleConfigMissedSchedule"
           }
         }
       },
@@ -1049,6 +1071,26 @@
         "required": [
           "kind",
           "threshold_ms"
+        ],
+        "additionalProperties": false
+      },
+      "AlertRuleConfigMissedScheduleOutput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "missed_schedule"
+          },
+          "silence_threshold_minutes": {
+            "default": 20160,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 525600
+          }
+        },
+        "required": [
+          "kind",
+          "silence_threshold_minutes"
         ],
         "additionalProperties": false
       },
@@ -1726,6 +1768,9 @@
           },
           {
             "$ref": "#/components/schemas/AlertRuleConfigSlowRunOutput"
+          },
+          {
+            "$ref": "#/components/schemas/AlertRuleConfigMissedScheduleOutput"
           }
         ],
         "type": "object",
@@ -1735,7 +1780,8 @@
             "first_failure": "#/components/schemas/AlertRuleConfigFirstFailureOutput",
             "consecutive_failures": "#/components/schemas/AlertRuleConfigConsecutiveFailuresOutput",
             "recovery": "#/components/schemas/AlertRuleConfigRecoveryOutput",
-            "slow_run": "#/components/schemas/AlertRuleConfigSlowRunOutput"
+            "slow_run": "#/components/schemas/AlertRuleConfigSlowRunOutput",
+            "missed_schedule": "#/components/schemas/AlertRuleConfigMissedScheduleOutput"
           }
         }
       },
@@ -3690,7 +3736,8 @@
               "first_failure",
               "consecutive_failures",
               "recovery",
-              "slow_run"
+              "slow_run",
+              "missed_schedule"
             ]
           },
           "name": {
@@ -3821,96 +3868,177 @@
         "additionalProperties": false
       },
       "AlertContext": {
-        "type": "object",
-        "properties": {
-          "customer_name": {
-            "type": "string"
-          },
-          "customer_slug": {
-            "type": "string"
-          },
-          "job_name": {
-            "type": "string"
-          },
-          "job_slug": {
-            "type": "string"
-          },
-          "target_name": {
-            "type": "string"
-          },
-          "target_url": {
-            "type": "string"
-          },
-          "run_id": {
-            "type": "string"
-          },
-          "run_url": {
-            "type": "string"
-          },
-          "outcome": {
-            "type": "string"
-          },
-          "started_at": {
-            "type": "string"
-          },
-          "completed_at": {
-            "type": "string"
-          },
-          "duration_ms": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "attempt_count": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "trigger_source": {
-            "type": "string"
-          },
-          "failure_kind": {
-            "anyOf": [
-              {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "run"
+              },
+              "customer_name": {
                 "type": "string"
               },
-              {
-                "type": "null"
+              "customer_slug": {
+                "type": "string"
+              },
+              "job_name": {
+                "type": "string"
+              },
+              "job_slug": {
+                "type": "string"
+              },
+              "target_name": {
+                "type": "string"
+              },
+              "target_url": {
+                "type": "string"
+              },
+              "run_id": {
+                "type": "string"
+              },
+              "run_url": {
+                "type": "string"
+              },
+              "outcome": {
+                "type": "string"
+              },
+              "started_at": {
+                "type": "string"
+              },
+              "completed_at": {
+                "type": "string"
+              },
+              "duration_ms": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "attempt_count": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "trigger_source": {
+                "type": "string"
+              },
+              "failure_kind": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "rule_name": {
+                "type": "string"
+              },
+              "rule_kind": {
+                "type": "string"
+              },
+              "test": {
+                "type": "boolean"
               }
-            ]
+            },
+            "required": [
+              "kind",
+              "customer_name",
+              "customer_slug",
+              "job_name",
+              "job_slug",
+              "target_name",
+              "target_url",
+              "run_id",
+              "run_url",
+              "outcome",
+              "started_at",
+              "completed_at",
+              "duration_ms",
+              "attempt_count",
+              "trigger_source",
+              "failure_kind",
+              "rule_name",
+              "rule_kind",
+              "test"
+            ],
+            "additionalProperties": false
           },
-          "rule_name": {
-            "type": "string"
-          },
-          "rule_kind": {
-            "type": "string"
-          },
-          "test": {
-            "type": "boolean"
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "missed"
+              },
+              "customer_name": {
+                "type": "string"
+              },
+              "customer_slug": {
+                "type": "string"
+              },
+              "job_name": {
+                "type": "string"
+              },
+              "job_slug": {
+                "type": "string"
+              },
+              "job_url": {
+                "type": "string"
+              },
+              "rule_name": {
+                "type": "string"
+              },
+              "rule_kind": {
+                "type": "string",
+                "const": "missed_schedule"
+              },
+              "last_run_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "silence_threshold_minutes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "trigger_source": {
+                "type": "string"
+              },
+              "schedule": {
+                "type": "string"
+              },
+              "test": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "kind",
+              "customer_name",
+              "customer_slug",
+              "job_name",
+              "job_slug",
+              "job_url",
+              "rule_name",
+              "rule_kind",
+              "last_run_at",
+              "silence_threshold_minutes",
+              "trigger_source",
+              "schedule",
+              "test"
+            ],
+            "additionalProperties": false
           }
-        },
-        "required": [
-          "customer_name",
-          "customer_slug",
-          "job_name",
-          "job_slug",
-          "target_name",
-          "target_url",
-          "run_id",
-          "run_url",
-          "outcome",
-          "started_at",
-          "completed_at",
-          "duration_ms",
-          "attempt_count",
-          "trigger_source",
-          "failure_kind",
-          "rule_name",
-          "rule_kind",
-          "test"
         ],
-        "additionalProperties": false,
-        "description": "Synthetic context handed to Channel adapters for template rendering."
+        "description": "Synthetic context handed to Channel adapters for template rendering.",
+        "type": "object"
       },
       "CustomerSecretSummary": {
         "type": "object",
