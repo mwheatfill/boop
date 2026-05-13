@@ -3,7 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { eq } from 'drizzle-orm'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
-import { attempts, runs } from '@/lib/db/schema'
+import { attempts } from '@/lib/db/schema'
 import { z } from '@/shared/schemas/openapi'
 import { RunsSearchSchema } from './filter-schema'
 import { getRunDetail, listAllRuns, listRunsForJob } from './queries'
@@ -103,7 +103,6 @@ export const getAttemptBodyPreviewFn = createServerFn({ method: 'GET' })
       .select({
         requestKey: attempts.requestBodyR2Key,
         responseKey: attempts.responseBodyR2Key,
-        runId: attempts.runId,
       })
       .from(attempts)
       .where(eq(attempts.id, data.attemptId))
@@ -111,7 +110,5 @@ export const getAttemptBodyPreviewFn = createServerFn({ method: 'GET' })
     if (!row) return null
     const key = data.kind === 'request' ? row.requestKey : row.responseKey
     if (!key) return null
-    const [runRow] = await db.select({ id: runs.id }).from(runs).where(eq(runs.id, row.runId))
-    if (!runRow) return null
     return readPreview(env.BODIES, key)
   })

@@ -279,14 +279,16 @@ export async function runDispatch(
       const requestKey = r2KeyFor(customer.id, runId, attemptNumber, 'request')
       const responseKey = r2KeyFor(customer.id, runId, attemptNumber, 'response')
 
-      await db.insert(attempts).values({
-        id: attemptId,
-        runId,
-        attemptNumber,
-        startedAt: attemptStartedAt,
-        requestBodyR2Key: requestKey,
-      })
-      await bodies.put(requestKey, renderedBody)
+      await Promise.all([
+        db.insert(attempts).values({
+          id: attemptId,
+          runId,
+          attemptNumber,
+          startedAt: attemptStartedAt,
+          requestBodyR2Key: requestKey,
+        }),
+        bodies.put(requestKey, renderedBody),
+      ])
 
       const result = await performAttempt(
         bodies,

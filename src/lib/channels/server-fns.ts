@@ -120,15 +120,17 @@ export const sendTestAlertFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<MutationResult<Channel>> => {
     const db = createDb(env.DB)
     const channel = await getChannelBySlug(db, data.customerSlug, data.channelSlug)
-    await markChannelTestQueued(db, channel.id)
-    await enqueueAlert(env.ALERT_QUEUE, {
-      runId: `test_${channel.id}`,
-      ruleId: 'test',
-      channelId: channel.id,
-      ruleName: 'Channel test',
-      ruleKind: 'first_failure',
-      test: true,
-    })
+    await Promise.all([
+      markChannelTestQueued(db, channel.id),
+      enqueueAlert(env.ALERT_QUEUE, {
+        runId: `test_${channel.id}`,
+        ruleId: 'test',
+        channelId: channel.id,
+        ruleName: 'Channel test',
+        ruleKind: 'first_failure',
+        test: true,
+      }),
+    ])
     return { ok: true, data: { ...channel, lastTestAlertStatus: 'pending' } }
   })
 
@@ -200,14 +202,16 @@ export const sendWorkspaceTestAlertFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<MutationResult<Channel>> => {
     const db = createDb(env.DB)
     const channel = await getWorkspaceChannelBySlug(db, data.channelSlug)
-    await markChannelTestQueued(db, channel.id)
-    await enqueueAlert(env.ALERT_QUEUE, {
-      runId: `test_${channel.id}`,
-      ruleId: 'test',
-      channelId: channel.id,
-      ruleName: 'Channel test',
-      ruleKind: 'first_failure',
-      test: true,
-    })
+    await Promise.all([
+      markChannelTestQueued(db, channel.id),
+      enqueueAlert(env.ALERT_QUEUE, {
+        runId: `test_${channel.id}`,
+        ruleId: 'test',
+        channelId: channel.id,
+        ruleName: 'Channel test',
+        ruleKind: 'first_failure',
+        test: true,
+      }),
+    ])
     return { ok: true, data: { ...channel, lastTestAlertStatus: 'pending' } }
   })
