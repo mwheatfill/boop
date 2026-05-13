@@ -23,3 +23,14 @@ audit-report.md
 
 # Per-user Claude Code settings (harness writes enabledMcpjsonServers etc.).
 .claude/settings.local.json
+
+# Per-session Claude Code runtime state.
+.claude/scheduled_tasks.lock
+.claude/worktrees/
+
+# Per-user agent tooling configs (TanStack Intent skill cache, Codex CLI).
+.agents/
+.codex/
+
+# Playwright MCP working dir (snapshots, console logs, screenshots).
+.playwright-mcp/
