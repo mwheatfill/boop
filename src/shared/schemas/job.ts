@@ -122,6 +122,7 @@ export const JobSummarySchema = z
     cronExpression: z.string().nullable(),
     intervalSeconds: z.int().nullable(),
     triggerTimezone: z.string().nullable(),
+    customerTimezone: tzSchema,
     nextFireAt: z.iso.datetime().nullable(),
     lastFireAt: z.iso.datetime().nullable(),
     status: z.enum(JOB_STATUSES),

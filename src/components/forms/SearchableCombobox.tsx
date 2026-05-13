@@ -96,6 +96,8 @@ export function SearchableCombobox<T>(props: SearchableComboboxProps<T>) {
       onValueChange={(next) => onValueChange((next as T | null) ?? null)}
       inputValue={query}
       onInputValueChange={setQuery}
+      itemToStringLabel={(item) => getLabel(item)}
+      itemToStringValue={(item) => getId(item)}
       open={open}
       onOpenChange={(next) => {
         setOpen(next)
@@ -114,7 +116,6 @@ export function SearchableCombobox<T>(props: SearchableComboboxProps<T>) {
             state={value ? 'filled' : 'empty'}
             {...(required ? { required: true } : {})}
             {...(disabled ? { disabled: true } : {})}
-            expanded={open}
           />
         }
       />

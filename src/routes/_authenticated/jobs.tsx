@@ -1,5 +1,5 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
 import { z } from 'zod'
@@ -9,6 +9,8 @@ import { EmptyState } from '@/components/EmptyState'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { listCustomersFn } from '@/lib/customers/server-fns'
+import { formatInTimezone } from '@/lib/format'
+import { effectiveTimezone } from '@/lib/jobs/queries'
 import { listAllJobsFn } from '@/lib/jobs/server-fns'
 import type { JobSummary } from '@/shared/schemas/job'
 
@@ -85,14 +87,16 @@ function columnsFor(): ColumnDef<JobSummary>[] {
       accessorKey: 'nextFireAt',
       header: 'Next run',
       cell: ({ row }) =>
-        row.original.nextFireAt ? new Date(row.original.nextFireAt).toLocaleString() : '—',
+        row.original.nextFireAt
+          ? formatInTimezone(row.original.nextFireAt, effectiveTimezone(row.original))
+          : '—',
     },
     {
       accessorKey: 'lastRunStartedAt',
       header: 'Last run',
       cell: ({ row }) =>
         row.original.lastRunStartedAt
-          ? new Date(row.original.lastRunStartedAt).toLocaleString()
+          ? formatInTimezone(row.original.lastRunStartedAt, effectiveTimezone(row.original))
           : '—',
     },
     {
@@ -209,6 +213,7 @@ function JobsPage() {
       ) : (
         <DataTable columns={columnsFor()} data={jobs} />
       )}
+      <Outlet />
     </div>
   )
 }

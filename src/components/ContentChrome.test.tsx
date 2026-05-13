@@ -65,11 +65,10 @@ describe('<ContentChrome>', () => {
     expect(screen.getByRole('button', { name: /properties panel/i })).toBeTruthy()
   })
 
-  it('disables the right-rail toggle on routes without entity context', () => {
+  it('hides the right-rail toggle on routes without entity context', () => {
     activeMatches = [{ id: '/_authenticated/', params: {} }]
     renderCluster()
-    const toggle = screen.getByRole('button', { name: /properties panel/i }) as HTMLButtonElement
-    expect(toggle.disabled).toBe(true)
+    expect(screen.queryByRole('button', { name: /properties panel/i })).toBeNull()
   })
 
   it('the right-rail toggle reflects the open state via aria-pressed', () => {

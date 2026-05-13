@@ -17,30 +17,23 @@ interface StatTileProps {
   trendSuffix?: string
 }
 
+const trendFormatter = new Intl.NumberFormat('en-US', { signDisplay: 'exceptZero' })
+
 export function StatTile({ label, value, sparkline, trend, trendSuffix }: StatTileProps) {
   const gradientId = `spark-${useId().replace(/:/g, '')}`
-  const trendColor =
-    trend == null || trend === 0
-      ? 'text-muted-foreground'
-      : trend > 0
-        ? 'text-success'
-        : 'text-destructive'
-  const trendGlyph = trend == null || trend === 0 ? '·' : trend > 0 ? '↑' : '↓'
+  const hasTrend = trend != null && trend !== 0
+  const trendColor = hasTrend && trend > 0 ? 'text-success' : 'text-destructive'
 
   return (
     <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-(--tile-p)">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          {label}
-        </p>
-        {trend != null ? (
-          <span className={cn('text-xs font-medium', trendColor)}>
-            {trendGlyph} {Math.abs(trend)}
-            {trendSuffix}
-          </span>
-        ) : null}
-      </div>
+      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="text-3xl font-semibold tabular-nums">{value}</p>
+      {hasTrend ? (
+        <span className={cn('text-xs font-medium tabular-nums', trendColor)}>
+          {trendFormatter.format(trend)}
+          {trendSuffix}
+        </span>
+      ) : null}
       <div className="h-12 w-full">
         <ChartContainer
           config={{ v: { label, color: 'var(--chart-1)' } }}

@@ -1,5 +1,4 @@
 import type { LucideIcon } from 'lucide-react'
-import { ChevronDown } from 'lucide-react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { forwardRef } from 'react'
 import { cn } from '@/lib/utils'
@@ -13,7 +12,6 @@ interface PillButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
   icon?: LucideIcon
   required?: boolean
   hint?: ReactNode
-  expanded?: boolean
 }
 
 export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(function PillButton(
@@ -24,30 +22,27 @@ export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(functio
     icon: Icon,
     required,
     hint,
-    expanded,
     className,
     type = 'button',
+    onClick,
     ...props
   },
   ref,
 ) {
-  return (
-    <button
-      ref={ref}
-      type={type}
-      data-state={state}
-      data-expanded={expanded ? 'true' : undefined}
-      aria-expanded={expanded}
-      className={cn(
-        'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        state === 'empty' &&
-          'border-dashed border-border bg-secondary text-muted-foreground hover:text-foreground',
-        state === 'filled' && 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/15',
-        state === 'invalid' && 'border-destructive/30 bg-destructive/10 text-destructive',
-        className,
-      )}
-      {...props}
-    >
+  const interactive = typeof onClick === 'function'
+  const sharedClass = cn(
+    'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-100',
+    interactive
+      ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+      : 'cursor-default',
+    state === 'empty' &&
+      'border-dashed border-border bg-secondary text-muted-foreground hover:text-foreground',
+    state === 'filled' && 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/15',
+    state === 'invalid' && 'border-destructive/30 bg-destructive/10 text-destructive',
+    className,
+  )
+  const content = (
+    <>
       {Icon ? <Icon className="size-3" aria-hidden /> : null}
       <span className="text-muted-foreground/80">{label}:</span>
       <span className="text-foreground">
@@ -56,7 +51,25 @@ export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(functio
         )}
       </span>
       {hint ? <span className="text-muted-foreground/70">{hint}</span> : null}
-      <ChevronDown className="size-3 opacity-60" aria-hidden />
+    </>
+  )
+  if (!interactive) {
+    return (
+      <span data-state={state} className={sharedClass}>
+        {content}
+      </span>
+    )
+  }
+  return (
+    <button
+      ref={ref}
+      type={type}
+      onClick={onClick}
+      data-state={state}
+      className={sharedClass}
+      {...props}
+    >
+      {content}
     </button>
   )
 })

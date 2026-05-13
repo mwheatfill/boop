@@ -1,6 +1,7 @@
 // Raw <button> by design: shadcn Button has no aria-pressed variant.
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 const themes = [
@@ -10,8 +11,9 @@ const themes = [
 ] as const
 
 export function ThemeToggle() {
-  // No mount-gate: <html suppressHydrationWarning> in __root.tsx covers it.
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   return (
     <div
@@ -20,7 +22,7 @@ export function ThemeToggle() {
       className="inline-flex items-center gap-1 rounded-lg border border-border bg-card p-1 text-card-foreground"
     >
       {themes.map(({ value, label, icon: Icon }) => {
-        const active = theme === value
+        const active = mounted && theme === value
         return (
           <button
             key={value}
@@ -28,6 +30,7 @@ export function ThemeToggle() {
             aria-label={label}
             aria-pressed={active}
             onClick={() => setTheme(value)}
+            suppressHydrationWarning
             className={cn(
               'inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',

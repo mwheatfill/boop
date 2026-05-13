@@ -24,7 +24,7 @@ import { PICKER_KEYS, PICKER_RECENT_LIMITS } from '@/lib/forms/picker-keys'
 import { useEntityDefault } from '@/lib/forms/use-entity-default'
 import { useLastUsed } from '@/lib/forms/use-last-used'
 import { usePickerRecents } from '@/lib/forms/use-picker-recents'
-import { triggerSummary } from '@/lib/jobs/format'
+import { triggerSummaryWithTimezone } from '@/lib/jobs/format'
 import { createJobFn, updateJobFn } from '@/lib/jobs/server-fns'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
@@ -463,10 +463,13 @@ export function JobModal({
 
           <PillButton
             label="Trigger"
-            value={triggerSummary({ triggerKind, cronExpression, intervalSeconds })}
+            value={triggerSummaryWithTimezone({
+              triggerKind,
+              cronExpression,
+              intervalSeconds,
+              triggerTimezone,
+            })}
             state="filled"
-            expanded
-            aria-controls="trigger-section"
           />
 
           <form.Subscribe selector={(s) => s.values.variables}>
@@ -480,8 +483,6 @@ export function JobModal({
                     customerKeys + jobKeys === 0 ? 'None' : `${customerKeys + jobKeys} effective`
                   }
                   state={customerKeys + jobKeys === 0 ? 'empty' : 'filled'}
-                  expanded
-                  aria-controls="variables-section"
                 />
               )
             }}
@@ -493,8 +494,6 @@ export function JobModal({
                 label="Body"
                 value={body ? 'Set' : 'Empty'}
                 state={body ? 'filled' : 'empty'}
-                expanded
-                aria-controls="body-section"
               />
             )}
           </form.Subscribe>

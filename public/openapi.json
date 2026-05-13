@@ -2345,6 +2345,9 @@
               }
             ]
           },
+          "customerTimezone": {
+            "$ref": "#/components/schemas/Timezone"
+          },
           "nextFireAt": {
             "anyOf": [
               {
@@ -2415,6 +2418,7 @@
           "cronExpression",
           "intervalSeconds",
           "triggerTimezone",
+          "customerTimezone",
           "nextFireAt",
           "lastFireAt",
           "status",
