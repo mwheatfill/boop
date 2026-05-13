@@ -14,7 +14,8 @@
   "vars": {
     "PUBLIC_APP_NAME": "boop-dev",
     "PUBLIC_ENV": "dev",
-    "PUBLIC_APP_ORIGIN": "http://localhost:5173"
+    "PUBLIC_APP_ORIGIN": "http://localhost:5173",
+    "DEV_USER_EMAIL": "michael.wheatfill@switchthink.com"
   },
   // Secrets, per cloudflare-docs (Workers Configuration > Secrets), are
   // declared here for type generation + deploy-time validation; their

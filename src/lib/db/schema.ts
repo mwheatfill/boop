@@ -17,6 +17,15 @@ const CHANNEL_SCOPES = ['workspace', 'customer'] as const
 const ALERT_RULE_KINDS = ['first_failure', 'consecutive_failures', 'recovery', 'slow_run'] as const
 const ALERT_RULE_SCOPES = ['workspace', 'customer', 'job'] as const
 const AUTHORING_SESSION_STATES = ['draft', 'confirmed', 'abandoned'] as const
+const JOB_TEMPLATE_SCOPES = ['workspace', 'customer'] as const
+const JOB_TEMPLATE_TAGS = [
+  'backups',
+  'health-checks',
+  'reports',
+  'integrations',
+  'maintenance',
+  'custom',
+] as const
 
 export const customers = sqliteTable(
   'customers',
@@ -121,6 +130,57 @@ export const jobs = sqliteTable(
     index('jobs_customer_status_idx').on(table.customerId, table.status),
     index('jobs_status_next_fire_idx').on(table.status, table.nextFireAt),
     lifecycleCheck(table.status, JOB_STATUSES),
+    lifecycleCheck(table.triggerKind, TRIGGER_KINDS),
+  ],
+)
+
+export const jobTemplates = sqliteTable(
+  'job_templates',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    scope: enumColumn('scope', JOB_TEMPLATE_SCOPES).notNull(),
+    customerId: text('customer_id').references(() => customers.id, { onDelete: 'cascade' }),
+    tag: enumColumn('tag', JOB_TEMPLATE_TAGS).notNull().default('custom'),
+    icon: text('icon'),
+    description: text('description'),
+    triggerKind: enumColumn('trigger_kind', TRIGGER_KINDS).notNull(),
+    triggerConfig: text('trigger_config', { mode: 'json' })
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    targetRef: text('target_ref').notNull(),
+    bodyTemplate: text('body_template').notNull().default(''),
+    headersTemplate: text('headers_template').notNull().default('{}'),
+    variables: text('variables', { mode: 'json' })
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
+    maxAttempts: integer('max_attempts').notNull().default(3),
+    overallDeadlineMs: integer('overall_deadline_ms').notNull().default(60_000),
+    builtIn: integer('built_in', { mode: 'boolean' }).notNull().default(false),
+    status: enumColumn('status', LIFECYCLE_STATUSES).notNull().default('active'),
+    archivedAt: integer('archived_at', { mode: 'timestamp_ms' }),
+    ...timestamps(),
+  },
+  (table) => [
+    uniqueIndex('job_templates_workspace_slug_idx')
+      .on(table.slug)
+      .where(sql`${table.scope} = 'workspace' AND ${table.status} = 'active'`),
+    uniqueIndex('job_templates_customer_slug_idx')
+      .on(table.customerId, table.slug)
+      .where(sql`${table.scope} = 'customer' AND ${table.status} = 'active'`),
+    index('job_templates_tag_idx').on(table.tag).where(sql`${table.status} = 'active'`),
+    index('job_templates_scope_status_idx').on(table.scope, table.status),
+    check(
+      'job_templates_scope_customer_id_check',
+      sql`(${table.scope} = 'workspace' AND ${table.customerId} IS NULL)
+        OR (${table.scope} = 'customer' AND ${table.customerId} IS NOT NULL)`,
+    ),
+    lifecycleCheck(table.status, LIFECYCLE_STATUSES),
+    lifecycleCheck(table.scope, JOB_TEMPLATE_SCOPES),
+    lifecycleCheck(table.tag, JOB_TEMPLATE_TAGS),
     lifecycleCheck(table.triggerKind, TRIGGER_KINDS),
   ],
 )

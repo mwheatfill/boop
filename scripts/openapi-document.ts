@@ -42,6 +42,12 @@ import {
   JobUpdateInput,
 } from '../src/shared/schemas/job'
 import {
+  JobTemplateCreateInput,
+  JobTemplateSaveFromJobInput,
+  JobTemplateSchema,
+  JobTemplateUpdateInput,
+} from '../src/shared/schemas/job-template'
+import {
   AttemptDetailSchema,
   AttemptSummarySchema,
   RedactedHeadersSchema,
@@ -82,6 +88,10 @@ export const document = createDocument({
       JobSummary: JobSummarySchema,
       JobCreateInput,
       JobUpdateInput,
+      JobTemplate: JobTemplateSchema,
+      JobTemplateCreateInput,
+      JobTemplateUpdateInput,
+      JobTemplateSaveFromJobInput,
       Run: RunSchema,
       AttemptSummary: AttemptSummarySchema,
       AttemptDetail: AttemptDetailSchema,

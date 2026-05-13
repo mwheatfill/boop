@@ -14,6 +14,7 @@ interface JobActionsMenuProps {
   onResume: () => void
   onArchive: () => void
   onRestore: () => void
+  onSaveAsTemplate: () => void
 }
 
 export function JobActionsMenu({
@@ -22,6 +23,7 @@ export function JobActionsMenu({
   onResume,
   onArchive,
   onRestore,
+  onSaveAsTemplate,
 }: JobActionsMenuProps) {
   return (
     <DropdownMenu>
@@ -31,6 +33,9 @@ export function JobActionsMenu({
         <MoreHorizontal aria-hidden />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        {status !== 'archived' ? (
+          <DropdownMenuItem onClick={onSaveAsTemplate}>Save as template…</DropdownMenuItem>
+        ) : null}
         {status === 'active' ? <DropdownMenuItem onClick={onPause}>Pause</DropdownMenuItem> : null}
         {status === 'paused' ? (
           <DropdownMenuItem onClick={onResume}>Resume</DropdownMenuItem>

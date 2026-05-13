@@ -9,7 +9,8 @@ export function demoId(prefix: IdPrefix, ...segments: string[]): string {
   const digest = createHash('sha256').update(seed).digest()
   let body = ''
   for (let i = 0; i < ID_LENGTH; i++) {
-    body += ALPHABET[digest[i % digest.length]! & 0x1f]
+    const byte = digest[i % digest.length] ?? 0
+    body += ALPHABET[byte & 0x1f]
   }
   return `${prefix}_${body}`
 }

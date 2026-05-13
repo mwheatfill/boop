@@ -2,6 +2,7 @@ import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import {
   ArrowRight,
+  BookTemplate,
   Briefcase,
   Building2,
   History,
@@ -236,6 +237,16 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
           >
             <Plus aria-hidden /> New Job
           </CommandItem>
+          <CommandItem
+            value="template library"
+            keywords={['template', 'recipe', 'library']}
+            onSelect={() => {
+              close()
+              void navigate({ to: '/templates' })
+            }}
+          >
+            <BookTemplate aria-hidden /> Template library
+          </CommandItem>
           {isAdmin ? (
             <CommandItem
               value="new customer"
@@ -309,6 +320,17 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
           >
             <ArrowRight aria-hidden /> Go to Runs
             <CommandShortcut>{formatKeyCombo('g r')}</CommandShortcut>
+          </CommandItem>
+          <CommandItem
+            value="go templates"
+            keywords={['templates', 'library', 'recipes']}
+            onSelect={() => {
+              close()
+              void navigate({ to: '/templates' })
+            }}
+          >
+            <BookTemplate aria-hidden /> Go to Templates
+            <CommandShortcut>{formatKeyCombo('g l')}</CommandShortcut>
           </CommandItem>
         </CommandGroup>
 

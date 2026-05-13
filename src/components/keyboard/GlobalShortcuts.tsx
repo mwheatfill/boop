@@ -40,6 +40,10 @@ export function GlobalShortcuts({ currentUser }: GlobalShortcutsProps) {
     description: 'Go to Runs',
     section: 'navigation',
   })
+  useShortcut('g l', () => void navigate({ to: '/templates' }), {
+    description: 'Go to Templates',
+    section: 'navigation',
+  })
 
   useShortcut(
     'g n',
@@ -67,6 +71,11 @@ export function GlobalShortcuts({ currentUser }: GlobalShortcutsProps) {
 
   useShortcut('n j', () => void navigate({ to: '/jobs/new' }), {
     description: 'New Job',
+    section: 'navigation',
+  })
+
+  useShortcut('n l', () => void navigate({ to: '/templates' }), {
+    description: 'Open template library',
     section: 'navigation',
   })
 

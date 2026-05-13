@@ -2652,6 +2652,519 @@
         ],
         "additionalProperties": false
       },
+      "JobTemplate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "workspace",
+              "customer"
+            ]
+          },
+          "customerId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "customerSlug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "customerName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tag": {
+            "type": "string",
+            "enum": [
+              "backups",
+              "health-checks",
+              "reports",
+              "integrations",
+              "maintenance",
+              "custom"
+            ]
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "triggerKind": {
+            "type": "string",
+            "enum": [
+              "cron",
+              "interval",
+              "webhook"
+            ]
+          },
+          "triggerConfig": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "cronExpression": {
+                "type": "string"
+              },
+              "triggerTimezone": {
+                "$ref": "#/components/schemas/Timezone"
+              },
+              "intervalSeconds": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            },
+            "additionalProperties": false
+          },
+          "targetRef": {
+            "type": "string"
+          },
+          "bodyTemplate": {
+            "type": "string"
+          },
+          "headersTemplate": {
+            "type": "string"
+          },
+          "variables": {
+            "$ref": "#/components/schemas/VariableMap"
+          },
+          "maxAttempts": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "overallDeadlineMs": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "builtIn": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "archivedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "scope",
+          "customerId",
+          "customerSlug",
+          "customerName",
+          "tag",
+          "icon",
+          "description",
+          "triggerKind",
+          "triggerConfig",
+          "targetRef",
+          "bodyTemplate",
+          "headersTemplate",
+          "variables",
+          "maxAttempts",
+          "overallDeadlineMs",
+          "builtIn",
+          "status",
+          "createdAt",
+          "updatedAt",
+          "archivedAt"
+        ],
+        "additionalProperties": false,
+        "description": "A clone-on-create seed for a Job."
+      },
+      "JobTemplateCreateInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "tag": {
+            "default": "custom",
+            "type": "string",
+            "enum": [
+              "backups",
+              "health-checks",
+              "reports",
+              "integrations",
+              "maintenance",
+              "custom"
+            ]
+          },
+          "icon": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "triggerKind": {
+            "type": "string",
+            "enum": [
+              "cron",
+              "interval",
+              "webhook"
+            ]
+          },
+          "triggerConfig": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "cronExpression": {
+                "type": "string"
+              },
+              "triggerTimezone": {
+                "$ref": "#/components/schemas/Timezone"
+              },
+              "intervalSeconds": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            },
+            "additionalProperties": false
+          },
+          "targetRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "bodyTemplate": {
+            "default": "",
+            "type": "string",
+            "maxLength": 65536
+          },
+          "headersTemplate": {
+            "default": "{}",
+            "type": "string",
+            "maxLength": 8192
+          },
+          "variables": {
+            "default": {},
+            "$ref": "#/components/schemas/VariableMap"
+          },
+          "maxAttempts": {
+            "default": 3,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "overallDeadlineMs": {
+            "default": 60000,
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 900000
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "workspace",
+              "customer"
+            ]
+          },
+          "customerSlug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          }
+        },
+        "required": [
+          "name",
+          "tag",
+          "triggerKind",
+          "triggerConfig",
+          "targetRef",
+          "bodyTemplate",
+          "headersTemplate",
+          "variables",
+          "maxAttempts",
+          "overallDeadlineMs",
+          "slug",
+          "scope"
+        ],
+        "additionalProperties": false
+      },
+      "JobTemplateUpdateInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "tag": {
+            "default": "custom",
+            "type": "string",
+            "enum": [
+              "backups",
+              "health-checks",
+              "reports",
+              "integrations",
+              "maintenance",
+              "custom"
+            ]
+          },
+          "icon": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "triggerKind": {
+            "type": "string",
+            "enum": [
+              "cron",
+              "interval",
+              "webhook"
+            ]
+          },
+          "triggerConfig": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "cronExpression": {
+                "type": "string"
+              },
+              "triggerTimezone": {
+                "$ref": "#/components/schemas/Timezone"
+              },
+              "intervalSeconds": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            },
+            "additionalProperties": false
+          },
+          "targetRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "bodyTemplate": {
+            "default": "",
+            "type": "string",
+            "maxLength": 65536
+          },
+          "headersTemplate": {
+            "default": "{}",
+            "type": "string",
+            "maxLength": 8192
+          },
+          "variables": {
+            "default": {},
+            "$ref": "#/components/schemas/VariableMap"
+          },
+          "maxAttempts": {
+            "default": 3,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "overallDeadlineMs": {
+            "default": 60000,
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 900000
+          }
+        },
+        "required": [
+          "name",
+          "tag",
+          "triggerKind",
+          "triggerConfig",
+          "targetRef",
+          "bodyTemplate",
+          "headersTemplate",
+          "variables",
+          "maxAttempts",
+          "overallDeadlineMs"
+        ],
+        "additionalProperties": false
+      },
+      "JobTemplateSaveFromJobInput": {
+        "type": "object",
+        "properties": {
+          "customerSlug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "jobSlug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "workspace",
+              "customer"
+            ]
+          },
+          "tag": {
+            "default": "custom",
+            "type": "string",
+            "enum": [
+              "backups",
+              "health-checks",
+              "reports",
+              "integrations",
+              "maintenance",
+              "custom"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "capture": {
+            "default": {
+              "bodyTemplate": true,
+              "headersTemplate": true,
+              "variables": true,
+              "maxAttempts": true,
+              "overallDeadlineMs": true
+            },
+            "type": "object",
+            "properties": {
+              "bodyTemplate": {
+                "default": true,
+                "type": "boolean"
+              },
+              "headersTemplate": {
+                "default": true,
+                "type": "boolean"
+              },
+              "variables": {
+                "default": true,
+                "type": "boolean"
+              },
+              "maxAttempts": {
+                "default": true,
+                "type": "boolean"
+              },
+              "overallDeadlineMs": {
+                "default": true,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "bodyTemplate",
+              "headersTemplate",
+              "variables",
+              "maxAttempts",
+              "overallDeadlineMs"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "customerSlug",
+          "jobSlug",
+          "name",
+          "slug",
+          "scope",
+          "tag",
+          "capture"
+        ],
+        "additionalProperties": false
+      },
       "AttemptSummary": {
         "type": "object",
         "properties": {

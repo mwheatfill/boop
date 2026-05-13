@@ -130,7 +130,8 @@ git push origin v0.1.0
 
 1. Quality gates: `pnpm check`, `pnpm build`, `pnpm test`, `pnpm openapi:check`, `pnpm audit:patterns`.
 2. Apply D1 migrations to the production database via `pnpm exec wrangler d1 migrations apply DB --env production --remote`. Drizzle's `_journal.json` ledger makes this idempotent.
-3. Deploy via `cloudflare/wrangler-action@v3` with `CLOUDFLARE_ENV=production` exported. The Vite build merges `env.production` into `dist/server/wrangler.json`; the deploy step runs `wrangler deploy` against the merged config.
+3. Seed the built-in Job starter recipes via `pnpm exec wrangler d1 execute DB --env production --remote --file scripts/starter-recipes.sql`. The SQL uses `INSERT OR IGNORE`, so reruns are harmless.
+4. Deploy via `cloudflare/wrangler-action@v4` with `CLOUDFLARE_ENV=production` exported. The Vite build merges `env.production` into `dist/server/wrangler.json`; the deploy step runs `wrangler deploy` against the merged config.
 
 The Actions tab surfaces the deployed worker URL and version id. Durable Object class registration happens automatically on this first deploy.
 

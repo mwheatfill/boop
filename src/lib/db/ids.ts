@@ -8,6 +8,7 @@ export const ID_PREFIXES = [
   'chn',
   'rul',
   'ses',
+  'jtpl',
   'whs',
   'csec',
 ] as const
