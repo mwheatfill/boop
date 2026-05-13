@@ -77,11 +77,12 @@ export async function verifyWebhook({
   }
   if (secrets.length === 0) return { valid: false, reason: 'no_match' }
   const payload = encoder.encode(`${parsed.timestamp}.${body}`)
-  for (const secret of secrets) {
-    const key = await importHmacKey(secret)
-    if (await crypto.subtle.verify('HMAC', key, parsed.signature, payload)) {
-      return { valid: true }
-    }
-  }
+  const results = await Promise.all(
+    secrets.map(async (secret) => {
+      const key = await importHmacKey(secret)
+      return crypto.subtle.verify('HMAC', key, parsed.signature, payload)
+    }),
+  )
+  if (results.some(Boolean)) return { valid: true }
   return { valid: false, reason: 'no_match' }
 }

@@ -190,16 +190,18 @@ export async function alertQueue(
   env: AlertQueueEnv,
 ): Promise<void> {
   const db = createDb(env.DB)
-  for (const message of batch.messages) {
-    try {
-      await handleAlertMessage({ db, appOrigin: env.PUBLIC_APP_ORIGIN }, message)
-    } catch (err) {
-      logError('alert.consumer_unhandled', err, {
-        runId: message.body.runId,
-        channelId: message.body.channelId,
-        attemptNumber: message.attempts,
-      })
-      message.ack()
-    }
-  }
+  await Promise.all(
+    batch.messages.map(async (message) => {
+      try {
+        await handleAlertMessage({ db, appOrigin: env.PUBLIC_APP_ORIGIN }, message)
+      } catch (err) {
+        logError('alert.consumer_unhandled', err, {
+          runId: message.body.runId,
+          channelId: message.body.channelId,
+          attemptNumber: message.attempts,
+        })
+        message.ack()
+      }
+    }),
+  )
 }
