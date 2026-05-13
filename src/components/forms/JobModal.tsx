@@ -6,6 +6,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { CustomerModal } from '@/components/forms/CustomerModal'
 import { EntityModal } from '@/components/forms/EntityModal'
+import {
+  KeyValueListEditor,
+  type KeyValueRow,
+  rowsToVariableMap,
+} from '@/components/forms/KeyValueListEditor'
 import { PillButton } from '@/components/forms/PillPicker'
 import { SearchableCombobox } from '@/components/forms/SearchableCombobox'
 import { TargetModal } from '@/components/forms/TargetModal'
@@ -14,6 +19,7 @@ import { TriggerPicker } from '@/components/forms/TriggerPicker'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { customerSecretsQueryOptions } from '@/lib/customer-secrets/query-options'
 import { PICKER_KEYS, PICKER_RECENT_LIMITS } from '@/lib/forms/picker-keys'
 import { useEntityDefault } from '@/lib/forms/use-entity-default'
 import { useLastUsed } from '@/lib/forms/use-last-used'
@@ -27,7 +33,7 @@ import type { Customer } from '@/shared/schemas/customer'
 import type { Job, TriggerKind } from '@/shared/schemas/job'
 import type { Target } from '@/shared/schemas/target'
 
-type CustomerOption = Pick<Customer, 'slug' | 'name' | 'timezone'>
+type CustomerOption = Pick<Customer, 'slug' | 'name' | 'timezone' | 'variables'>
 
 interface JobFormValues {
   name: string
@@ -40,6 +46,7 @@ interface JobFormValues {
   triggerTimezone: string
   bodyTemplate: string
   headersTemplate: string
+  variables: Record<string, string>
   maxAttempts: number
   overallDeadlineMs: number
 }
@@ -58,6 +65,45 @@ const DEFAULT_CRON = '0 9 * * *'
 const DEFAULT_INTERVAL = 300
 const SWITCHTHINK_SLUG = 'switchthink'
 const ADMIN_ONLY_REASON = 'Admin only'
+
+const BODY_HELP_TEXT =
+  'LiquidJS. Available: {{ run_id }}, {{ attempt_number }}, {{ customer_name }}, {{ customer_timezone }}, {{ now }}, plus operator-defined variables. {% boop_secret "name" %} pulls a Customer secret at fire time.'
+
+function buildVariableRows(
+  customerVars: Record<string, string>,
+  jobVars: Record<string, string>,
+): KeyValueRow[] {
+  const fromCustomer = Object.keys(customerVars)
+    .sort()
+    .map<KeyValueRow>((name) => {
+      const customerValue = customerVars[name] ?? ''
+      if (Object.hasOwn(jobVars, name)) {
+        return {
+          name,
+          value: jobVars[name] ?? '',
+          source: 'override',
+          inherited: { from: 'customer', value: customerValue },
+        }
+      }
+      return { name, value: customerValue, source: 'customer' }
+    })
+  const jobOnly = Object.keys(jobVars)
+    .filter((k) => !Object.hasOwn(customerVars, k))
+    .sort()
+    .map<KeyValueRow>((name) => ({ name, value: jobVars[name] ?? '', source: 'job' }))
+  return [...fromCustomer, ...jobOnly]
+}
+
+function buildAutocompleteVariables(
+  customerVars: Record<string, string>,
+  jobVars: Record<string, string>,
+): Array<{ name: string; value: string; source: 'customer' | 'job' }> {
+  return Object.entries({ ...customerVars, ...jobVars }).map(([name, value]) => ({
+    name,
+    value,
+    source: Object.hasOwn(jobVars, name) ? 'job' : 'customer',
+  }))
+}
 
 export function JobModal({
   variant,
@@ -96,14 +142,16 @@ export function JobModal({
 
   const initialCustomer = useMemo<CustomerOption | null>(() => {
     if (initialJob) {
+      const fromList = customers.find((c) => c.slug === initialJob.customerSlug)
       return {
         slug: initialJob.customerSlug,
         name: initialJob.customerName,
         timezone: initialJob.customerTimezone,
+        variables: fromList?.variables ?? {},
       }
     }
     return customerDefault
-  }, [initialJob, customerDefault])
+  }, [initialJob, customerDefault, customers])
 
   const startSlug = initialJob?.slug ?? ''
   const slug = useSlugAutoFill(variant === 'edit')
@@ -124,6 +172,7 @@ export function JobModal({
       triggerTimezone: initialJob?.triggerTimezone ?? initialCustomer?.timezone ?? 'UTC',
       bodyTemplate: initialJob?.bodyTemplate ?? '',
       headersTemplate: initialJob?.headersTemplate ?? '{}',
+      variables: initialJob?.variables ?? {},
       maxAttempts: initialJob?.maxAttempts ?? 3,
       overallDeadlineMs: initialJob?.overallDeadlineMs ?? 60_000,
     } satisfies JobFormValues,
@@ -148,6 +197,7 @@ export function JobModal({
           targetSlug: value.targetSlug,
           bodyTemplate: value.bodyTemplate,
           headersTemplate: value.headersTemplate,
+          variables: value.variables,
           maxAttempts: value.maxAttempts,
           overallDeadlineMs: value.overallDeadlineMs,
           trigger,
@@ -229,6 +279,15 @@ export function JobModal({
       : {}),
   })
   const targets = targetsQuery.data ?? []
+
+  const secretsQuery = useQuery({
+    ...customerSecretsQueryOptions(customerSlug),
+    enabled: customerSlug.length > 0,
+  })
+  const secretNames = useMemo(
+    () => (secretsQuery.data?.secrets ?? []).map((s) => ({ name: s.name })),
+    [secretsQuery.data],
+  )
 
   const targetRecents = usePickerRecents<Target>(
     PICKER_KEYS.recentTargets(customerSlug),
@@ -410,6 +469,24 @@ export function JobModal({
             aria-controls="trigger-section"
           />
 
+          <form.Subscribe selector={(s) => s.values.variables}>
+            {(vars) => {
+              const customerKeys = Object.keys(selectedCustomer?.variables ?? {}).length
+              const jobKeys = Object.keys(vars).length
+              return (
+                <PillButton
+                  label="Variables"
+                  value={
+                    customerKeys + jobKeys === 0 ? 'None' : `${customerKeys + jobKeys} effective`
+                  }
+                  state={customerKeys + jobKeys === 0 ? 'empty' : 'filled'}
+                  expanded
+                  aria-controls="variables-section"
+                />
+              )
+            }}
+          </form.Subscribe>
+
           <form.Subscribe selector={(s) => s.values.bodyTemplate}>
             {(body) => (
               <PillButton
@@ -440,6 +517,30 @@ export function JobModal({
           />
         </section>
 
+        <section
+          id="variables-section"
+          className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-3"
+        >
+          <p className="text-xs text-muted-foreground/70">
+            Effective variables for this Job's templates. Customer-level entries are inherited; Job
+            entries with the same name override.
+          </p>
+          <form.Field name="variables">
+            {(field) => (
+              <KeyValueListEditor
+                rows={buildVariableRows(selectedCustomer?.variables ?? {}, field.state.value)}
+                onChange={(next) => {
+                  const overridesAndJobOnly = next.filter(
+                    (r) => r.source !== 'customer' && r.name.length > 0,
+                  )
+                  field.handleChange(rowsToVariableMap(overridesAndJobOnly))
+                }}
+                addLabel="Add Job variable"
+              />
+            )}
+          </form.Field>
+        </section>
+
         <section id="body-section" className="rounded-md border border-border bg-muted/20 p-3">
           <form.Field name="bodyTemplate">
             {(field) => (
@@ -451,7 +552,12 @@ export function JobModal({
                 variant="body"
                 customerName={selectedCustomer?.name ?? ''}
                 customerTimezone={selectedCustomer?.timezone ?? 'UTC'}
-                helpText="LiquidJS. Available: {{ run_id }}, {{ attempt_number }}, {{ customer_name }}, {{ customer_timezone }}, {{ now }}."
+                variables={buildAutocompleteVariables(
+                  selectedCustomer?.variables ?? {},
+                  form.state.values.variables,
+                )}
+                secrets={secretNames}
+                helpText={BODY_HELP_TEXT}
               />
             )}
           </form.Field>

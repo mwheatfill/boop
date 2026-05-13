@@ -67,15 +67,18 @@ export async function previewHeaders(
 export const SYNTHETIC_RENDER_CONTEXT_DEFAULTS = {
   runId: 'run_preview',
   attemptNumber: 1,
+  previewMode: true,
 } as const
 
 export function syntheticRenderContext({
   customerName,
   customerTimezone,
+  variables,
   now = new Date(),
 }: {
   customerName: string
   customerTimezone: string
+  variables?: Record<string, string>
   now?: Date
 }): RenderContext {
   return {
@@ -83,5 +86,6 @@ export function syntheticRenderContext({
     customerName,
     customerTimezone,
     now,
+    ...(variables ? { variables } : {}),
   }
 }

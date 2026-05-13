@@ -15,9 +15,15 @@ describe('previewBody', () => {
   })
 
   it('surfaces a Liquid render error as a string', async () => {
-    const result = await previewBody('{% boop_secret "missing" %}', baseContext)
+    const result = await previewBody('{{ now | bogus_filter }}', baseContext)
     expect(result.error).toBeDefined()
     expect(result.rendered).toBe('')
+  })
+
+  it('redacts boop_secret to <<secret:name>> in preview mode', async () => {
+    const result = await previewBody('Bearer {% boop_secret "stripe" %}', baseContext)
+    expect(result.error).toBeUndefined()
+    expect(result.rendered).toBe('Bearer <<secret:stripe>>')
   })
 
   it('returns an empty rendered string with no error for an empty template', async () => {
@@ -41,7 +47,7 @@ describe('previewHeaders', () => {
   })
 
   it('surfaces a Liquid render error', async () => {
-    const result = await previewHeaders('{% boop_secret "x" %}', baseContext)
+    const result = await previewHeaders('{{ now | bogus_filter }}', baseContext)
     expect(result.error).toBeDefined()
     expect(result.rendered).toBe('')
     expect(result.headers).toBeUndefined()

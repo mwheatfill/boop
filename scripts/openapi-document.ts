@@ -20,6 +20,13 @@ import {
   CustomerUpdateInput,
 } from '../src/shared/schemas/customer'
 import {
+  SecretCreateInputSchema,
+  SecretRevealedResponseSchema,
+  SecretRotateInputSchema,
+  SecretSummarySchema,
+} from '../src/shared/schemas/customer-secret'
+import { VariableMapSchema } from '../src/shared/schemas/customer-variables'
+import {
   DashboardSummarySchema,
   NeedsAttentionRowSchema,
   RecentFailureRowSchema,
@@ -103,6 +110,11 @@ export const document = createDocument({
       AlertRuleCreateInput,
       AlertRuleUpdateInput,
       AlertContext: AlertContextSchema,
+      VariableMap: VariableMapSchema,
+      CustomerSecretSummary: SecretSummarySchema,
+      CustomerSecretCreateInput: SecretCreateInputSchema,
+      CustomerSecretRotateInput: SecretRotateInputSchema,
+      CustomerSecretRevealedResponse: SecretRevealedResponseSchema,
     },
   },
 })

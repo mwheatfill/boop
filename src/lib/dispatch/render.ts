@@ -1,4 +1,6 @@
-import { Liquid, type TagToken, type TopLevelToken, Value } from 'liquidjs'
+import { Liquid, type TagToken, type TopLevelToken, toPromise, Value } from 'liquidjs'
+
+export type SecretResolver = (name: string) => Promise<string>
 
 export interface RenderContext {
   runId: string
@@ -7,6 +9,8 @@ export interface RenderContext {
   customerTimezone: string
   now: Date
   variables?: Record<string, unknown>
+  secretResolver?: SecretResolver
+  previewMode?: boolean
 }
 
 const ISO_DATE_FORMAT = new Map<string, Intl.DateTimeFormat>()
@@ -46,10 +50,27 @@ function isTzWrapped(value: unknown): value is TzWrapped {
   return typeof value === 'object' && value !== null && (value as TzWrapped).__boopTz === true
 }
 
+export class SecretResolverMissingError extends Error {
+  constructor() {
+    super('boop_secret used but no secret resolver was provided to renderTemplate')
+    this.name = 'SecretResolverMissingError'
+  }
+}
+
+const PREVIEW_MODE_KEY = '__preview_mode'
+const SECRET_RESOLVER_KEY = '__secret_resolver'
+
+export const previewSecretRedaction = (name: string): string => `<<secret:${name}>>`
+
+interface SecretResolverHolder {
+  fn?: SecretResolver
+}
+
 const engine = new Liquid({
   strictFilters: true,
   strictVariables: false,
   greedy: false,
+  cache: true,
 })
 
 engine.registerFilter('tz', (value: unknown, zone: string): TzWrapped => {
@@ -72,8 +93,19 @@ engine.registerTag('boop_secret', {
   parse(tagToken: TagToken, _remainTokens: TopLevelToken[]) {
     this.value = new Value(tagToken.args, engine)
   },
-  render() {
-    throw new Error('boop_secret: secrets backend not yet implemented')
+  async render(ctx) {
+    const raw = await toPromise(this.value.value(ctx))
+    if (typeof raw !== 'string' || raw.length === 0) {
+      throw new TypeError('boop_secret: expected a non-empty string argument')
+    }
+    const preview = (await toPromise(ctx.get([PREVIEW_MODE_KEY]))) === true
+    if (preview) return previewSecretRedaction(raw)
+    const holder = (await toPromise(ctx.get([SECRET_RESOLVER_KEY]))) as
+      | SecretResolverHolder
+      | undefined
+    const resolver = holder?.fn
+    if (!resolver) throw new SecretResolverMissingError()
+    return resolver(raw)
   },
 })
 
@@ -88,6 +120,9 @@ export const BUILTIN_RENDER_VARIABLE_NAMES = [
 export type BuiltinRenderVariableName = (typeof BUILTIN_RENDER_VARIABLE_NAMES)[number]
 
 export async function renderTemplate(template: string, context: RenderContext): Promise<string> {
+  const resolverHolder: SecretResolverHolder = context.secretResolver
+    ? { fn: context.secretResolver }
+    : {}
   return engine.parseAndRender(template, {
     run_id: context.runId,
     attempt_number: context.attemptNumber,
@@ -95,5 +130,7 @@ export async function renderTemplate(template: string, context: RenderContext): 
     customer_timezone: context.customerTimezone,
     now: context.now,
     ...(context.variables ?? {}),
+    [PREVIEW_MODE_KEY]: context.previewMode === true,
+    [SECRET_RESOLVER_KEY]: resolverHolder,
   })
 }

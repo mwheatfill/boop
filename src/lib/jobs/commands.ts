@@ -123,6 +123,7 @@ export async function createJob(
       triggerTimezone: trig.triggerTimezone,
       bodyTemplate: input.bodyTemplate,
       headersTemplate: input.headersTemplate,
+      variables: input.variables ?? {},
       maxAttempts: input.maxAttempts,
       overallDeadlineMs: input.overallDeadlineMs,
     })
@@ -167,6 +168,7 @@ export async function updateJob(
       triggerTimezone: newTrig.triggerTimezone,
       bodyTemplate: input.bodyTemplate,
       headersTemplate: input.headersTemplate,
+      ...(input.variables !== undefined ? { variables: input.variables } : {}),
       maxAttempts: input.maxAttempts,
       overallDeadlineMs: input.overallDeadlineMs,
       updatedAt: deps.now?.() ?? new Date(),

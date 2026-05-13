@@ -12,6 +12,7 @@ function toCustomer(row: typeof customers.$inferSelect): Customer {
     timezone: row.timezone,
     autotaskCompanyId: row.autotaskCompanyId,
     status: row.status as Customer['status'],
+    variables: row.variables,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }

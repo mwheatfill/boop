@@ -1,4 +1,5 @@
 import { cronSchema } from './cron'
+import { VariableMapSchema } from './customer-variables'
 import { nameField, slugField } from './fields'
 import { z } from './openapi'
 import { tzSchema } from './timezone'
@@ -50,6 +51,7 @@ const jobMutableFields = {
   name: nameField,
   bodyTemplate: bodyTemplateField,
   headersTemplate: headersTemplateField,
+  variables: VariableMapSchema.optional(),
   maxAttempts: maxAttemptsField,
   overallDeadlineMs: overallDeadlineMsField,
 }
@@ -93,6 +95,7 @@ export const JobSchema = z
     triggerTimezone: z.string().nullable(),
     bodyTemplate: z.string(),
     headersTemplate: z.string(),
+    variables: VariableMapSchema,
     maxAttempts: z.int(),
     overallDeadlineMs: z.int(),
     lastFireAt: z.iso.datetime().nullable(),

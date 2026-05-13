@@ -59,6 +59,7 @@ function toJob(row: JoinedJobRow): Job {
     triggerTimezone: row.triggerTimezone,
     bodyTemplate: row.bodyTemplate,
     headersTemplate: row.headersTemplate,
+    variables: row.variables,
     maxAttempts: row.maxAttempts,
     overallDeadlineMs: row.overallDeadlineMs,
     lastFireAt: row.lastFireAt?.toISOString() ?? null,
