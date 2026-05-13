@@ -23,7 +23,7 @@ CREATE TABLE `__new_alert_rules` (
 	CONSTRAINT "scope_check" CHECK("scope" IN ('workspace', 'customer', 'job'))
 );
 --> statement-breakpoint
-INSERT INTO `__new_alert_rules`("id", "scope", "customer_id", "job_id", "kind", "name", "slug", "config", "channel_ids", "status", "last_fired_at", "created_at", "updated_at") SELECT "id", 'customer', "customer_id", "job_id", "kind", "name", "slug", "config", "channel_ids", "status", "last_fired_at", "created_at", "updated_at" FROM `alert_rules`;--> statement-breakpoint
+INSERT INTO `__new_alert_rules`("id", "scope", "customer_id", "job_id", "kind", "name", "slug", "config", "channel_ids", "status", "last_fired_at", "created_at", "updated_at") SELECT "id", CASE WHEN "job_id" IS NOT NULL THEN 'job' ELSE 'customer' END, "customer_id", "job_id", "kind", "name", "slug", "config", "channel_ids", "status", "last_fired_at", "created_at", "updated_at" FROM `alert_rules`;--> statement-breakpoint
 DROP TABLE `alert_rules`;--> statement-breakpoint
 ALTER TABLE `__new_alert_rules` RENAME TO `alert_rules`;--> statement-breakpoint
 PRAGMA foreign_keys=ON;--> statement-breakpoint
