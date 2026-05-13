@@ -41,6 +41,30 @@ export function GlobalShortcuts({ currentUser }: GlobalShortcutsProps) {
     section: 'navigation',
   })
 
+  useShortcut(
+    'g n',
+    () => {
+      if (!isAdmin) {
+        toast.error('Admin only.')
+        return
+      }
+      void navigate({ to: '/channels' })
+    },
+    { description: 'Go to Channels (Admin)', section: 'navigation' },
+  )
+
+  useShortcut(
+    'g a',
+    () => {
+      if (!isAdmin) {
+        toast.error('Admin only.')
+        return
+      }
+      void navigate({ to: '/alert-rules' })
+    },
+    { description: 'Go to Alert Rules (Admin)', section: 'navigation' },
+  )
+
   useShortcut('n j', () => void navigate({ to: '/jobs/new' }), {
     description: 'New Job',
     section: 'navigation',

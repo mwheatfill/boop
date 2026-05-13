@@ -176,6 +176,7 @@ export function alertRuleRow(
 ): AlertRuleInsert {
   return {
     id: demoId('rul', spec.customerSlug, spec.slug),
+    scope: jobId ? 'job' : 'customer',
     customerId,
     jobId,
     kind: spec.kind,

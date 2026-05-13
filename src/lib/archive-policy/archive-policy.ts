@@ -2,9 +2,19 @@ import { and, eq, ne } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { alertRules, channels, jobs } from '@/lib/db/schema'
 
+export interface ArchiveCustomerBreakdownEntry {
+  customerId: string | null
+  count: number
+}
+
 export type ArchiveCheck =
   | { ok: true }
-  | { ok: false; reason: 'has_active_jobs' | 'has_active_alert_rules'; blockingCount: number }
+  | {
+      ok: false
+      reason: 'has_active_jobs' | 'has_active_alert_rules'
+      blockingCount: number
+      breakdown?: ArchiveCustomerBreakdownEntry[]
+    }
 
 export async function canArchiveCustomer(db: Database, customerId: string): Promise<ArchiveCheck> {
   const rows = await db
@@ -35,7 +45,7 @@ function ruleReferencesChannel(channelIdsJson: string, channelId: string): boole
 
 export async function canArchiveChannel(db: Database, channelId: string): Promise<ArchiveCheck> {
   const channel = (await db.select().from(channels).where(eq(channels.id, channelId)).limit(1))[0]
-  if (!channel) return { ok: true }
+  if (!channel?.customerId) return { ok: true }
   const rules = await db
     .select({ id: alertRules.id, channelIds: alertRules.channelIds })
     .from(alertRules)
@@ -43,4 +53,30 @@ export async function canArchiveChannel(db: Database, channelId: string): Promis
   const blocking = rules.filter((r) => ruleReferencesChannel(r.channelIds, channelId))
   if (blocking.length === 0) return { ok: true }
   return { ok: false, reason: 'has_active_alert_rules', blockingCount: blocking.length }
+}
+
+export async function canArchiveWorkspaceChannel(
+  db: Database,
+  channelId: string,
+): Promise<ArchiveCheck> {
+  const rules = await db
+    .select({
+      id: alertRules.id,
+      customerId: alertRules.customerId,
+      channelIds: alertRules.channelIds,
+    })
+    .from(alertRules)
+    .where(eq(alertRules.status, 'active'))
+  const blocking = rules.filter((r) => ruleReferencesChannel(r.channelIds, channelId))
+  if (blocking.length === 0) return { ok: true }
+  const byCustomer = new Map<string | null, number>()
+  for (const r of blocking) {
+    byCustomer.set(r.customerId, (byCustomer.get(r.customerId) ?? 0) + 1)
+  }
+  return {
+    ok: false,
+    reason: 'has_active_alert_rules',
+    blockingCount: blocking.length,
+    breakdown: [...byCustomer.entries()].map(([customerId, count]) => ({ customerId, count })),
+  }
 }

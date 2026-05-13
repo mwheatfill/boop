@@ -9,6 +9,9 @@ export const ALERT_RULE_KINDS = [
 ] as const
 export type AlertRuleKind = (typeof ALERT_RULE_KINDS)[number]
 
+export const ALERT_RULE_SCOPES = ['workspace', 'customer', 'job'] as const
+export type AlertRuleScope = (typeof ALERT_RULE_SCOPES)[number]
+
 export const CONSECUTIVE_FAILURES_DEFAULT_COUNT = 3
 export const CONSECUTIVE_FAILURES_MIN = 2
 export const CONSECUTIVE_FAILURES_MAX = 50
@@ -58,7 +61,8 @@ export type AlertRuleConfig = z.infer<typeof AlertRuleConfigSchema>
 export const AlertRuleSchema = z
   .object({
     id: z.string().meta({ example: 'rul_abc123' }),
-    customerId: z.string().meta({ example: 'cust_abc123' }),
+    scope: z.enum(ALERT_RULE_SCOPES),
+    customerId: z.string().nullable().meta({ example: 'cust_abc123' }),
     jobId: z.string().nullable(),
     kind: z.enum(ALERT_RULE_KINDS),
     name: z.string().meta({ example: 'Alert on first failure' }),
@@ -73,7 +77,7 @@ export const AlertRuleSchema = z
   .meta({
     id: 'AlertRule',
     description:
-      'A predicate that decides when a terminal Run produces an alert, and where it fans out.',
+      'A predicate that decides when a terminal Run produces an alert, and where it fans out. Scope is workspace (cross-Customer), customer (Customer-scoped), or job (one Job).',
   })
 
 export type AlertRule = z.infer<typeof AlertRuleSchema>

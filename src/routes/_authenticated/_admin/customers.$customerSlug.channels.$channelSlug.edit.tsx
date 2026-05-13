@@ -21,7 +21,7 @@ function EditChannelPage() {
   return (
     <ChannelModal
       variant="edit"
-      customerSlug={customerSlug}
+      owner={{ scope: 'customer', customerSlug }}
       initialChannel={channel}
       onClose={() =>
         navigate({

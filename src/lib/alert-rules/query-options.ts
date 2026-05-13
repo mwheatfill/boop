@@ -1,5 +1,11 @@
 import { queryOptions } from '@tanstack/react-query'
-import { countCustomerRulesFn, getAlertRuleFn, listAlertRulesForCustomerFn } from './server-fns'
+import {
+  countCustomerRulesFn,
+  getAlertRuleFn,
+  getWorkspaceAlertRuleFn,
+  listAlertRulesForCustomerFn,
+  listWorkspaceAlertRulesFn,
+} from './server-fns'
 
 export const listAlertRulesQueryOptions = (customerSlug: string, includeArchived = false) =>
   queryOptions({
@@ -17,4 +23,16 @@ export const customerRuleCountQueryOptions = (customerSlug: string) =>
   queryOptions({
     queryKey: ['customers', customerSlug, 'alert-rules', 'count'],
     queryFn: () => countCustomerRulesFn({ data: { customerSlug } }),
+  })
+
+export const workspaceAlertRulesQueryOptions = (includeArchived = false) =>
+  queryOptions({
+    queryKey: ['workspace', 'alert-rules', { includeArchived }],
+    queryFn: () => listWorkspaceAlertRulesFn({ data: { includeArchived } }),
+  })
+
+export const workspaceAlertRuleQueryOptions = (ruleSlug: string) =>
+  queryOptions({
+    queryKey: ['workspace', 'alert-rules', ruleSlug],
+    queryFn: () => getWorkspaceAlertRuleFn({ data: { ruleSlug } }),
   })

@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import { resolveCustomerId } from '@/lib/customers/resolve'
 import type { Database } from '@/lib/db/client'
 import { alertRules } from '@/lib/db/schema'
@@ -7,6 +7,7 @@ import {
   type AlertRule,
   AlertRuleConfigSchema,
   type AlertRuleKind,
+  type AlertRuleScope,
 } from '@/shared/schemas/alert-rule'
 
 type AlertRuleRow = typeof alertRules.$inferSelect
@@ -28,6 +29,7 @@ export function rowToAlertRule(row: AlertRuleRow): AlertRule {
   })
   return {
     id: row.id,
+    scope: row.scope as AlertRuleScope,
     customerId: row.customerId,
     jobId: row.jobId,
     kind: row.kind as AlertRuleKind,
@@ -48,17 +50,27 @@ export async function listAlertRulesForCustomer(
   { includeArchived = false }: { includeArchived?: boolean } = {},
 ): Promise<AlertRule[]> {
   const customerId = await resolveCustomerId(db, customerSlug)
-  const rows = includeArchived
-    ? await db
-        .select()
-        .from(alertRules)
-        .where(eq(alertRules.customerId, customerId))
-        .orderBy(asc(alertRules.name))
-    : await db
-        .select()
-        .from(alertRules)
-        .where(and(eq(alertRules.customerId, customerId), eq(alertRules.status, 'active')))
-        .orderBy(asc(alertRules.name))
+  const conditions = [eq(alertRules.scope, 'customer'), eq(alertRules.customerId, customerId)]
+  if (!includeArchived) conditions.push(eq(alertRules.status, 'active'))
+  const rows = await db
+    .select()
+    .from(alertRules)
+    .where(and(...conditions))
+    .orderBy(asc(alertRules.name))
+  return rows.map(rowToAlertRule)
+}
+
+export async function listWorkspaceAlertRules(
+  db: Database,
+  { includeArchived = false }: { includeArchived?: boolean } = {},
+): Promise<AlertRule[]> {
+  const conditions = [eq(alertRules.scope, 'workspace')]
+  if (!includeArchived) conditions.push(eq(alertRules.status, 'active'))
+  const rows = await db
+    .select()
+    .from(alertRules)
+    .where(and(...conditions))
+    .orderBy(asc(alertRules.name))
   return rows.map(rowToAlertRule)
 }
 
@@ -72,10 +84,37 @@ export async function getAlertRuleBySlug(
     await db
       .select()
       .from(alertRules)
-      .where(and(eq(alertRules.customerId, customerId), eq(alertRules.slug, ruleSlug)))
+      .where(
+        and(
+          eq(alertRules.scope, 'customer'),
+          eq(alertRules.customerId, customerId),
+          eq(alertRules.slug, ruleSlug),
+        ),
+      )
       .limit(1)
   )[0]
   if (!row) throw new NotFoundError('AlertRule', `${customerSlug}/${ruleSlug}`)
+  return rowToAlertRule(row)
+}
+
+export async function getWorkspaceAlertRuleBySlug(
+  db: Database,
+  ruleSlug: string,
+): Promise<AlertRule> {
+  const row = (
+    await db
+      .select()
+      .from(alertRules)
+      .where(
+        and(
+          eq(alertRules.scope, 'workspace'),
+          isNull(alertRules.customerId),
+          eq(alertRules.slug, ruleSlug),
+        ),
+      )
+      .limit(1)
+  )[0]
+  if (!row) throw new NotFoundError('AlertRule', `workspace/${ruleSlug}`)
   return rowToAlertRule(row)
 }
 

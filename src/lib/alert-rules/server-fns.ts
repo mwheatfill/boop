@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers'
 import { createServerFn } from '@tanstack/react-start'
+import { adminMiddleware } from '@/lib/auth/admin-middleware'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
 import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
@@ -9,8 +10,23 @@ import {
   AlertRuleUpdateInput,
 } from '@/shared/schemas/alert-rule'
 import { z } from '@/shared/schemas/openapi'
-import { archiveAlertRule, createAlertRule, restoreAlertRule, updateAlertRule } from './commands'
-import { countCustomerRulesForJob, getAlertRuleBySlug, listAlertRulesForCustomer } from './queries'
+import {
+  archiveAlertRule,
+  archiveWorkspaceAlertRule,
+  createAlertRule,
+  createWorkspaceAlertRule,
+  restoreAlertRule,
+  restoreWorkspaceAlertRule,
+  updateAlertRule,
+  updateWorkspaceAlertRule,
+} from './commands'
+import {
+  countCustomerRulesForJob,
+  getAlertRuleBySlug,
+  getWorkspaceAlertRuleBySlug,
+  listAlertRulesForCustomer,
+  listWorkspaceAlertRules,
+} from './queries'
 
 const slugPair = z.object({
   customerSlug: z.string().min(1),
@@ -100,4 +116,70 @@ export const restoreAlertRuleFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => ({
     ok: true as const,
     data: await restoreAlertRule(createDb(env.DB), data.customerSlug, data.ruleSlug),
+  }))
+
+const ruleSlugOnly = z.object({ ruleSlug: z.string().min(1) })
+
+export const listWorkspaceAlertRulesFn = createServerFn({ method: 'GET' })
+  .middleware([adminMiddleware])
+  .inputValidator((data: { includeArchived?: boolean }) =>
+    z.object({ includeArchived: z.boolean().optional() }).parse(data),
+  )
+  .handler(async ({ data }) =>
+    listWorkspaceAlertRules(
+      createDb(env.DB),
+      data.includeArchived ? { includeArchived: true } : {},
+    ),
+  )
+
+export const getWorkspaceAlertRuleFn = createServerFn({ method: 'GET' })
+  .middleware([adminMiddleware])
+  .inputValidator((data) => ruleSlugOnly.parse(data))
+  .handler(async ({ data }) => getWorkspaceAlertRuleBySlug(createDb(env.DB), data.ruleSlug))
+
+export const createWorkspaceAlertRuleFn = createServerFn({ method: 'POST' })
+  .middleware([adminMiddleware])
+  .inputValidator((data: z.infer<typeof AlertRuleCreateInput>) => AlertRuleCreateInput.parse(data))
+  .handler(async ({ data }): Promise<MutationResult<AlertRule>> => {
+    try {
+      const rule = await createWorkspaceAlertRule(createDb(env.DB), data)
+      return { ok: true, data: rule }
+    } catch (err) {
+      const failure = asMutationFailure(err)
+      if (failure) return failure
+      throw err
+    }
+  })
+
+export const updateWorkspaceAlertRuleFn = createServerFn({ method: 'POST' })
+  .middleware([adminMiddleware])
+  .inputValidator((data: { ruleSlug: string } & z.infer<typeof AlertRuleUpdateInput>) =>
+    ruleSlugOnly.extend(AlertRuleUpdateInput.shape).parse(data),
+  )
+  .handler(async ({ data }): Promise<MutationResult<AlertRule>> => {
+    const { ruleSlug, ...input } = data
+    try {
+      const rule = await updateWorkspaceAlertRule(createDb(env.DB), ruleSlug, input)
+      return { ok: true, data: rule }
+    } catch (err) {
+      const failure = asMutationFailure(err)
+      if (failure) return failure
+      throw err
+    }
+  })
+
+export const archiveWorkspaceAlertRuleFn = createServerFn({ method: 'POST' })
+  .middleware([adminMiddleware])
+  .inputValidator((data) => ruleSlugOnly.parse(data))
+  .handler(async ({ data }) => ({
+    ok: true as const,
+    data: await archiveWorkspaceAlertRule(createDb(env.DB), data.ruleSlug),
+  }))
+
+export const restoreWorkspaceAlertRuleFn = createServerFn({ method: 'POST' })
+  .middleware([adminMiddleware])
+  .inputValidator((data) => ruleSlugOnly.parse(data))
+  .handler(async ({ data }) => ({
+    ok: true as const,
+    data: await restoreWorkspaceAlertRule(createDb(env.DB), data.ruleSlug),
   }))
