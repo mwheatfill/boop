@@ -1,8 +1,7 @@
 import { infiniteQueryOptions, useInfiniteQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { Badge } from '@/components/ui/badge'
+import { RunStatusBadge } from '@/components/RunStatusBadge'
 import { Button } from '@/components/ui/button'
-import { outcomeVariant } from '@/lib/runs/format'
 import { listRunsForJobFn } from '@/lib/runs/server-fns'
 import type { RunsListResponse } from '@/shared/schemas/run'
 
@@ -77,7 +76,7 @@ export function RecentRunsPanel({ jobId, customerSlug, jobSlug }: RecentRunsPane
               params={{ customerSlug, jobSlug, runId: row.id }}
               className="flex flex-1 items-center gap-2 hover:underline"
             >
-              <Badge variant={outcomeVariant[row.displayOutcome]}>{row.displayOutcome}</Badge>
+              <RunStatusBadge outcome={row.displayOutcome} />
               <span className="text-muted-foreground">{relativeTime(row.startedAt)}</span>
               <span className="text-xs text-muted-foreground">· {row.triggerSource}</span>
             </Link>

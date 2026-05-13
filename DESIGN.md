@@ -22,11 +22,12 @@ See [ADR-022](docs/adr/022-design-language-pass-2.md) for the full token table a
 
 | Anchor | Default (dark) | `.light` override |
 |---|---|---|
-| `--theme-base` | `oklch(0.18 0.012 28)` (warm dark charcoal) | `oklch(0.98 0.003 50)` (warm off-white) |
+| `--theme-base` | `oklch(0.16 0.006 250)` (cool slate, near-neutral) | `oklch(0.985 0.004 250)` (cool off-white, matching hue) |
 | `--theme-accent` | `oklch(0.68 0.16 240)` (cool blue, lifted for dark) | `oklch(0.55 0.18 240)` (cool blue, darkened for light) |
 | `--theme-contrast` | `0.7` (Linear-midpoint readability) | `0.75` (slightly higher on light surfaces) |
+| `--surface-step` | `0.04` (lift surfaces toward white) | `-0.025` (step surfaces toward black) |
 
-Derived tokens use OKLCH relative-color syntax: `oklch(from var(--theme-base) calc((1 - l) * var(--theme-contrast) + l * (1 - var(--theme-contrast))) calc(c * 0.4) h)`. Change one anchor, every derived token follows.
+Derived tokens use OKLCH relative-color syntax: `oklch(from var(--theme-base) calc(l + var(--surface-step)) c h)` for card / popover / sidebar; `calc(l + var(--surface-step) * 2)` for secondary / muted / accent. The signed `--surface-step` flips direction in `.light` so a `0.985` base steps DOWN to visible cards instead of clamping at `1.0`. Foreground uses `oklch(from var(--theme-base) calc((1 - l) * var(--theme-contrast) + l * (1 - var(--theme-contrast))) calc(c * 0.4) h)`. Muted foreground is `color-mix(in oklch, var(--foreground) 70%, var(--background))` (the `l + offset` pattern clamps on a near-1.0 base). Change one anchor, every derived token follows.
 
 **Default mode is dark.** `:root` carries dark values; `.light` overrides only the anchors. `next-themes` `defaultTheme="dark"`. Per [ADR-022](docs/adr/022-design-language-pass-2.md).
 

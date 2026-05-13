@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/DataTable'
-import { Badge } from '@/components/ui/badge'
-import { formatDurationMs, outcomeVariant } from '@/lib/runs/format'
+import { RunStatusBadge } from '@/components/RunStatusBadge'
+import { formatDurationMs } from '@/lib/runs/format'
 import type { RunSummaryRow } from '@/shared/schemas/run'
 
 export function runsColumns(): ColumnDef<RunSummaryRow>[] {
@@ -55,11 +55,7 @@ export function runsColumns(): ColumnDef<RunSummaryRow>[] {
     {
       accessorKey: 'displayOutcome',
       header: 'Outcome',
-      cell: ({ row }) => (
-        <Badge variant={outcomeVariant[row.original.displayOutcome]}>
-          {row.original.displayOutcome}
-        </Badge>
-      ),
+      cell: ({ row }) => <RunStatusBadge outcome={row.original.displayOutcome} />,
     },
     {
       accessorKey: 'triggerSource',

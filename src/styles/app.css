@@ -9,28 +9,33 @@
  *                 (Warm orange retreats to --chart-1..5 per the brand-vs-UI-accent split.)
  * --theme-contrast 0..1 multiplier for foreground/border intensity.
  *                  Default 0.7 matches Linear's contrast slider midpoint.
+ * --surface-step  signed lightness lift for derived surfaces. Positive in
+ *                 dark mode (lift toward white); negative in .light (step
+ *                 toward black). Without the sign flip, `l + 0.04` clamps
+ *                 at 1.0 on a 0.985 base and every surface collapses.
  *
- * Every derived token below is computed from these three via OKLCH's
+ * Every derived token below is computed from these via OKLCH's
  * relative-color syntax: `oklch(from <color> <l> <c> <h>)`. Change one
  * anchor, every derived token follows. Browser support: Chrome 119+,
  * Safari 16.4+, Firefox 128+.
  */
 :root {
   /* Anchors: dark mode by default */
-  --theme-base: oklch(0.18 0.012 28);
+  --theme-base: oklch(0.16 0.006 250);
   --theme-accent: oklch(0.68 0.16 240);
   --theme-contrast: 0.7;
+  --surface-step: 0.04;
   --radius: 0.5rem;
 
   /* Surfaces derived from --theme-base. Card and popover lift slightly
    * from background to create the tiled-flat hierarchy by tone, not gap. */
   --background: var(--theme-base);
-  --card: oklch(from var(--theme-base) calc(l + 0.04) c h);
-  --popover: oklch(from var(--theme-base) calc(l + 0.04) c h);
-  --secondary: oklch(from var(--theme-base) calc(l + 0.08) c h);
-  --muted: oklch(from var(--theme-base) calc(l + 0.08) c h);
-  --accent: oklch(from var(--theme-base) calc(l + 0.08) c h);
-  --sidebar: oklch(from var(--theme-base) calc(l + 0.04) c h);
+  --card: oklch(from var(--theme-base) calc(l + var(--surface-step)) c h);
+  --popover: oklch(from var(--theme-base) calc(l + var(--surface-step)) c h);
+  --secondary: oklch(from var(--theme-base) calc(l + var(--surface-step) * 2) c h);
+  --muted: oklch(from var(--theme-base) calc(l + var(--surface-step) * 2) c h);
+  --accent: oklch(from var(--theme-base) calc(l + var(--surface-step) * 2) c h);
+  --sidebar: oklch(from var(--theme-base) calc(l + var(--surface-step)) c h);
 
   /* Foreground: perceptually opposite lightness, modulated by contrast.
    * At contrast 1.0: foreground sits at (1 - base.l). At contrast 0.0:
@@ -45,22 +50,22 @@
   --accent-foreground: var(--foreground);
   --sidebar-foreground: var(--foreground);
 
-  /* Muted foreground: midway between background and foreground.
-   * Used for metadata, secondary copy, placeholder text. */
-  --muted-foreground: oklch(
-    from var(--theme-base) calc((1 - l) * var(--theme-contrast) * 0.6 + l) calc(c * 0.4) h
-  );
+  /* Muted foreground: ~70% of the way from background to foreground.
+   * color-mix sidesteps the `l + offset` clamp that bites on a 0.985 base. */
+  --muted-foreground: color-mix(in oklch, var(--foreground) 70%, var(--background));
 
   /* Borders + inputs: hairline at low alpha against the foreground hue.
    * Dark mode: white-at-low-alpha. Light mode (.light): black-at-low-alpha. */
   --border: oklch(1 0 0 / 0.08);
   --input: oklch(1 0 0 / 0.12);
 
-  /* Primary action: the accent anchor directly. */
+  /* Primary action: the accent anchor directly. Foreground is a fixed
+   * near-white at the accent hue. The accent stays in the 0.55..0.68
+   * lightness band across modes, where near-white is always the readable
+   * choice; a perceptual-inverse derivation lands in the same band and
+   * reads as dim-on-dim. */
   --primary: var(--theme-accent);
-  --primary-foreground: oklch(
-    from var(--theme-accent) calc((1 - l) * 0.9 + l * 0.1) calc(c * 0.2) h
-  );
+  --primary-foreground: oklch(0.985 0.005 240);
   --primary-hover: oklch(from var(--theme-accent) calc(l + 0.06) c h);
   --primary-muted: oklch(from var(--theme-accent) calc(l - 0.4) calc(c * 0.5) h);
 
@@ -68,7 +73,7 @@
   --ring: var(--theme-accent);
   --sidebar-primary: var(--theme-accent);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: oklch(from var(--theme-base) calc(l + 0.08) c h);
+  --sidebar-accent: oklch(from var(--theme-base) calc(l + var(--surface-step) * 2) c h);
   --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
@@ -98,10 +103,14 @@
 .light {
   /* Light mode: override only the anchors. Every derived token re-computes
    * automatically. The accent is darkened slightly so it reads on light
-   * surfaces; the semantic states drop a touch of lightness for contrast. */
-  --theme-base: oklch(0.98 0.003 50);
+   * surfaces; the semantic states drop a touch of lightness for contrast.
+   * --surface-step flips sign so card/sidebar/secondary step DOWN from
+   * the base instead of clamping at 1.0. The magnitude is smaller because
+   * the eye reads dark-on-light steps more strongly than light-on-dark. */
+  --theme-base: oklch(0.985 0.004 250);
   --theme-accent: oklch(0.55 0.18 240);
   --theme-contrast: 0.75;
+  --surface-step: -0.025;
 
   /* Borders flip to dark-on-light at low alpha. */
   --border: oklch(0 0 0 / 0.1);

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { Badge } from '@/components/ui/badge'
-import { formatRunDuration, outcomeVariant } from '@/lib/runs/format'
+import { RunStatusBadge } from '@/components/RunStatusBadge'
+import { formatRunDuration } from '@/lib/runs/format'
 import { getRunFn } from '@/lib/runs/server-fns'
 import { PropertiesPanelShell } from './PropertiesPanelShell'
 import { PropertyRow } from './PropertyRow'
@@ -44,7 +44,7 @@ function RunPropertiesBody({
   return (
     <>
       <PropertyRow label="Outcome">
-        <Badge variant={outcomeVariant[displayOutcome] ?? 'outline'}>{displayOutcome}</Badge>
+        <RunStatusBadge outcome={displayOutcome} />
       </PropertyRow>
       <PropertyRow label="Status">{run.status}</PropertyRow>
       <PropertyRow label="Trigger">{run.triggerSource}</PropertyRow>
