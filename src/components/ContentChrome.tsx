@@ -30,22 +30,17 @@ export function ContentChrome({ filter }: ContentChromeProps) {
           <DensityToggle />
         </PopoverContent>
       </Popover>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        aria-label={
-          rightRailAvailable
-            ? open
-              ? 'Close properties panel'
-              : 'Open properties panel'
-            : 'Properties panel not available on this view'
-        }
-        aria-pressed={open}
-        disabled={!rightRailAvailable}
-        onClick={toggle}
-      >
-        {open ? <PanelRightClose aria-hidden /> : <PanelRightOpen aria-hidden />}
-      </Button>
+      {rightRailAvailable ? (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={open ? 'Close properties panel' : 'Open properties panel'}
+          aria-pressed={open}
+          onClick={toggle}
+        >
+          {open ? <PanelRightClose aria-hidden /> : <PanelRightOpen aria-hidden />}
+        </Button>
+      ) : null}
     </div>
   )
 }

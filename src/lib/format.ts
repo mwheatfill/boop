@@ -34,12 +34,31 @@ export function relativeAgo(ms: number, now = Date.now()): string {
   return `${Math.floor(h / 24)}d ago`
 }
 
+const tzDateFormatterCache = new Map<string, Intl.DateTimeFormat>()
+
+export function formatInTimezone(iso: string, timeZone: string): string {
+  let fmt = tzDateFormatterCache.get(timeZone)
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+    tzDateFormatterCache.set(timeZone, fmt)
+  }
+  return fmt.format(new Date(iso))
+}
+
 export function relativeIn(ms: number, now = Date.now()): string {
   const diff = ms - now
   if (diff <= 0) return 'now'
-  const m = Math.floor(diff / 60_000)
+  if (diff < 60_000) return 'in <1m'
+  const m = Math.round(diff / 60_000)
   if (m < 60) return `in ${m}m`
-  const h = Math.floor(m / 60)
+  const h = Math.round(m / 60)
   if (h < 24) return `in ${h}h`
-  return `in ${Math.floor(h / 24)}d`
+  return `in ${Math.round(h / 24)}d`
 }

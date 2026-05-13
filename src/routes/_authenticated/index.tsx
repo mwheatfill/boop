@@ -10,6 +10,7 @@ import { RunsAreaChart } from '@/components/dashboard/RunsAreaChart'
 import { SearchHint } from '@/components/dashboard/SearchHint'
 import { StatTile } from '@/components/dashboard/StatTile'
 import { EmptyState } from '@/components/EmptyState'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { countCustomersFn, listCustomersFn } from '@/lib/customers/server-fns'
 import { dashboardSummaryQueryOptions } from '@/lib/dashboard/query-options'
@@ -81,7 +82,7 @@ function DashboardPage() {
     )
   }
 
-  const firstCustomerSlug = customers[0]?.slug
+  const hasCustomers = customers.length > 0
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,16 +90,8 @@ function DashboardPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Operations</h1>
         <div className="flex items-center gap-3">
           <SearchHint />
-          {firstCustomerSlug ? (
-            <Button
-              render={
-                <Link
-                  to="/customers/$customerSlug/jobs/new"
-                  params={{ customerSlug: firstCustomerSlug }}
-                  mask={{ to: '/' }}
-                />
-              }
-            >
+          {hasCustomers ? (
+            <Button render={<Link to="/jobs/new" mask={{ to: '/' }} />}>
               <Plus aria-hidden /> New Job
             </Button>
           ) : null}
@@ -262,13 +255,13 @@ function RecentFailuresList({ rows }: { rows: RecentFailureRow[] }) {
           className="flex items-center gap-3 border-b border-border/40 px-3 py-2 last:border-b-0 text-sm"
         >
           <span aria-hidden className="inline-block size-2 rounded-full bg-destructive" />
-          <span className="flex-1 truncate">
-            <span className="text-muted-foreground">{r.customerName}</span>
-            <span className="mx-1.5 text-muted-foreground/50">·</span>
-            <span className="font-medium">{r.jobName}</span>
-            <span className="ml-2 rounded-sm bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">
-              {r.outcome}
+          <span className="flex min-w-0 flex-1 items-center gap-2">
+            <span className="min-w-0 truncate">
+              <span className="text-muted-foreground">{r.customerName}</span>
+              <span className="mx-1.5 text-muted-foreground/50">·</span>
+              <span className="font-medium">{r.jobName}</span>
             </span>
+            <Badge variant="destructive">{r.outcome}</Badge>
           </span>
           <span className="text-xs text-muted-foreground">
             {r.completedAt ? relativeAgo(r.completedAt) : '—'}

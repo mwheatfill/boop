@@ -11,7 +11,9 @@ export function SearchHint() {
       aria-label="Open command palette"
       className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/30 px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
     >
-      <kbd className="font-mono">{tokens.join('')}</kbd>
+      <kbd className="font-mono" suppressHydrationWarning>
+        {tokens.join('')}
+      </kbd>
       <span>to search</span>
     </button>
   )

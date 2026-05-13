@@ -33,6 +33,7 @@ function toJobSummary(row: JoinedJobRow, lastRun?: typeof runs.$inferSelect): Jo
     cronExpression: row.cronExpression,
     intervalSeconds: row.intervalSeconds,
     triggerTimezone: row.triggerTimezone,
+    customerTimezone: row.customer.timezone,
     nextFireAt: row.nextFireAt?.toISOString() ?? null,
     lastFireAt: row.lastFireAt?.toISOString() ?? null,
     status: row.status as JobSummary['status'],

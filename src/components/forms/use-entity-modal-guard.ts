@@ -17,7 +17,7 @@ export function useEntityModalGuard({
   const { status, proceed, reset } = useBlocker({
     shouldBlockFn: () => isDirty,
     withResolver: true,
-    enableBeforeUnload: isDirty,
+    enableBeforeUnload: false,
   })
   return { status, proceed: proceed as () => void, reset: reset as () => void }
 }
