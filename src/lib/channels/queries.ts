@@ -128,9 +128,3 @@ export async function findChannelById(db: Database, channelId: string): Promise<
   const row = (await db.select().from(channels).where(eq(channels.id, channelId)).limit(1))[0]
   return row ? toChannel(row) : null
 }
-
-export async function getChannelById(db: Database, channelId: string): Promise<Channel> {
-  const channel = await findChannelById(db, channelId)
-  if (!channel) throw new NotFoundError('Channel', channelId)
-  return channel
-}

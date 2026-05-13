@@ -14,7 +14,3 @@ export interface MailerResult {
 export type Mailer = (message: MailerMessage) => Promise<MailerResult>
 
 export const mailer: Mailer | null = null
-
-export function isEmailRecipeAvailable(): boolean {
-  return mailer !== null
-}
