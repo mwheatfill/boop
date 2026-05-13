@@ -50,17 +50,21 @@ export async function handleSeed(
   if (payload.intervalSeconds <= 0) {
     throw new Error('intervalSeconds must be a positive integer')
   }
-  await storage.put('jobId', payload.jobId)
-  await storage.put('intervalSeconds', payload.intervalSeconds)
-  await storage.setAlarm(now().getTime() + payload.intervalSeconds * 1000)
+  await Promise.all([
+    storage.put('jobId', payload.jobId),
+    storage.put('intervalSeconds', payload.intervalSeconds),
+    storage.setAlarm(now().getTime() + payload.intervalSeconds * 1000),
+  ])
   logInfo('job-alarm.seeded', { jobId: payload.jobId, intervalSeconds: payload.intervalSeconds })
 }
 
 export async function handleCancel({ storage }: Pick<JobAlarmDeps, 'storage'>): Promise<void> {
-  await storage.deleteAlarm()
-  const jobId = await storage.get<string>('jobId')
-  await storage.delete('jobId')
-  await storage.delete('intervalSeconds')
+  const [jobId] = await Promise.all([
+    storage.get<string>('jobId'),
+    storage.deleteAlarm(),
+    storage.delete('jobId'),
+    storage.delete('intervalSeconds'),
+  ])
   logInfo('job-alarm.canceled', { jobId: jobId ?? null })
 }
 

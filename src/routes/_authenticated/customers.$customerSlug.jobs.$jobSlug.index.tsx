@@ -40,7 +40,7 @@ export const Route = createFileRoute('/_authenticated/customers/$customerSlug/jo
 
 function JobDetailPage() {
   const { customerSlug, jobSlug } = Route.useParams()
-  const navigate = useNavigate()
+  const goTo = useNavigate()
   const queryClient = useQueryClient()
   const { data: job } = useSuspenseQuery(jobOptions(customerSlug, jobSlug))
   const [archiveBlock, setArchiveBlock] = useState<string | null>(null)
@@ -97,7 +97,7 @@ function JobDetailPage() {
   useShortcut(
     'e',
     () => {
-      void navigate({
+      void goTo({
         to: '/customers/$customerSlug/jobs/$jobSlug/edit',
         params: { customerSlug, jobSlug },
       })
@@ -177,7 +177,7 @@ function JobDetailPage() {
                 }
                 await refresh()
                 toast.success('Archived')
-                await navigate({
+                await goTo({
                   to: '/customers/$customerSlug',
                   params: { customerSlug },
                 })

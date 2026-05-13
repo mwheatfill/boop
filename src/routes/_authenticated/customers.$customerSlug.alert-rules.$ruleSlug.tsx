@@ -25,7 +25,7 @@ export const Route = createFileRoute(
 
 function AlertRuleDetailPage() {
   const { customerSlug, ruleSlug } = Route.useParams()
-  const navigate = useNavigate()
+  const goTo = useNavigate()
   const queryClient = useQueryClient()
   const { data: rule } = useSuspenseQuery(alertRuleQueryOptions(customerSlug, ruleSlug))
   const { data: channels } = useSuspenseQuery(listChannelsQueryOptions(customerSlug, true))
@@ -36,7 +36,7 @@ function AlertRuleDetailPage() {
     onSuccess: async () => {
       toast.success('Archived')
       await queryClient.invalidateQueries({ queryKey: ['customers', customerSlug, 'alert-rules'] })
-      await navigate({ to: '/customers/$customerSlug/alert-rules', params: { customerSlug } })
+      await goTo({ to: '/customers/$customerSlug/alert-rules', params: { customerSlug } })
     },
   })
 
@@ -51,7 +51,7 @@ function AlertRuleDetailPage() {
   useShortcut(
     'e',
     () =>
-      void navigate({
+      void goTo({
         to: '/customers/$customerSlug/alert-rules/$ruleSlug/edit',
         params: { customerSlug, ruleSlug },
       }),

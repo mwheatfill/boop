@@ -252,9 +252,11 @@ export function JobModal({
           targetRecents.recordUse(submittedTarget)
         }
 
-        await queryClient.invalidateQueries({ queryKey: ['jobs'] })
-        await queryClient.invalidateQueries({ queryKey: ['customers', value.customerSlug] })
-        await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['jobs'] }),
+          queryClient.invalidateQueries({ queryKey: ['customers', value.customerSlug] }),
+          queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+        ])
 
         if (variant === 'create' && createAnother) {
           toast.success(`Job ${result.data.name} created`)

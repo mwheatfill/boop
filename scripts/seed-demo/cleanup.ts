@@ -43,31 +43,36 @@ export async function cleanupDemoData(db: Database): Promise<CleanupCounts> {
       const runIds = runRows.map((r) => r.id)
       counts.runs = runIds.length
 
-      for (const chunk of chunked(runIds)) {
-        const attemptRows = await db
-          .select({ id: attempts.id })
-          .from(attempts)
-          .where(inArray(attempts.runId, chunk))
-        counts.attempts += attemptRows.length
-        await db.delete(attempts).where(inArray(attempts.runId, chunk))
-      }
-      for (const chunk of chunked(jobIds)) {
-        await db.delete(runs).where(inArray(runs.jobId, chunk))
-      }
+      const attemptCounts = await Promise.all(
+        chunked(runIds).map(async (chunk) => {
+          const attemptRows = await db
+            .select({ id: attempts.id })
+            .from(attempts)
+            .where(inArray(attempts.runId, chunk))
+          await db.delete(attempts).where(inArray(attempts.runId, chunk))
+          return attemptRows.length
+        }),
+      )
+      counts.attempts = attemptCounts.reduce((total, count) => total + count, 0)
+      await Promise.all(
+        chunked(jobIds).map((chunk) => db.delete(runs).where(inArray(runs.jobId, chunk))),
+      )
     }
     counts.jobs = jobIds.length
-    for (const chunk of chunked(customerIds)) {
-      await db.delete(jobs).where(inArray(jobs.customerId, chunk))
-    }
+    await Promise.all(
+      chunked(customerIds).map((chunk) => db.delete(jobs).where(inArray(jobs.customerId, chunk))),
+    )
 
     const targetRows = await db
       .select({ id: targets.id })
       .from(targets)
       .where(inArray(targets.customerId, customerIds))
     counts.targets = targetRows.length
-    for (const chunk of chunked(customerIds)) {
-      await db.delete(targets).where(inArray(targets.customerId, chunk))
-    }
+    await Promise.all(
+      chunked(customerIds).map((chunk) =>
+        db.delete(targets).where(inArray(targets.customerId, chunk)),
+      ),
+    )
   }
 
   // channels and alert_rules cascade from customers
@@ -81,8 +86,10 @@ export async function cleanupDemoData(db: Database): Promise<CleanupCounts> {
   return counts
 }
 
-function* chunked<T>(items: readonly T[]): Generator<T[]> {
+function chunked<T>(items: readonly T[]): T[][] {
+  const chunks: T[][] = []
   for (let i = 0; i < items.length; i += BATCH_SIZE) {
-    yield items.slice(i, i + BATCH_SIZE)
+    chunks.push(items.slice(i, i + BATCH_SIZE))
   }
+  return chunks
 }

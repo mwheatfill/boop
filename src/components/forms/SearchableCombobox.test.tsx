@@ -12,23 +12,25 @@ const acme: Customer = { slug: 'acme', name: 'Acme' }
 const beta: Customer = { slug: 'beta', name: 'Beta' }
 const switchthink: Customer = { slug: 'switchthink', name: 'SwitchThink' }
 const customers: Customer[] = [acme, beta, switchthink]
+const EMPTY_CUSTOMERS: Customer[] = []
 
 function Harness({
   initialValue = null,
-  recents = [],
+  recents = EMPTY_CUSTOMERS,
   createAffordance,
 }: {
   initialValue?: Customer | null
   recents?: Customer[]
   createAffordance?: Parameters<typeof SearchableCombobox<Customer>>[0]['createAffordance']
 }) {
-  const [value, setValue] = useState<Customer | null>(initialValue)
+  const [value, setValue] = useState<Customer | null>(null)
+  const selected = value ?? initialValue
   return (
     <SearchableCombobox<Customer>
       label="Customer"
       items={customers}
       recents={recents}
-      value={value}
+      value={selected}
       onValueChange={setValue}
       getId={(c) => c.slug}
       getLabel={(c) => c.name}

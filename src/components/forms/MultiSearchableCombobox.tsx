@@ -1,7 +1,7 @@
 'use client'
 import { Combobox } from '@base-ui/react/combobox'
 import { Check, ChevronDown, X } from 'lucide-react'
-import { forwardRef, type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode, type Ref, useMemo, useState } from 'react'
 import {
   ComboboxCreateRow,
   ComboboxSection,
@@ -29,71 +29,81 @@ interface MultiPillTriggerProps<T> {
   required: boolean
   disabled: boolean
   expanded: boolean
+  ref?: Ref<HTMLButtonElement>
 }
 
-const MultiPillTrigger = forwardRef<HTMLButtonElement, MultiPillTriggerProps<unknown>>(
-  function MultiPillTrigger(
-    { label, selected, getId, getLabel, onRemove, state, required, disabled, expanded, ...props },
-    ref,
-  ) {
-    const inlineChips = selected.slice(0, MAX_INLINE_CHIPS)
-    const overflow = Math.max(0, selected.length - MAX_INLINE_CHIPS)
-    return (
-      <button
-        ref={ref}
-        type="button"
-        data-state={state}
-        data-expanded={expanded ? 'true' : undefined}
-        aria-expanded={expanded}
-        disabled={disabled}
-        className={cn(
-          'inline-flex flex-wrap items-center gap-1 rounded-full border px-2 py-1 text-xs font-medium transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          state === 'empty' &&
-            'border-dashed border-border bg-secondary text-muted-foreground hover:text-foreground',
-          state === 'filled' && 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/15',
-          state === 'invalid' && 'border-destructive/30 bg-destructive/10 text-destructive',
-        )}
-        {...props}
-      >
-        <span className="px-1 text-muted-foreground/80">{label}:</span>
-        {selected.length === 0 ? (
-          <span className="px-1 italic text-muted-foreground/70">
-            {required ? 'Required' : 'None'}
-          </span>
-        ) : (
-          inlineChips.map((item) => (
+function MultiPillTriggerBase({
+  label,
+  selected,
+  getId,
+  getLabel,
+  onRemove,
+  state,
+  required,
+  disabled,
+  expanded,
+  ref,
+  ...props
+}: MultiPillTriggerProps<unknown>) {
+  const inlineChips = selected.slice(0, MAX_INLINE_CHIPS)
+  const overflow = Math.max(0, selected.length - MAX_INLINE_CHIPS)
+  return (
+    <button
+      ref={ref}
+      type="button"
+      data-state={state}
+      data-expanded={expanded ? 'true' : undefined}
+      aria-expanded={expanded}
+      disabled={disabled}
+      className={cn(
+        'inline-flex flex-wrap items-center gap-1 rounded-full border px-2 py-1 text-xs font-medium transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        state === 'empty' &&
+          'border-dashed border-border bg-secondary text-muted-foreground hover:text-foreground',
+        state === 'filled' && 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/15',
+        state === 'invalid' && 'border-destructive/30 bg-destructive/10 text-destructive',
+      )}
+      {...props}
+    >
+      <span className="px-1 text-muted-foreground/80">{label}:</span>
+      {selected.length === 0 ? (
+        <span className="px-1 italic text-muted-foreground/70">
+          {required ? 'Required' : 'None'}
+        </span>
+      ) : (
+        inlineChips.map((item) => (
+          <span
+            key={getId(item)}
+            className="inline-flex items-center gap-1 rounded-full bg-card px-2 py-0.5 text-foreground"
+          >
+            <span className="truncate">{getLabel(item)}</span>
+            {/* biome-ignore lint/a11y/useSemanticElements: HTML forbids <button> nested in the trigger <button>. */}
             <span
-              key={getId(item)}
-              className="inline-flex items-center gap-1 rounded-full bg-card px-2 py-0.5 text-foreground"
+              role="button"
+              aria-label={`Remove ${getLabel(item)}`}
+              tabIndex={-1}
+              onPointerDown={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onRemove(item)
+              }}
+              className="inline-flex size-3.5 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
             >
-              <span className="truncate">{getLabel(item)}</span>
-              {/* biome-ignore lint/a11y/useSemanticElements: HTML forbids <button> nested in the trigger <button>. */}
-              <span
-                role="button"
-                aria-label={`Remove ${getLabel(item)}`}
-                tabIndex={-1}
-                onPointerDown={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  onRemove(item)
-                }}
-                className="inline-flex size-3.5 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <X className="size-2.5" aria-hidden />
-              </span>
+              <X className="size-2.5" aria-hidden />
             </span>
-          ))
-        )}
-        {overflow > 0 ? (
-          <span className="rounded-full bg-card px-2 py-0.5 text-muted-foreground">
-            +{overflow} more
           </span>
-        ) : null}
-        <ChevronDown className="size-3 opacity-60" aria-hidden />
-      </button>
-    )
-  },
-) as <T>(
+        ))
+      )}
+      {overflow > 0 ? (
+        <span className="rounded-full bg-card px-2 py-0.5 text-muted-foreground">
+          +{overflow} more
+        </span>
+      ) : null}
+      <ChevronDown className="size-3 opacity-60" aria-hidden />
+    </button>
+  )
+}
+
+const MultiPillTrigger = MultiPillTriggerBase as <T>(
   props: MultiPillTriggerProps<T> & { ref?: React.Ref<HTMLButtonElement> },
 ) => React.ReactElement
 

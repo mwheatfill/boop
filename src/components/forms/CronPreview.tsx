@@ -25,7 +25,7 @@ export function CronPreview({ expression, timezone, count = 3 }: CronPreviewProp
     )
   }
 
-  const formatter = new Intl.DateTimeFormat('en-US', {
+  const formatter = Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     dateStyle: 'medium',
     timeStyle: 'short',

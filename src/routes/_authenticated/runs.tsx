@@ -64,7 +64,7 @@ function searchToFilters(search: Record<string, unknown>): RunsFiltersUI {
 
 function RunsPage() {
   const search = Route.useSearch()
-  const navigate = Route.useNavigate()
+  const goTo = Route.useNavigate()
   const { data: customers } = useSuspenseQuery(customersQueryOptions)
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery(
     runsInfiniteOptions(search as unknown as Record<string, unknown>),
@@ -74,7 +74,7 @@ function RunsPage() {
   const filters = searchToFilters(search as unknown as Record<string, unknown>)
 
   const onFilterChange = (next: Partial<RunsFiltersUI>) => {
-    void navigate({
+    void goTo({
       search: (prev) =>
         ({
           ...prev,

@@ -55,9 +55,11 @@ describe('cleanupDemoData', () => {
     expect(counts.users).toBe(6)
     expect(counts.runs).toBeGreaterThan(0)
 
-    const remainingCustomers = await db.select({ count: sql<number>`count(*)` }).from(customers)
-    const remainingJobs = await db.select({ count: sql<number>`count(*)` }).from(jobs)
-    const remainingRuns = await db.select({ count: sql<number>`count(*)` }).from(runs)
+    const [remainingCustomers, remainingJobs, remainingRuns] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(customers),
+      db.select({ count: sql<number>`count(*)` }).from(jobs),
+      db.select({ count: sql<number>`count(*)` }).from(runs),
+    ])
     expect(remainingCustomers[0]?.count).toBe(0)
     expect(remainingJobs[0]?.count).toBe(0)
     expect(remainingRuns[0]?.count).toBe(0)
@@ -86,8 +88,10 @@ describe('cleanupDemoData', () => {
 
     await cleanupDemoData(db)
 
-    const surviving = await db.select().from(customers).where(eq(customers.id, realCustomerId))
-    const survivingUsers = await db.select().from(users).where(eq(users.id, realUserId))
+    const [surviving, survivingUsers] = await Promise.all([
+      db.select().from(customers).where(eq(customers.id, realCustomerId)),
+      db.select().from(users).where(eq(users.id, realUserId)),
+    ])
     expect(surviving).toHaveLength(1)
     expect(survivingUsers).toHaveLength(1)
   })

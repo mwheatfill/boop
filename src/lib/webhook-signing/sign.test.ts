@@ -15,14 +15,18 @@ describe('signWebhook', () => {
   })
 
   it('differs when the body changes', async () => {
-    const a = await signWebhook({ secret: SECRET, timestamp: 1715000000, body: 'a' })
-    const b = await signWebhook({ secret: SECRET, timestamp: 1715000000, body: 'b' })
+    const [a, b] = await Promise.all([
+      signWebhook({ secret: SECRET, timestamp: 1715000000, body: 'a' }),
+      signWebhook({ secret: SECRET, timestamp: 1715000000, body: 'b' }),
+    ])
     expect(a).not.toBe(b)
   })
 
   it('differs when the timestamp changes', async () => {
-    const a = await signWebhook({ secret: SECRET, timestamp: 1715000000, body: 'x' })
-    const b = await signWebhook({ secret: SECRET, timestamp: 1715000001, body: 'x' })
+    const [a, b] = await Promise.all([
+      signWebhook({ secret: SECRET, timestamp: 1715000000, body: 'x' }),
+      signWebhook({ secret: SECRET, timestamp: 1715000001, body: 'x' }),
+    ])
     expect(a).not.toBe(b)
   })
 

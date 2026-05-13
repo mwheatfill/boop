@@ -46,15 +46,18 @@ async function fetchCanonical(name: string, style: string): Promise<RegistryEntr
     `https://ui.shadcn.com/r/styles/${style}/${name}.json`,
     `https://ui.shadcn.com/r/styles/${style}-v4/${name}.json`,
   ]
-  for (const url of candidates) {
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
-      if (res.ok) return (await res.json()) as RegistryEntry
-    } catch {
-      // try next candidate
-    }
-  }
-  return null
+  const results = await Promise.all(
+    candidates.map(async (url) => {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
+        if (res.ok) return (await res.json()) as RegistryEntry
+      } catch {
+        return null
+      }
+      return null
+    }),
+  )
+  return results.find((entry) => entry !== null) ?? null
 }
 
 interface Signals {
@@ -77,8 +80,10 @@ function extractSignals(content: string): Signals {
       ? namedClause
           .replace(/[{}]/g, '')
           .split(',')
-          .map((s) => s.trim().split(/\s+as\s+/)[0] ?? '')
-          .filter((n): n is string => n.length > 0)
+          .flatMap((s) => {
+            const name = s.trim().split(/\s+as\s+/)[0] ?? ''
+            return name.length > 0 ? [name] : []
+          })
       : []
     if (source) imports.push({ source, names })
   }
@@ -111,6 +116,7 @@ function diffSignals(
   allowlist: string[],
 ): Array<{ signal: string; message: string }> {
   const issues: Array<{ signal: string; message: string }> = []
+  const allowlistSet = new Set(Array.isArray(allowlist) ? allowlist : [])
 
   // Internal monorepo paths get rewritten by the CLI on install (or
   // reference shadcn's demo app and never make it into the registry's
@@ -121,7 +127,7 @@ function diffSignals(
   for (const imp of theirs.imports) {
     if (imp.source.startsWith('@/registry/') || imp.source.startsWith('@/app/')) continue
     const sig = `import:${imp.source}`
-    if (!ourSources.has(imp.source) && !allowlist.includes(sig)) {
+    if (!ourSources.has(imp.source) && !allowlistSet.has(sig)) {
       issues.push({
         signal: sig,
         message: `Missing canonical import from "${imp.source}". Either add it back or whitelist "${sig}" in audit/shadcn-allowed-deviations.json with a reason.`,
@@ -131,7 +137,7 @@ function diffSignals(
 
   for (const name of theirs.exports) {
     const sig = `export:${name}`
-    if (!ours.exports.has(name) && !allowlist.includes(sig)) {
+    if (!ours.exports.has(name) && !allowlistSet.has(sig)) {
       issues.push({
         signal: sig,
         message: `Missing canonical named export "${name}". Run \`npx shadcn@latest add ${componentName}\` to restore, or whitelist "${sig}" with a reason.`,
@@ -141,7 +147,7 @@ function diffSignals(
 
   for (const slot of theirs.dataSlots) {
     const sig = `data-slot:${slot}`
-    if (!ours.dataSlots.has(slot) && !allowlist.includes(sig)) {
+    if (!ours.dataSlots.has(slot) && !allowlistSet.has(sig)) {
       issues.push({
         signal: sig,
         message: `Missing canonical \`data-slot="${slot}"\` attribute. Canonical CSS selectors depend on it; restore or whitelist "${sig}".`,

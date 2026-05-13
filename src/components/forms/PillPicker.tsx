@@ -1,6 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
-import { forwardRef } from 'react'
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react'
 import { cn } from '@/lib/utils'
 
 export type PillState = 'empty' | 'filled' | 'invalid'
@@ -12,23 +11,22 @@ interface PillButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
   icon?: LucideIcon
   required?: boolean
   hint?: ReactNode
+  ref?: Ref<HTMLButtonElement>
 }
 
-export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(function PillButton(
-  {
-    label,
-    value,
-    state = value ? 'filled' : 'empty',
-    icon: Icon,
-    required,
-    hint,
-    className,
-    type = 'button',
-    onClick,
-    ...props
-  },
+export function PillButton({
+  label,
+  value,
+  state = value ? 'filled' : 'empty',
+  icon: Icon,
+  required,
+  hint,
+  className,
+  type = 'button',
+  onClick,
   ref,
-) {
+  ...props
+}: PillButtonProps) {
   const interactive = typeof onClick === 'function'
   const sharedClass = cn(
     'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-100',
@@ -72,4 +70,4 @@ export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(functio
       {content}
     </button>
   )
-})
+}

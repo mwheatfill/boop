@@ -41,7 +41,7 @@ const OFFSET_FORMATTER_CACHE = new Map<string, Intl.DateTimeFormat>()
 function getOffsetFormatter(iana: string): Intl.DateTimeFormat | null {
   if (OFFSET_FORMATTER_CACHE.has(iana)) return OFFSET_FORMATTER_CACHE.get(iana) ?? null
   try {
-    const fmt = new Intl.DateTimeFormat('en-US', { timeZone: iana, timeZoneName: 'shortOffset' })
+    const fmt = Intl.DateTimeFormat('en-US', { timeZone: iana, timeZoneName: 'shortOffset' })
     OFFSET_FORMATTER_CACHE.set(iana, fmt)
     return fmt
   } catch {
@@ -64,7 +64,7 @@ const CLOCK_FORMATTER_CACHE = new Map<string, Intl.DateTimeFormat>()
 function getClockFormatter(iana: string): Intl.DateTimeFormat | null {
   if (CLOCK_FORMATTER_CACHE.has(iana)) return CLOCK_FORMATTER_CACHE.get(iana) ?? null
   try {
-    const fmt = new Intl.DateTimeFormat('en-US', {
+    const fmt = Intl.DateTimeFormat('en-US', {
       timeZone: iana,
       hour: '2-digit',
       minute: '2-digit',

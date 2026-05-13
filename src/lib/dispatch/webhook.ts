@@ -29,12 +29,6 @@ export async function handleWebhook(
 ): Promise<Response> {
   const ip = clientIp(request)
 
-  const { success: allowed } = await rateLimit.limit({ key: customerSlug })
-  if (!allowed) {
-    logWarn('webhook.rate_limited', { customerSlug, jobSlug, ip })
-    return Response.json({ error: 'rate_limit_exceeded' }, { status: 429 })
-  }
-
   const [row] = await db
     .select({
       jobId: jobs.id,
@@ -73,6 +67,12 @@ export async function handleWebhook(
       { error: `Job trigger is ${row.triggerKind}, not webhook` },
       { status: 409 },
     )
+  }
+
+  const rateLimitResult = await rateLimit.limit({ key: customerSlug })
+  if (!rateLimitResult.success) {
+    logWarn('webhook.rate_limited', { customerSlug, jobSlug, ip })
+    return Response.json({ error: 'rate_limit_exceeded' }, { status: 429 })
   }
 
   const body = await request.text()

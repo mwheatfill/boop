@@ -24,7 +24,7 @@ export const Route = createFileRoute('/_authenticated/templates')({
 })
 
 function TemplatesRoute() {
-  const navigate = useNavigate()
+  const goTo = useNavigate()
   const { data: templates } = useSuspenseQuery(templatesOptions)
   const { data: customers } = useSuspenseQuery(customersOptions)
   const [pendingTemplate, setPendingTemplate] = useState<JobTemplate | null>(null)
@@ -32,7 +32,7 @@ function TemplatesRoute() {
 
   const useTemplate = async () => {
     if (!pendingTemplate || !customer) return
-    await navigate({
+    await goTo({
       to: '/customers/$customerSlug/jobs/new',
       params: { customerSlug: customer.slug },
       search: { from: pendingTemplate.id },

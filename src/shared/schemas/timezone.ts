@@ -5,7 +5,7 @@ const KNOWN_TIMEZONES = new Set(Intl.supportedValuesOf('timeZone'))
 function isValidTimezone(tz: string): boolean {
   if (KNOWN_TIMEZONES.has(tz)) return true
   try {
-    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    Intl.DateTimeFormat('en-US', { timeZone: tz })
     KNOWN_TIMEZONES.add(tz)
     return true
   } catch {

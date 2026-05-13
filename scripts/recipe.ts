@@ -201,7 +201,7 @@ function commandList(flags: Flags): void {
     if (!byDomain.has(r.domain)) byDomain.set(r.domain, [])
     byDomain.get(r.domain)?.push(r)
   }
-  for (const [domain, recipes] of [...byDomain.entries()].sort()) {
+  for (const [domain, recipes] of Array.from(byDomain.entries()).sort()) {
     console.log(`\n${domain}/`)
     for (const r of recipes) {
       const reqSuffix = r.requires.length ? ` (requires: ${r.requires.join(', ')})` : ''
