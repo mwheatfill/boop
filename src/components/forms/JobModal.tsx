@@ -1,25 +1,18 @@
 import { useForm, useStore } from '@tanstack/react-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Plus } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer } from 'react'
 import { toast } from 'sonner'
 import { CustomerModal } from '@/components/forms/CustomerModal'
 import { EntityModal } from '@/components/forms/EntityModal'
+import type { FormApiFor } from '@/components/forms/form-api'
 import {
-  KeyValueListEditor,
-  type KeyValueRow,
-  rowsToVariableMap,
-} from '@/components/forms/KeyValueListEditor'
-import { PillButton } from '@/components/forms/PillPicker'
-import { SearchableCombobox } from '@/components/forms/SearchableCombobox'
+  JobFormSections,
+  JobIdentityFields,
+  JobTemplateChooser,
+} from '@/components/forms/JobModal.sections'
 import { TargetModal } from '@/components/forms/TargetModal'
-import { TemplateEditor } from '@/components/forms/TemplateEditor'
-import { TriggerPicker } from '@/components/forms/TriggerPicker'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
-import { TemplateGallery } from '@/components/templates/TemplateGallery'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { customerSecretsQueryOptions } from '@/lib/customer-secrets/query-options'
 import { PICKER_KEYS, PICKER_RECENT_LIMITS } from '@/lib/forms/picker-keys'
 import { useEntityDefault } from '@/lib/forms/use-entity-default'
@@ -27,7 +20,6 @@ import { useLastUsed } from '@/lib/forms/use-last-used'
 import { usePickerRecents } from '@/lib/forms/use-picker-recents'
 import { instantiateFromTemplate } from '@/lib/job-templates/instantiate'
 import { listJobTemplatesQueryOptions } from '@/lib/job-templates/query-options'
-import { triggerSummaryWithTimezone } from '@/lib/jobs/format'
 import { createJobFn, updateJobFn } from '@/lib/jobs/server-fns'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
@@ -37,9 +29,9 @@ import type { Job, TriggerKind } from '@/shared/schemas/job'
 import type { JobTemplate } from '@/shared/schemas/job-template'
 import type { Target } from '@/shared/schemas/target'
 
-type CustomerOption = Pick<Customer, 'slug' | 'name' | 'timezone' | 'variables'>
+export type CustomerOption = Pick<Customer, 'slug' | 'name' | 'timezone' | 'variables'>
 
-interface JobFormValues {
+export interface JobFormValues {
   name: string
   slug: string
   customerSlug: string
@@ -54,6 +46,8 @@ interface JobFormValues {
   maxAttempts: number
   overallDeadlineMs: number
 }
+
+export type JobFormApi = FormApiFor<JobFormValues>
 
 interface JobModalProps {
   variant: 'create' | 'edit'
@@ -71,49 +65,56 @@ const DEFAULT_INTERVAL = 300
 const SWITCHTHINK_SLUG = 'switchthink'
 const ADMIN_ONLY_REASON = 'Admin only'
 
-const BODY_HELP_TEXT =
-  'LiquidJS. Available: {{ run_id }}, {{ attempt_number }}, {{ customer_name }}, {{ customer_timezone }}, {{ now }}, plus operator-defined variables. {% boop_secret "name" %} pulls a Customer secret at fire time.'
-
-type TemplateApplyOptions = {
+export type TemplateApplyOptions = {
   template: JobTemplate
   customerSlug: string
   fallbackTimezone: string
 }
 
-function buildVariableRows(
-  customerVars: Record<string, string>,
-  jobVars: Record<string, string>,
-): KeyValueRow[] {
-  const fromCustomer = Object.keys(customerVars)
-    .sort()
-    .map<KeyValueRow>((name) => {
-      const customerValue = customerVars[name] ?? ''
-      if (Object.hasOwn(jobVars, name)) {
-        return {
-          name,
-          value: jobVars[name] ?? '',
-          source: 'override',
-          inherited: { from: 'customer', value: customerValue },
-        }
-      }
-      return { name, value: customerValue, source: 'customer' }
-    })
-  const jobOnly = Object.keys(jobVars)
-    .filter((k) => !Object.hasOwn(customerVars, k))
-    .sort()
-    .map<KeyValueRow>((name) => ({ name, value: jobVars[name] ?? '', source: 'job' }))
-  return [...fromCustomer, ...jobOnly]
+interface JobModalUiState {
+  createAnother: boolean
+  nestedTargetOpen: boolean
+  nestedCustomerOpen: boolean
+  nestedCustomerSeed: string
+  view: 'form' | 'templates'
+  targetPlaceholder: string | null
 }
 
-function buildAutocompleteVariables(
-  customerVars: Record<string, string>,
-  jobVars: Record<string, string>,
-): Array<{ name: string; value: string; source: 'customer' | 'job' }> {
-  return Object.entries({ ...customerVars, ...jobVars }).map(([name, value]) => ({
-    name,
-    value,
-    source: Object.hasOwn(jobVars, name) ? 'job' : 'customer',
-  }))
+export type JobModalUiAction =
+  | { type: 'create-another-changed'; enabled: boolean }
+  | { type: 'target-create-opened' }
+  | { type: 'target-create-closed' }
+  | { type: 'customer-create-opened'; seed: string }
+  | { type: 'customer-create-closed' }
+  | { type: 'view-changed'; view: 'form' | 'templates' }
+  | { type: 'template-applied'; targetPlaceholder: string | null }
+
+const initialJobModalUiState: JobModalUiState = {
+  createAnother: false,
+  nestedTargetOpen: false,
+  nestedCustomerOpen: false,
+  nestedCustomerSeed: '',
+  view: 'form',
+  targetPlaceholder: null,
+}
+
+function jobModalUiReducer(state: JobModalUiState, action: JobModalUiAction): JobModalUiState {
+  switch (action.type) {
+    case 'create-another-changed':
+      return { ...state, createAnother: action.enabled }
+    case 'target-create-opened':
+      return { ...state, nestedTargetOpen: true }
+    case 'target-create-closed':
+      return { ...state, nestedTargetOpen: false }
+    case 'customer-create-opened':
+      return { ...state, nestedCustomerOpen: true, nestedCustomerSeed: action.seed }
+    case 'customer-create-closed':
+      return { ...state, nestedCustomerOpen: false, nestedCustomerSeed: '' }
+    case 'view-changed':
+      return { ...state, view: action.view }
+    case 'template-applied':
+      return { ...state, view: 'form', targetPlaceholder: action.targetPlaceholder }
+  }
 }
 
 export function JobModal({
@@ -167,12 +168,15 @@ export function JobModal({
 
   const startSlug = initialJob?.slug ?? ''
   const slug = useSlugAutoFill(variant === 'edit')
-  const [createAnother, setCreateAnother] = useState(false)
-  const [nestedTargetOpen, setNestedTargetOpen] = useState(false)
-  const [nestedCustomerOpen, setNestedCustomerOpen] = useState(false)
-  const [nestedCustomerSeed, setNestedCustomerSeed] = useState('')
-  const [view, setView] = useState<'form' | 'templates'>('form')
-  const [targetPlaceholder, setTargetPlaceholder] = useState<string | null>(null)
+  const [uiState, dispatchUi] = useReducer(jobModalUiReducer, initialJobModalUiState)
+  const {
+    createAnother,
+    nestedTargetOpen,
+    nestedCustomerOpen,
+    nestedCustomerSeed,
+    view,
+    targetPlaceholder,
+  } = uiState
 
   const form = useForm({
     defaultValues: {
@@ -368,7 +372,10 @@ export function JobModal({
       form.setFieldValue('variables', input.variables ?? {})
       form.setFieldValue('maxAttempts', input.maxAttempts)
       form.setFieldValue('overallDeadlineMs', input.overallDeadlineMs)
-      setTargetPlaceholder(template.scope === 'workspace' ? template.targetRef : null)
+      dispatchUi({
+        type: 'template-applied',
+        targetPlaceholder: template.scope === 'workspace' ? template.targetRef : null,
+      })
     },
     [form],
   )
@@ -396,19 +403,18 @@ export function JobModal({
   const customerCreateAffordance = isAdmin
     ? {
         enabled: true,
-        onCreate: (query: string) => {
-          setNestedCustomerSeed(query)
-          setNestedCustomerOpen(true)
-        },
+        onCreate: (query: string) => dispatchUi({ type: 'customer-create-opened', seed: query }),
       }
     : { enabled: false, disabledReason: ADMIN_ONLY_REASON, onCreate: () => {} }
 
   const targetCreateAffordance = isAdmin
     ? {
         enabled: true,
-        onCreate: () => setNestedTargetOpen(true),
+        onCreate: () => dispatchUi({ type: 'target-create-opened' }),
       }
     : { enabled: false, disabledReason: ADMIN_ONLY_REASON, onCreate: () => {} }
+
+  const jobForm = form as unknown as JobFormApi
 
   return (
     <EntityModal
@@ -423,7 +429,13 @@ export function JobModal({
         loading: isSubmitting,
       }}
       {...(variant === 'create'
-        ? { createAnother: { enabled: createAnother, onChange: setCreateAnother } }
+        ? {
+            createAnother: {
+              enabled: createAnother,
+              onChange: (enabled: boolean) =>
+                dispatchUi({ type: 'create-another-changed', enabled }),
+            },
+          }
         : {})}
     >
       <form
@@ -433,257 +445,40 @@ export function JobModal({
           void form.handleSubmit()
         }}
       >
-        <form.Field
-          name="name"
-          listeners={{
-            onChange: ({ value }) => {
-              if (slug.isManual()) return
-              form.setFieldValue('slug', slugify(value))
-            },
-          }}
-        >
-          {(field) => (
-            <div className="flex flex-col gap-1">
-              <Input
-                id={field.name}
-                value={field.state.value}
-                placeholder="Name this Job…"
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-                aria-invalid={field.state.meta.errors[0] ? 'true' : undefined}
-                className="h-auto border-0 bg-transparent px-0 text-xl font-medium tracking-tight shadow-none placeholder:text-muted-foreground/50 focus-visible:ring-0"
-              />
-              <form.Field name="slug">
-                {(slugField) => (
-                  <input
-                    type="text"
-                    value={slugField.state.value}
-                    readOnly={variant === 'edit'}
-                    onChange={(e) => {
-                      slug.markManual()
-                      slugField.handleChange(e.currentTarget.value)
-                    }}
-                    aria-label="Slug"
-                    placeholder="slug"
-                    className="border-0 bg-transparent px-0 font-mono text-xs text-muted-foreground placeholder:text-muted-foreground/40 focus:outline-none"
-                  />
-                )}
-              </form.Field>
-              {field.state.meta.errors[0] ? (
-                <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
-              ) : null}
-              {variant === 'edit' ? (
-                <p className="text-xs text-muted-foreground/70">
-                  Slug can't change after creation.
-                </p>
-              ) : null}
-            </div>
-          )}
-        </form.Field>
-
-        {variant === 'create' ? (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant={view === 'form' ? 'default' : 'outline'}
-              onClick={() => setView('form')}
-            >
-              Start from scratch
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={view === 'templates' ? 'default' : 'outline'}
-              onClick={() => setView('templates')}
-            >
-              Use a template
-            </Button>
-          </div>
-        ) : null}
-
-        {view === 'templates' ? (
-          <TemplateGallery
-            compact
-            templates={templatesQuery.data ?? []}
-            onSelect={(template) => {
-              const templateCustomerSlug = customerSlug || selectedCustomer?.slug
-              if (!templateCustomerSlug) return
-              applyTemplate({
-                template,
-                customerSlug: templateCustomerSlug,
-                fallbackTimezone: selectedCustomer?.timezone ?? 'UTC',
-              })
-              setView('form')
-            }}
+        <JobIdentityFields form={jobForm} slug={slug} variant={variant} />
+        <JobTemplateChooser
+          variant={variant}
+          view={view}
+          templates={templatesQuery.data ?? []}
+          customerSlug={customerSlug}
+          selectedCustomer={selectedCustomer}
+          dispatchUi={dispatchUi}
+          applyTemplate={applyTemplate}
+        />
+        {view === 'form' ? (
+          <JobFormSections
+            form={jobForm}
+            variant={variant}
+            initialJob={initialJob}
+            isAdmin={isAdmin}
+            customers={customers}
+            customerRecents={customerRecents.recents}
+            customerSlug={customerSlug}
+            selectedCustomer={selectedCustomer}
+            customerCreateAffordance={customerCreateAffordance}
+            targets={targets}
+            targetRecents={targetRecents.recents}
+            selectedTarget={selectedTarget}
+            targetCreateAffordance={targetCreateAffordance}
+            targetPlaceholder={targetPlaceholder}
+            triggerKind={triggerKind}
+            cronExpression={cronExpression}
+            intervalSeconds={intervalSeconds}
+            triggerTimezone={triggerTimezone}
+            secretNames={secretNames}
+            dispatchUi={dispatchUi}
           />
-        ) : (
-          <>
-            {targetPlaceholder ? (
-              <p className="rounded-md border border-info/30 bg-info/10 px-3 py-2 text-sm text-info">
-                This workspace template expects a Target for `{targetPlaceholder}`. Pick the
-                matching Customer Target before creating the Job.
-              </p>
-            ) : null}
-
-            <div className="flex flex-wrap items-center gap-2">
-              <SearchableCombobox<CustomerOption>
-                label="Customer"
-                required
-                disabled={variant === 'edit'}
-                items={customers}
-                recents={customerRecents.recents}
-                value={selectedCustomer}
-                onValueChange={(next) => {
-                  if (!next) return
-                  form.setFieldValue('customerSlug', next.slug)
-                  form.setFieldValue('triggerTimezone', next.timezone)
-                  form.setFieldValue('targetSlug', '')
-                }}
-                getId={(c) => c.slug}
-                getLabel={(c) => c.name}
-                getSecondary={(c) => c.slug}
-                searchKeywords={(c) => [c.slug]}
-                createAffordance={customerCreateAffordance}
-              />
-
-              {targets.length === 0 && customerSlug ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setNestedTargetOpen(true)}
-                  disabled={!isAdmin}
-                  className="rounded-full"
-                >
-                  <Plus aria-hidden /> New Target
-                </Button>
-              ) : (
-                <SearchableCombobox<Target>
-                  label="Target"
-                  required
-                  disabled={!customerSlug}
-                  items={targets}
-                  recents={targetRecents.recents}
-                  value={selectedTarget}
-                  onValueChange={(next) => {
-                    if (!next) return
-                    form.setFieldValue('targetSlug', next.slug)
-                  }}
-                  getId={(t) => t.slug}
-                  getLabel={(t) => t.name}
-                  getSecondary={(t) => t.method}
-                  searchKeywords={(t) => [t.slug, t.url]}
-                  createAffordance={targetCreateAffordance}
-                />
-              )}
-
-              <PillButton
-                label="Trigger"
-                value={triggerSummaryWithTimezone({
-                  triggerKind,
-                  cronExpression,
-                  intervalSeconds,
-                  triggerTimezone,
-                })}
-                state="filled"
-              />
-
-              <form.Subscribe selector={(s) => s.values.variables}>
-                {(vars) => {
-                  const customerKeys = Object.keys(selectedCustomer?.variables ?? {}).length
-                  const jobKeys = Object.keys(vars).length
-                  return (
-                    <PillButton
-                      label="Variables"
-                      value={
-                        customerKeys + jobKeys === 0
-                          ? 'None'
-                          : `${customerKeys + jobKeys} effective`
-                      }
-                      state={customerKeys + jobKeys === 0 ? 'empty' : 'filled'}
-                    />
-                  )
-                }}
-              </form.Subscribe>
-
-              <form.Subscribe selector={(s) => s.values.bodyTemplate}>
-                {(body) => (
-                  <PillButton
-                    label="Body"
-                    value={body ? 'Set' : 'Empty'}
-                    state={body ? 'filled' : 'empty'}
-                  />
-                )}
-              </form.Subscribe>
-            </div>
-
-            <section
-              id="trigger-section"
-              className="rounded-md border border-border bg-muted/20 p-3"
-            >
-              <TriggerPicker
-                value={{ triggerKind, cronExpression, intervalSeconds, triggerTimezone }}
-                onChange={(next) => {
-                  form.setFieldValue('triggerKind', next.triggerKind)
-                  form.setFieldValue('cronExpression', next.cronExpression)
-                  form.setFieldValue('intervalSeconds', next.intervalSeconds)
-                  form.setFieldValue('triggerTimezone', next.triggerTimezone)
-                }}
-                customerSlug={customerSlug}
-                customerTimezone={selectedCustomer?.timezone ?? 'UTC'}
-                {...(variant === 'edit' && initialJob?.triggerKind === 'webhook'
-                  ? { webhookEditJobSlug: initialJob.slug }
-                  : {})}
-              />
-            </section>
-
-            <section
-              id="variables-section"
-              className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-3"
-            >
-              <p className="text-xs text-muted-foreground/70">
-                Effective variables for this Job's templates. Customer-level entries are inherited;
-                Job entries with the same name override.
-              </p>
-              <form.Field name="variables">
-                {(field) => (
-                  <KeyValueListEditor
-                    rows={buildVariableRows(selectedCustomer?.variables ?? {}, field.state.value)}
-                    onChange={(next) => {
-                      const overridesAndJobOnly = next.filter(
-                        (r) => r.source !== 'customer' && r.name.length > 0,
-                      )
-                      field.handleChange(rowsToVariableMap(overridesAndJobOnly))
-                    }}
-                    addLabel="Add Job variable"
-                  />
-                )}
-              </form.Field>
-            </section>
-
-            <section id="body-section" className="rounded-md border border-border bg-muted/20 p-3">
-              <form.Field name="bodyTemplate">
-                {(field) => (
-                  <TemplateEditor
-                    id={field.name}
-                    label="Body"
-                    value={field.state.value}
-                    onChange={(v) => field.handleChange(v)}
-                    variant="body"
-                    customerName={selectedCustomer?.name ?? ''}
-                    customerTimezone={selectedCustomer?.timezone ?? 'UTC'}
-                    variables={buildAutocompleteVariables(
-                      selectedCustomer?.variables ?? {},
-                      form.state.values.variables,
-                    )}
-                    secrets={secretNames}
-                    helpText={BODY_HELP_TEXT}
-                  />
-                )}
-              </form.Field>
-            </section>
-          </>
-        )}
+        ) : null}
 
         {formError ? <p className="text-sm text-destructive">{String(formError)}</p> : null}
       </form>
@@ -692,13 +487,13 @@ export function JobModal({
         <TargetModal
           variant="create"
           customerSlug={customerSlug}
-          onClose={() => setNestedTargetOpen(false)}
+          onClose={() => dispatchUi({ type: 'target-create-closed' })}
           onCreated={async (target) => {
             await queryClient.invalidateQueries({
               queryKey: ['customers', customerSlug, 'targets'],
             })
             form.setFieldValue('targetSlug', target.slug)
-            setNestedTargetOpen(false)
+            dispatchUi({ type: 'target-create-closed' })
           }}
         />
       ) : null}
@@ -706,14 +501,14 @@ export function JobModal({
       {nestedCustomerOpen ? (
         <CustomerModal
           variant="create"
-          onClose={() => setNestedCustomerOpen(false)}
+          onClose={() => dispatchUi({ type: 'customer-create-closed' })}
           {...(nestedCustomerSeed ? { initialName: nestedCustomerSeed } : {})}
           onCreated={async (created) => {
             await queryClient.invalidateQueries({ queryKey: ['customers'] })
             form.setFieldValue('customerSlug', created.slug)
             form.setFieldValue('triggerTimezone', created.timezone)
             form.setFieldValue('targetSlug', '')
-            setNestedCustomerOpen(false)
+            dispatchUi({ type: 'customer-create-closed' })
           }}
         />
       ) : null}

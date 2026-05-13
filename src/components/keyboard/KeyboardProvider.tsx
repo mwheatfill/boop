@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
 } from 'react'
@@ -46,15 +47,53 @@ const CHORD_TIMEOUT_MS = 1200
 const INPUT_SELECTOR = 'input, textarea, [contenteditable="true"]'
 const INPUT_EXEMPT_KEYS = new Set(['$mod+k'])
 
+interface KeyboardUiState {
+  chordPrefix: string | null
+  paletteOpen: boolean
+  cheatsheetOpen: boolean
+}
+
+type KeyboardUiAction =
+  | { type: 'chord-started'; prefix: string }
+  | { type: 'chord-cleared' }
+  | { type: 'palette-open-changed'; open: boolean }
+  | { type: 'cheatsheet-open-changed'; open: boolean }
+
+const initialKeyboardUiState: KeyboardUiState = {
+  chordPrefix: null,
+  paletteOpen: false,
+  cheatsheetOpen: false,
+}
+
+function keyboardUiReducer(state: KeyboardUiState, action: KeyboardUiAction): KeyboardUiState {
+  switch (action.type) {
+    case 'chord-started':
+      return { ...state, chordPrefix: action.prefix }
+    case 'chord-cleared':
+      return { ...state, chordPrefix: null }
+    case 'palette-open-changed':
+      return { ...state, paletteOpen: action.open }
+    case 'cheatsheet-open-changed':
+      return { ...state, cheatsheetOpen: action.open }
+  }
+}
+
 function isTypingTarget(target: EventTarget | null): boolean {
   return target instanceof Element && target.matches(INPUT_SELECTOR)
 }
 
 export function KeyboardProvider({ children }: { children: ReactNode }) {
   const [registry, setRegistry] = useState<Map<string, ShortcutEntry>>(() => new Map())
-  const [chordPrefix, setChordPrefix] = useState<string | null>(null)
-  const [paletteOpen, setPaletteOpen] = useState(false)
-  const [cheatsheetOpen, setCheatsheetOpen] = useState(false)
+  const [uiState, dispatchUi] = useReducer(keyboardUiReducer, initialKeyboardUiState)
+  const { chordPrefix, paletteOpen, cheatsheetOpen } = uiState
+  const setPaletteOpen = useCallback(
+    (open: boolean) => dispatchUi({ type: 'palette-open-changed', open }),
+    [],
+  )
+  const setCheatsheetOpen = useCallback(
+    (open: boolean) => dispatchUi({ type: 'cheatsheet-open-changed', open }),
+    [],
+  )
 
   const register = useCallback((id: string, entry: ShortcutEntry) => {
     setRegistry((prev) => {
@@ -98,7 +137,7 @@ export function KeyboardProvider({ children }: { children: ReactNode }) {
         clearTimeout(timer)
         timer = null
       }
-      setChordPrefix(null)
+      dispatchUi({ type: 'chord-cleared' })
     }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return
@@ -108,7 +147,7 @@ export function KeyboardProvider({ children }: { children: ReactNode }) {
           (entry) => !entry.disabled && entry.key.startsWith(`${e.key} `),
         )
         if (!hasMatch) return
-        setChordPrefix(e.key)
+        dispatchUi({ type: 'chord-started', prefix: e.key })
         if (timer) clearTimeout(timer)
         timer = setTimeout(clearChord, CHORD_TIMEOUT_MS)
         return
@@ -133,7 +172,16 @@ export function KeyboardProvider({ children }: { children: ReactNode }) {
       cheatsheetOpen,
       setCheatsheetOpen,
     }),
-    [register, unregister, registry, chordPrefix, paletteOpen, cheatsheetOpen],
+    [
+      register,
+      unregister,
+      registry,
+      chordPrefix,
+      paletteOpen,
+      setPaletteOpen,
+      cheatsheetOpen,
+      setCheatsheetOpen,
+    ],
   )
 
   return <KeyboardContext.Provider value={value}>{children}</KeyboardContext.Provider>
