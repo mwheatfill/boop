@@ -60,22 +60,27 @@ interface EntityRef {
   customerSlug?: string
 }
 
-function EntityLink({
-  entity,
-  icon: Icon,
-}: {
+type EntityLinkProps = {
   entity: EntityRef
   icon: ComponentType<{ 'aria-hidden'?: boolean }>
-}): ReactNode {
+} & Record<string, unknown>
+
+function EntityLink({ entity, icon: Icon, ...slotProps }: EntityLinkProps): ReactNode {
+  const body = (
+    <>
+      <Icon aria-hidden />
+      <span>{entity.label}</span>
+    </>
+  )
   if (entity.kind === 'customer') {
     return (
       <Link
         to="/customers/$customerSlug"
         params={{ customerSlug: entity.slug }}
         activeProps={{ 'data-active': 'true' }}
+        {...slotProps}
       >
-        <Icon aria-hidden />
-        <span>{entity.label}</span>
+        {body}
       </Link>
     )
   }
@@ -85,18 +90,13 @@ function EntityLink({
         to="/customers/$customerSlug/jobs/$jobSlug"
         params={{ customerSlug: entity.customerSlug, jobSlug: entity.slug }}
         activeProps={{ 'data-active': 'true' }}
+        {...slotProps}
       >
-        <Icon aria-hidden />
-        <span>{entity.label}</span>
+        {body}
       </Link>
     )
   }
-  return (
-    <span>
-      <Icon aria-hidden />
-      <span>{entity.label}</span>
-    </span>
-  )
+  return <span {...slotProps}>{body}</span>
 }
 
 export function AppSidebar({ user }: AppSidebarProps) {

@@ -3,10 +3,10 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { Play } from 'lucide-react'
 import { toast } from 'sonner'
 import { AttemptCard } from '@/components/forms/AttemptCard'
-import { Badge } from '@/components/ui/badge'
+import { RunStatusBadge } from '@/components/RunStatusBadge'
 import { Button } from '@/components/ui/button'
 import { runJobNowFn } from '@/lib/jobs/server-fns'
-import { formatRunDuration, outcomeVariant } from '@/lib/runs/format'
+import { formatRunDuration } from '@/lib/runs/format'
 import { getRunFn } from '@/lib/runs/server-fns'
 
 const runOptions = (customerSlug: string, jobSlug: string, runId: string) =>
@@ -81,7 +81,7 @@ function RunDetailPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={outcomeVariant[displayOutcome]}>{displayOutcome}</Badge>
+            <RunStatusBadge outcome={displayOutcome} />
             <Button
               size="sm"
               disabled={!canRunNow}

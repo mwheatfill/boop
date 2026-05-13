@@ -31,7 +31,7 @@ export function AttemptCard({ attempt }: AttemptCardProps) {
               {duration(attempt.startedAt, attempt.completedAt)}
             </span>
             {attempt.httpStatus !== null ? (
-              <Badge variant={isOk ? 'default' : 'destructive'}>HTTP {attempt.httpStatus}</Badge>
+              <Badge variant={isOk ? 'success' : 'destructive'}>HTTP {attempt.httpStatus}</Badge>
             ) : null}
             {isFailure ? <Badge variant="destructive">{attempt.failureKind}</Badge> : null}
           </div>

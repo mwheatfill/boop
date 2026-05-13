@@ -1,14 +1,3 @@
-export type RunOutcomeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
-
-export const outcomeVariant: Record<string, RunOutcomeVariant> = {
-  success: 'default',
-  failure: 'destructive',
-  timeout: 'destructive',
-  skipped: 'secondary',
-  running: 'default',
-  scheduled: 'outline',
-}
-
 export function formatDurationMs(ms: number | null): string {
   if (ms === null) return '—'
   if (ms < 1000) return `${ms}ms`
