@@ -19,7 +19,7 @@ import { TriggerPicker } from '@/components/forms/TriggerPicker'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { listCustomerSecretsFn } from '@/lib/customer-secrets/server-fns'
+import { customerSecretsQueryOptions } from '@/lib/customer-secrets/query-options'
 import { PICKER_KEYS, PICKER_RECENT_LIMITS } from '@/lib/forms/picker-keys'
 import { useEntityDefault } from '@/lib/forms/use-entity-default'
 import { useLastUsed } from '@/lib/forms/use-last-used'
@@ -65,6 +65,45 @@ const DEFAULT_CRON = '0 9 * * *'
 const DEFAULT_INTERVAL = 300
 const SWITCHTHINK_SLUG = 'switchthink'
 const ADMIN_ONLY_REASON = 'Admin only'
+
+const BODY_HELP_TEXT =
+  'LiquidJS. Available: {{ run_id }}, {{ attempt_number }}, {{ customer_name }}, {{ customer_timezone }}, {{ now }}, plus operator-defined variables. {% boop_secret "name" %} pulls a Customer secret at fire time.'
+
+function buildVariableRows(
+  customerVars: Record<string, string>,
+  jobVars: Record<string, string>,
+): KeyValueRow[] {
+  const fromCustomer = Object.keys(customerVars)
+    .sort()
+    .map<KeyValueRow>((name) => {
+      const customerValue = customerVars[name] ?? ''
+      if (Object.hasOwn(jobVars, name)) {
+        return {
+          name,
+          value: jobVars[name] ?? '',
+          source: 'override',
+          inherited: { from: 'customer', value: customerValue },
+        }
+      }
+      return { name, value: customerValue, source: 'customer' }
+    })
+  const jobOnly = Object.keys(jobVars)
+    .filter((k) => !Object.hasOwn(customerVars, k))
+    .sort()
+    .map<KeyValueRow>((name) => ({ name, value: jobVars[name] ?? '', source: 'job' }))
+  return [...fromCustomer, ...jobOnly]
+}
+
+function buildAutocompleteVariables(
+  customerVars: Record<string, string>,
+  jobVars: Record<string, string>,
+): Array<{ name: string; value: string; source: 'customer' | 'job' }> {
+  return Object.entries({ ...customerVars, ...jobVars }).map(([name, value]) => ({
+    name,
+    value,
+    source: Object.hasOwn(jobVars, name) ? 'job' : 'customer',
+  }))
+}
 
 export function JobModal({
   variant,
@@ -242,8 +281,7 @@ export function JobModal({
   const targets = targetsQuery.data ?? []
 
   const secretsQuery = useQuery({
-    queryKey: ['customers', customerSlug, 'secrets'],
-    queryFn: () => listCustomerSecretsFn({ data: { customerSlug } }),
+    ...customerSecretsQueryOptions(customerSlug),
     enabled: customerSlug.length > 0,
   })
   const secretNames = useMemo(
@@ -488,77 +526,40 @@ export function JobModal({
             entries with the same name override.
           </p>
           <form.Field name="variables">
-            {(field) => {
-              const customerVars = selectedCustomer?.variables ?? {}
-              const jobVars = field.state.value
-              const rows: KeyValueRow[] = [
-                ...Object.keys(customerVars)
-                  .sort()
-                  .map<KeyValueRow>((name) => {
-                    const customerValue = customerVars[name] ?? ''
-                    const isOverridden = Object.hasOwn(jobVars, name)
-                    return isOverridden
-                      ? {
-                          name,
-                          value: jobVars[name] ?? '',
-                          source: 'override',
-                          inherited: { from: 'customer', value: customerValue },
-                        }
-                      : { name, value: customerValue, source: 'customer' }
-                  }),
-                ...Object.keys(jobVars)
-                  .filter((k) => !Object.hasOwn(customerVars, k))
-                  .sort()
-                  .map<KeyValueRow>((name) => ({
-                    name,
-                    value: jobVars[name] ?? '',
-                    source: 'job',
-                  })),
-              ]
-              return (
-                <KeyValueListEditor
-                  rows={rows}
-                  onChange={(next) => {
-                    const overridesAndJobOnly = next.filter(
-                      (r) => r.source !== 'customer' && r.name.length > 0,
-                    )
-                    field.handleChange(rowsToVariableMap(overridesAndJobOnly))
-                  }}
-                  addLabel="Add Job variable"
-                />
-              )
-            }}
+            {(field) => (
+              <KeyValueListEditor
+                rows={buildVariableRows(selectedCustomer?.variables ?? {}, field.state.value)}
+                onChange={(next) => {
+                  const overridesAndJobOnly = next.filter(
+                    (r) => r.source !== 'customer' && r.name.length > 0,
+                  )
+                  field.handleChange(rowsToVariableMap(overridesAndJobOnly))
+                }}
+                addLabel="Add Job variable"
+              />
+            )}
           </form.Field>
         </section>
 
         <section id="body-section" className="rounded-md border border-border bg-muted/20 p-3">
           <form.Field name="bodyTemplate">
-            {(field) => {
-              const customerVars = selectedCustomer?.variables ?? {}
-              const jobVars = form.state.values.variables
-              const effectiveVars = { ...customerVars, ...jobVars }
-              const variables = Object.entries(effectiveVars).map(([name, value]) => ({
-                name,
-                value,
-                source: (Object.hasOwn(jobVars, name) ? 'job' : 'customer') as 'job' | 'customer',
-              }))
-              return (
-                <TemplateEditor
-                  id={field.name}
-                  label="Body"
-                  value={field.state.value}
-                  onChange={(v) => field.handleChange(v)}
-                  variant="body"
-                  customerName={selectedCustomer?.name ?? ''}
-                  customerTimezone={selectedCustomer?.timezone ?? 'UTC'}
-                  variables={variables}
-                  secrets={secretNames}
-                  helpText={
-                    'LiquidJS. Available: {{ run_id }}, {{ attempt_number }}, {{ customer_name }}, {{ customer_timezone }}, {{ now }}, plus operator-defined variables. {% boop_secret "name" %} pulls a Customer secret at fire time.'
-                  }
-                />
-              )
-            }}
+            {(field) => (
+              <TemplateEditor
+                id={field.name}
+                label="Body"
+                value={field.state.value}
+                onChange={(v) => field.handleChange(v)}
+                variant="body"
+                customerName={selectedCustomer?.name ?? ''}
+                customerTimezone={selectedCustomer?.timezone ?? 'UTC'}
+                variables={buildAutocompleteVariables(
+                  selectedCustomer?.variables ?? {},
+                  form.state.values.variables,
+                )}
+                secrets={secretNames}
+                helpText={BODY_HELP_TEXT}
+              />
+            )}
           </form.Field>
         </section>
 

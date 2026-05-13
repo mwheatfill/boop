@@ -67,7 +67,6 @@ export async function previewHeaders(
 export const SYNTHETIC_RENDER_CONTEXT_DEFAULTS = {
   runId: 'run_preview',
   attemptNumber: 1,
-  customerId: 'cust_preview',
   previewMode: true,
 } as const
 

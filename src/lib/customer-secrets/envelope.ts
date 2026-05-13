@@ -14,12 +14,21 @@ function base64Encode(bytes: Uint8Array): string {
   return btoa(s)
 }
 
-async function importKek(kekB64: string): Promise<CryptoKey> {
+const kekCache = new Map<string, Promise<CryptoKey>>()
+
+function importKek(kekB64: string): Promise<CryptoKey> {
+  const cached = kekCache.get(kekB64)
+  if (cached) return cached
   const raw = base64Decode(kekB64)
   if (raw.length !== 32) {
     throw new Error(`KEK must decode to 32 bytes (AES-256), got ${raw.length}`)
   }
-  return crypto.subtle.importKey('raw', raw, { name: ALGORITHM }, false, ['encrypt', 'decrypt'])
+  const promise = crypto.subtle.importKey('raw', raw, { name: ALGORITHM }, false, [
+    'encrypt',
+    'decrypt',
+  ])
+  kekCache.set(kekB64, promise)
+  return promise
 }
 
 export interface EncryptedSecret {

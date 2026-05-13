@@ -188,13 +188,11 @@ export function CustomerModal(props: CustomerModalProps) {
 
         <div className="flex flex-col gap-2">
           <Label className="text-xs font-medium text-muted-foreground">Timezone</Label>
-          <div>
-            <TimezoneCombobox
-              value={timezone}
-              onValueChange={(v) => form.setFieldValue('timezone', v)}
-              required
-            />
-          </div>
+          <TimezoneCombobox
+            value={timezone}
+            onValueChange={(v) => form.setFieldValue('timezone', v)}
+            required
+          />
           <p className="text-xs text-muted-foreground/70">
             The Customer's local timezone for cron schedules and report rendering.
           </p>

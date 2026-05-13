@@ -46,7 +46,7 @@ export const listCustomerSecretsFn = createServerFn({ method: 'GET' })
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const customerId = await resolveCustomerId(db, data.customerSlug)
-    return { secrets: await listActiveSecretsCmd({ db, kek: '' }, customerId) }
+    return { secrets: await listActiveSecretsCmd({ db }, customerId) }
   })
 
 export const createCustomerSecretFn = createServerFn({ method: 'POST' })
@@ -97,5 +97,5 @@ export const revokeCustomerSecretFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const customerId = await resolveCustomerId(db, data.customerSlug)
-    return revokeSecretCmd({ db, kek: '' }, customerId, data.name)
+    return revokeSecretCmd({ db }, customerId, data.name)
   })

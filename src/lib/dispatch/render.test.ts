@@ -9,7 +9,6 @@ function ctx(overrides: Partial<Parameters<typeof renderTemplate>[1]> = {}) {
     attemptNumber: 1,
     customerName: 'Acme',
     customerTimezone: 'UTC',
-    customerId: 'cust_acme',
     now: fixedNow,
     ...overrides,
   }

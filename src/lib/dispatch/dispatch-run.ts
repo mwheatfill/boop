@@ -9,6 +9,7 @@ import { newId } from '@/lib/db/ids'
 import { attempts, customers, jobs, runs, targets } from '@/lib/db/schema'
 import { logError, logInfo } from '@/lib/log'
 import { redactHeaders } from '@/lib/runs/header-redaction'
+import { mergeEffectiveVariables } from '@/shared/schemas/customer-variables'
 import type { TriggerSource } from '@/shared/schemas/run'
 import { claimJob, releaseJob } from './claim'
 import {
@@ -239,15 +240,13 @@ export async function runDispatch(
     let renderedBody: string
     let renderedHeaders: string
     try {
-      const effectiveVariables = { ...customer.variables, ...job.variables }
       const renderCtx = {
         runId,
         attemptNumber: 1,
         customerName: customer.name,
         customerTimezone: effectiveTimezone(job, customer),
-        customerId: customer.id,
         now: startedAt,
-        variables: effectiveVariables,
+        variables: mergeEffectiveVariables(customer.variables, job.variables),
         ...(kek
           ? {
               secretResolver: (name: string) =>

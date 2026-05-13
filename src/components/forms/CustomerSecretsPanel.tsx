@@ -1,4 +1,4 @@
-import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -15,18 +15,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  createCustomerSecretFn,
-  listCustomerSecretsFn,
-  revokeCustomerSecretFn,
-} from '@/lib/customer-secrets/server-fns'
+import { customerSecretsQueryOptions } from '@/lib/customer-secrets/query-options'
+import { createCustomerSecretFn, revokeCustomerSecretFn } from '@/lib/customer-secrets/server-fns'
 import type { SecretRevealedResponse, SecretSummary } from '@/shared/schemas/customer-secret'
-
-const customerSecretsOptions = (customerSlug: string) =>
-  queryOptions({
-    queryKey: ['customers', customerSlug, 'secrets'],
-    queryFn: () => listCustomerSecretsFn({ data: { customerSlug } }),
-  })
 
 async function copyToClipboard(value: string) {
   try {
@@ -48,7 +39,7 @@ function formatTimestamp(iso: string): string {
 
 export function CustomerSecretsPanel({ customerSlug, canEdit }: CustomerSecretsPanelProps) {
   const queryClient = useQueryClient()
-  const { data } = useQuery(customerSecretsOptions(customerSlug))
+  const { data } = useQuery(customerSecretsQueryOptions(customerSlug))
   const secrets = data?.secrets ?? []
 
   const [creating, setCreating] = useState(false)

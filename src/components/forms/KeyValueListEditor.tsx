@@ -21,11 +21,10 @@ interface KeyValueListEditorProps {
   addLabel?: string
 }
 
-function sourceTag(row: KeyValueRow): string | null {
-  if (!row.source) return null
-  if (row.source === 'customer') return 'from Customer'
-  if (row.source === 'override') return 'override'
-  return 'Job-only'
+const SOURCE_TAGS: Record<VariableSource, string> = {
+  customer: 'from Customer',
+  override: 'override',
+  job: 'Job-only',
 }
 
 export function KeyValueListEditor({
@@ -83,7 +82,7 @@ export function KeyValueListEditor({
       ) : (
         <ul className="flex flex-col gap-1.5" aria-label="Variables">
           {rows.map((row, i) => {
-            const tag = sourceTag(row)
+            const tag = row.source ? SOURCE_TAGS[row.source] : null
             const rowId = `${groupId}-${i}`
             return (
               <li key={rowId} className="flex items-center gap-2">

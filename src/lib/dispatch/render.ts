@@ -7,7 +7,6 @@ export interface RenderContext {
   attemptNumber: number
   customerName: string
   customerTimezone: string
-  customerId: string
   now: Date
   variables?: Record<string, unknown>
   secretResolver?: SecretResolver
@@ -58,10 +57,20 @@ export class SecretResolverMissingError extends Error {
   }
 }
 
+const PREVIEW_MODE_KEY = '__preview_mode'
+const SECRET_RESOLVER_KEY = '__secret_resolver'
+
+export const previewSecretRedaction = (name: string): string => `<<secret:${name}>>`
+
+interface SecretResolverHolder {
+  fn?: SecretResolver
+}
+
 const engine = new Liquid({
   strictFilters: true,
   strictVariables: false,
   greedy: false,
+  cache: true,
 })
 
 engine.registerFilter('tz', (value: unknown, zone: string): TzWrapped => {
@@ -80,10 +89,6 @@ engine.registerFilter('iso_date', (value: unknown): string => {
   return toDate(value).toISOString()
 })
 
-interface SecretResolverHolder {
-  fn?: SecretResolver
-}
-
 engine.registerTag('boop_secret', {
   parse(tagToken: TagToken, _remainTokens: TopLevelToken[]) {
     this.value = new Value(tagToken.args, engine)
@@ -93,9 +98,9 @@ engine.registerTag('boop_secret', {
     if (typeof raw !== 'string' || raw.length === 0) {
       throw new TypeError('boop_secret: expected a non-empty string argument')
     }
-    const preview = (await toPromise(ctx.get(['__preview_mode']))) === true
-    if (preview) return `<<secret:${raw}>>`
-    const holder = (await toPromise(ctx.get(['__secret_resolver']))) as
+    const preview = (await toPromise(ctx.get([PREVIEW_MODE_KEY]))) === true
+    if (preview) return previewSecretRedaction(raw)
+    const holder = (await toPromise(ctx.get([SECRET_RESOLVER_KEY]))) as
       | SecretResolverHolder
       | undefined
     const resolver = holder?.fn
@@ -115,6 +120,9 @@ export const BUILTIN_RENDER_VARIABLE_NAMES = [
 export type BuiltinRenderVariableName = (typeof BUILTIN_RENDER_VARIABLE_NAMES)[number]
 
 export async function renderTemplate(template: string, context: RenderContext): Promise<string> {
+  const resolverHolder: SecretResolverHolder = context.secretResolver
+    ? { fn: context.secretResolver }
+    : {}
   return engine.parseAndRender(template, {
     run_id: context.runId,
     attempt_number: context.attemptNumber,
@@ -122,10 +130,7 @@ export async function renderTemplate(template: string, context: RenderContext): 
     customer_timezone: context.customerTimezone,
     now: context.now,
     ...(context.variables ?? {}),
-    __customer_id: context.customerId,
-    __preview_mode: context.previewMode === true,
-    __secret_resolver: {
-      ...(context.secretResolver ? { fn: context.secretResolver } : {}),
-    } satisfies SecretResolverHolder,
+    [PREVIEW_MODE_KEY]: context.previewMode === true,
+    [SECRET_RESOLVER_KEY]: resolverHolder,
   })
 }

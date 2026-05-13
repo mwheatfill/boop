@@ -23,11 +23,16 @@ export class DuplicateSecretNameError extends Error {
   }
 }
 
-export interface CustomerSecretsDeps {
+export interface CustomerSecretsReadDeps {
   db: Database
-  kek: string
   now?: () => Date
 }
+
+export interface CustomerSecretsDeps extends CustomerSecretsReadDeps {
+  kek: string
+}
+
+const LAST_USED_AT_REFRESH_MS = 60_000
 
 function toSummary(row: {
   id: string
@@ -46,7 +51,7 @@ function toSummary(row: {
 }
 
 export async function listActiveSecrets(
-  deps: CustomerSecretsDeps,
+  deps: CustomerSecretsReadDeps,
   customerId: string,
 ): Promise<SecretSummary[]> {
   const rows = await deps.db
@@ -128,7 +133,7 @@ export async function rotateSecret(
 }
 
 export async function revokeSecret(
-  deps: CustomerSecretsDeps,
+  deps: CustomerSecretsReadDeps,
   customerId: string,
   secretName: string,
 ): Promise<{ revoked: number }> {
@@ -159,6 +164,7 @@ export async function fetchActiveSecretPlaintext(
       id: customerSecrets.id,
       ciphertext: customerSecrets.valueCiphertext,
       iv: customerSecrets.valueIv,
+      lastUsedAt: customerSecrets.lastUsedAt,
     })
     .from(customerSecrets)
     .where(
@@ -173,9 +179,13 @@ export async function fetchActiveSecretPlaintext(
   if (!row) throw new SecretNotFoundError(secretName)
   const plaintext = await decryptSecret(row.ciphertext, row.iv, kek)
   const usedAt = now()
-  await db
-    .update(customerSecrets)
-    .set({ lastUsedAt: usedAt, updatedAt: usedAt })
-    .where(eq(customerSecrets.id, row.id))
+  const lastUsedFresh =
+    row.lastUsedAt !== null && usedAt.getTime() - row.lastUsedAt.getTime() < LAST_USED_AT_REFRESH_MS
+  if (!lastUsedFresh) {
+    await db
+      .update(customerSecrets)
+      .set({ lastUsedAt: usedAt, updatedAt: usedAt })
+      .where(eq(customerSecrets.id, row.id))
+  }
   return plaintext
 }

@@ -1,14 +1,11 @@
+import { LIQUID_IDENTIFIER_MESSAGE, LIQUID_IDENTIFIER_PATTERN } from './fields'
 import { z } from './openapi'
 
-const SECRET_NAME_PATTERN = /^[a-z][a-z0-9_]{0,63}$/
 const MAX_SECRET_VALUE_LEN = 4096
 
 export const SecretNameSchema = z
   .string()
-  .regex(
-    SECRET_NAME_PATTERN,
-    'Use lowercase letters, digits, and underscores (start with a letter)',
-  )
+  .regex(LIQUID_IDENTIFIER_PATTERN, LIQUID_IDENTIFIER_MESSAGE)
   .meta({ id: 'CustomerSecretName', example: 'stripe_api_key' })
 
 export const SecretPlaintextSchema = z
