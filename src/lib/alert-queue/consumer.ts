@@ -1,5 +1,9 @@
 import { eq } from 'drizzle-orm'
-import { buildAlertContext, buildSyntheticTestContext } from '@/lib/alert-context/build'
+import {
+  buildAlertContext,
+  buildMissedAlertContext,
+  buildSyntheticTestContext,
+} from '@/lib/alert-context/build'
 import { adapterFor } from '@/lib/channel-adapters/registry'
 import type { AdapterResult } from '@/lib/channel-adapters/types'
 import { findChannelById } from '@/lib/channels/queries'
@@ -7,7 +11,12 @@ import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
 import { alertRules, attempts, channels, customers, jobs, runs, targets } from '@/lib/db/schema'
 import { logError, logInfo } from '@/lib/log'
-import type { AlertQueueMessage } from './types'
+import {
+  type AlertQueueMessage,
+  isRunAlertMessage,
+  type MissedScheduleAlertQueueMessage,
+  type RunAlertQueueMessage,
+} from './types'
 
 const RETRY_BASE_SECONDS = 60
 
@@ -33,6 +42,17 @@ async function loadRunBundle(db: Database, runId: string) {
   if (!row) return null
   const attemptRows = await db.select().from(attempts).where(eq(attempts.runId, runId))
   return { ...row, attempts: attemptRows }
+}
+
+async function loadJobBundle(db: Database, jobId: string) {
+  return (
+    await db
+      .select({ job: jobs, customer: customers })
+      .from(jobs)
+      .innerJoin(customers, eq(customers.id, jobs.customerId))
+      .where(eq(jobs.id, jobId))
+      .limit(1)
+  )[0]
 }
 
 async function markChannelDelivered(db: Database, channelId: string, now: Date) {
@@ -64,6 +84,15 @@ async function markRuleFired(db: Database, ruleId: string, now: Date) {
     .update(alertRules)
     .set({ lastFiredAt: now, updatedAt: now })
     .where(eq(alertRules.id, ruleId))
+}
+
+async function markAlertDelivered(
+  db: Database,
+  channelId: string,
+  ruleId: string,
+  now: Date,
+): Promise<void> {
+  await Promise.all([markChannelDelivered(db, channelId, now), markRuleFired(db, ruleId, now)])
 }
 
 const MAX_DELIVERY_ATTEMPTS = 5
@@ -126,16 +155,17 @@ async function processTestMessage(
   })
 }
 
-async function processRealMessage(
+async function processRunMessage(
   { db, appOrigin }: ConsumerDeps,
   message: Message<AlertQueueMessage>,
+  body: RunAlertQueueMessage,
 ): Promise<void> {
-  const channel = await findChannelById(db, message.body.channelId)
-  const bundle = await loadRunBundle(db, message.body.runId)
+  const channel = await findChannelById(db, body.channelId)
+  const bundle = await loadRunBundle(db, body.runId)
   const fields = {
-    runId: message.body.runId,
-    ruleId: message.body.ruleId,
-    channelId: message.body.channelId,
+    runId: body.runId,
+    ruleId: body.ruleId,
+    channelId: body.channelId,
     attemptNumber: message.attempts,
   }
   if (!channel || !bundle) {
@@ -149,18 +179,50 @@ async function processRealMessage(
     job: bundle.job,
     customer: bundle.customer,
     target: bundle.target,
-    ruleName: message.body.ruleName,
-    ruleKind: message.body.ruleKind,
+    ruleName: body.ruleName,
+    ruleKind: body.ruleKind,
     appOrigin,
   })
   const now = new Date()
   const result = await adapterFor(channel.kind)({ channel, alertContext })
-  if (result.ok) {
-    await Promise.all([
-      markChannelDelivered(db, channel.id, now),
-      markRuleFired(db, message.body.ruleId, now),
-    ])
+  if (result.ok) await markAlertDelivered(db, channel.id, body.ruleId, now)
+  routeAdapterResult(message, result, {
+    ...fields,
+    channelKind: channel.kind,
+    customerSlug: bundle.customer.slug,
+    jobSlug: bundle.job.slug,
+  })
+}
+
+async function processMissedMessage(
+  { db, appOrigin }: ConsumerDeps,
+  message: Message<AlertQueueMessage>,
+  body: MissedScheduleAlertQueueMessage,
+): Promise<void> {
+  const channel = await findChannelById(db, body.channelId)
+  const bundle = await loadJobBundle(db, body.jobId)
+  const fields = {
+    jobId: body.jobId,
+    ruleId: body.ruleId,
+    channelId: body.channelId,
+    attemptNumber: message.attempts,
   }
+  if (!channel || !bundle) {
+    logError('alert.failed', new Error(!channel ? 'channel_missing' : 'job_missing'), fields)
+    message.ack()
+    return
+  }
+  const alertContext = buildMissedAlertContext({
+    job: bundle.job,
+    customer: bundle.customer,
+    ruleName: body.ruleName,
+    appOrigin,
+    lastRunAt: body.lastRunAt,
+    silenceThresholdMinutes: body.silenceThresholdMinutes,
+  })
+  const now = new Date()
+  const result = await adapterFor(channel.kind)({ channel, alertContext })
+  if (result.ok) await markAlertDelivered(db, channel.id, body.ruleId, now)
   routeAdapterResult(message, result, {
     ...fields,
     channelKind: channel.kind,
@@ -177,7 +239,11 @@ export async function handleAlertMessage(
     await processTestMessage(deps, message)
     return
   }
-  await processRealMessage(deps, message)
+  if (isRunAlertMessage(message.body)) {
+    await processRunMessage(deps, message, message.body)
+    return
+  }
+  await processMissedMessage(deps, message, message.body)
 }
 
 export interface AlertQueueEnv {
@@ -196,7 +262,8 @@ export async function alertQueue(
         await handleAlertMessage({ db, appOrigin: env.PUBLIC_APP_ORIGIN }, message)
       } catch (err) {
         logError('alert.consumer_unhandled', err, {
-          runId: message.body.runId,
+          runId: isRunAlertMessage(message.body) ? message.body.runId : undefined,
+          jobId: isRunAlertMessage(message.body) ? undefined : message.body.jobId,
           channelId: message.body.channelId,
           attemptNumber: message.attempts,
         })

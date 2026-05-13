@@ -78,6 +78,13 @@
       "when": 1778637619451,
       "tag": "0010_moaning_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1778713075815,
+      "tag": "0011_fuzzy_triathlon",
+      "breakpoints": true
     }
   ]
 }

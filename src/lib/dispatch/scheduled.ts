@@ -1,5 +1,7 @@
 import { Cron } from 'croner'
 import { and, eq, isNull, lte, or } from 'drizzle-orm'
+import type { AlertQueueMessage } from '@/lib/alert-queue/types'
+import { evaluateMissedSchedules } from '@/lib/alert-rules/missed-schedule'
 import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
 import { customers, jobs } from '@/lib/db/schema'
@@ -17,11 +19,13 @@ export interface DispatchMessage {
 export interface ScheduledEnv {
   DB: D1Database
   DISPATCH_QUEUE: Queue<DispatchMessage>
+  ALERT_QUEUE?: Queue<AlertQueueMessage>
 }
 
 export interface ScheduledDeps {
   db: Database
   dispatchQueue: Queue<DispatchMessage>
+  alertQueue?: Queue<AlertQueueMessage>
   now?: () => Date
 }
 
@@ -80,8 +84,9 @@ function nextRunFor(expression: string, timezone: string, anchor: Date): Date | 
 export async function runScheduled({
   db,
   dispatchQueue,
+  alertQueue,
   now = () => new Date(),
-}: ScheduledDeps): Promise<{ swept: number; enqueued: number }> {
+}: ScheduledDeps): Promise<{ swept: number; enqueued: number; missedEnqueued: number }> {
   const tick = now()
   const [swept, due] = await Promise.all([sweepStaleClaims(db, tick), selectDueCronJobs(db, tick)])
   const results = await Promise.all(
@@ -105,8 +110,11 @@ export async function runScheduled({
     }),
   )
   const enqueued = results.reduce<number>((total, count) => total + count, 0)
-  logInfo('scheduled.tick', { swept, due: due.length, enqueued })
-  return { swept, enqueued }
+  const missed = alertQueue
+    ? await evaluateMissedSchedules({ db, alertQueue, now: () => tick })
+    : { enqueued: 0 }
+  logInfo('scheduled.tick', { swept, due: due.length, enqueued, missedEnqueued: missed.enqueued })
+  return { swept, enqueued, missedEnqueued: missed.enqueued }
 }
 
 export async function scheduled(
@@ -114,5 +122,9 @@ export async function scheduled(
   env: ScheduledEnv,
   _ctx: ExecutionContext,
 ): Promise<void> {
-  await runScheduled({ db: createDb(env.DB), dispatchQueue: env.DISPATCH_QUEUE })
+  await runScheduled({
+    db: createDb(env.DB),
+    dispatchQueue: env.DISPATCH_QUEUE,
+    ...(env.ALERT_QUEUE ? { alertQueue: env.ALERT_QUEUE } : {}),
+  })
 }

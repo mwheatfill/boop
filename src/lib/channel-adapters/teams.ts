@@ -14,6 +14,12 @@ interface AdaptiveCardElement {
   facts?: { title: string; value: string }[]
 }
 
+interface AdaptiveCardAction {
+  type: 'Action.OpenUrl'
+  title: string
+  url: string
+}
+
 function statusColor(outcome: string): 'Good' | 'Warning' | 'Attention' | 'Default' {
   if (outcome === 'success') return 'Good'
   if (outcome === 'failure') return 'Attention'
@@ -21,7 +27,31 @@ function statusColor(outcome: string): 'Good' | 'Warning' | 'Attention' | 'Defau
   return 'Default'
 }
 
-export function buildTeamsCard(ctx: AlertContext): unknown {
+function minutesLabel(minutes: number): string {
+  if (minutes % (24 * 60) === 0) return `${minutes / (24 * 60)}d`
+  if (minutes % 60 === 0) return `${minutes / 60}h`
+  return `${minutes}m`
+}
+
+function adaptiveCard(body: AdaptiveCardElement[], action: AdaptiveCardAction): unknown {
+  return {
+    type: 'message',
+    attachments: [
+      {
+        contentType: 'application/vnd.microsoft.card.adaptive',
+        content: {
+          type: 'AdaptiveCard',
+          $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
+          version: ADAPTIVE_CARD_VERSION,
+          body,
+          actions: [action],
+        },
+      },
+    ],
+  }
+}
+
+function buildRunCard(ctx: Extract<AlertContext, { kind: 'run' }>): unknown {
   const headline = ctx.test
     ? `boop test alert · ${ctx.customer_name}`
     : `${ctx.customer_name} · ${ctx.job_name} · ${ctx.outcome}`
@@ -49,20 +79,47 @@ export function buildTeamsCard(ctx: AlertContext): unknown {
     },
   ]
 
-  return {
-    type: 'message',
-    attachments: [
-      {
-        contentType: 'application/vnd.microsoft.card.adaptive',
-        content: {
-          type: 'AdaptiveCard',
-          $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
-          version: ADAPTIVE_CARD_VERSION,
-          body,
-          actions: [{ type: 'Action.OpenUrl', title: 'Open Run', url: ctx.run_url }],
-        },
-      },
-    ],
+  return adaptiveCard(body, { type: 'Action.OpenUrl', title: 'Open Run', url: ctx.run_url })
+}
+
+function buildMissedCard(ctx: Extract<AlertContext, { kind: 'missed' }>): unknown {
+  const body: AdaptiveCardElement[] = [
+    {
+      type: 'TextBlock',
+      text: `${ctx.customer_name} · ${ctx.job_name} has not fired in ${minutesLabel(
+        ctx.silence_threshold_minutes,
+      )}`,
+      size: 'Large',
+      weight: 'Bolder',
+      wrap: true,
+    },
+    {
+      type: 'TextBlock',
+      text: ctx.rule_name,
+      spacing: 'None',
+      color: 'Warning',
+      wrap: true,
+    },
+    {
+      type: 'FactSet',
+      facts: [
+        { title: 'Last Run', value: ctx.last_run_at ?? 'Never' },
+        { title: 'Silence window', value: minutesLabel(ctx.silence_threshold_minutes) },
+        { title: 'Trigger', value: ctx.trigger_source },
+        { title: 'Schedule', value: ctx.schedule },
+      ],
+    },
+  ]
+
+  return adaptiveCard(body, { type: 'Action.OpenUrl', title: 'Open Job', url: ctx.job_url })
+}
+
+export function buildTeamsCard(ctx: AlertContext): unknown {
+  switch (ctx.kind) {
+    case 'run':
+      return buildRunCard(ctx)
+    case 'missed':
+      return buildMissedCard(ctx)
   }
 }
 
