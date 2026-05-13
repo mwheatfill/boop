@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, or } from 'drizzle-orm'
+import { and, eq, inArray, isNull, or, type SQL } from 'drizzle-orm'
 import { normalizeSlug, resolveCustomerId } from '@/lib/customers/resolve'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
@@ -12,37 +12,23 @@ import type {
 import { getAlertRuleBySlug, getWorkspaceAlertRuleBySlug } from './queries'
 import { validateChannelScope } from './scope-refinement'
 
-async function validateCustomerChannelIds(
+async function assertChannelsResolveAndActive(
   db: Database,
-  customerId: string,
   channelIds: readonly string[],
+  scopePredicate: SQL,
+  missingMessage: (ids: string[]) => string,
 ): Promise<void> {
   if (channelIds.length === 0) {
     throw new FieldValidationError({ channelIds: ['Pick at least one Channel'] })
   }
   const rows = await db
-    .select({
-      id: channels.id,
-      scope: channels.scope,
-      status: channels.status,
-      name: channels.name,
-      customerId: channels.customerId,
-    })
+    .select({ id: channels.id, status: channels.status, name: channels.name })
     .from(channels)
-    .where(
-      and(
-        inArray(channels.id, [...channelIds]),
-        or(eq(channels.scope, 'workspace'), eq(channels.customerId, customerId)),
-      ),
-    )
+    .where(and(inArray(channels.id, [...channelIds]), scopePredicate))
   const foundIds = new Set(rows.map((r) => r.id))
   const missing = channelIds.filter((id) => !foundIds.has(id))
   if (missing.length > 0) {
-    throw new FieldValidationError({
-      channelIds: [
-        `Channel ids not available to this Customer (cross-scope or unknown): ${missing.join(', ')}`,
-      ],
-    })
+    throw new FieldValidationError({ channelIds: [missingMessage(missing)] })
   }
   const archived = rows.filter((r) => r.status !== 'active')
   if (archived.length > 0) {
@@ -52,39 +38,11 @@ async function validateCustomerChannelIds(
   }
 }
 
-async function validateWorkspaceChannelIds(
-  db: Database,
-  channelIds: readonly string[],
-): Promise<void> {
-  if (channelIds.length === 0) {
-    throw new FieldValidationError({ channelIds: ['Pick at least one Channel'] })
-  }
-  const rows = await db
-    .select({ id: channels.id, status: channels.status, name: channels.name })
-    .from(channels)
-    .where(
-      and(
-        inArray(channels.id, [...channelIds]),
-        eq(channels.scope, 'workspace'),
-        isNull(channels.customerId),
-      ),
-    )
-  const foundIds = new Set(rows.map((r) => r.id))
-  const missing = channelIds.filter((id) => !foundIds.has(id))
-  if (missing.length > 0) {
-    throw new FieldValidationError({
-      channelIds: [
-        `Workspace AlertRule may reference workspace Channels only. Unknown ids: ${missing.join(', ')}`,
-      ],
-    })
-  }
-  const archived = rows.filter((r) => r.status !== 'active')
-  if (archived.length > 0) {
-    throw new FieldValidationError({
-      channelIds: [`Cannot route to archived Channels: ${archived.map((c) => c.name).join(', ')}`],
-    })
-  }
-}
+const customerScopePredicate = (customerId: string): SQL =>
+  or(eq(channels.scope, 'workspace'), eq(channels.customerId, customerId)) as SQL
+
+const workspaceScopePredicate = (): SQL =>
+  and(eq(channels.scope, 'workspace'), isNull(channels.customerId)) as SQL
 
 function serializeConfig(config: AlertRuleCreateInput['config']): string {
   const { kind: _kind, ...rest } = config
@@ -101,7 +59,13 @@ export async function createAlertRule(
   input: AlertRuleCreateInput,
 ): Promise<AlertRule> {
   const customerId = await resolveCustomerId(db, customerSlug)
-  await validateCustomerChannelIds(db, customerId, input.channelIds)
+  await assertChannelsResolveAndActive(
+    db,
+    input.channelIds,
+    customerScopePredicate(customerId),
+    (ids) =>
+      `Channel ids not available to this Customer (cross-scope or unknown): ${ids.join(', ')}`,
+  )
   applyScopeRefinement(
     await validateChannelScope(db, {
       scope: 'customer',
@@ -140,7 +104,13 @@ export async function updateAlertRule(
   input: AlertRuleUpdateInput,
 ): Promise<AlertRule> {
   const customerId = await resolveCustomerId(db, customerSlug)
-  await validateCustomerChannelIds(db, customerId, input.channelIds)
+  await assertChannelsResolveAndActive(
+    db,
+    input.channelIds,
+    customerScopePredicate(customerId),
+    (ids) =>
+      `Channel ids not available to this Customer (cross-scope or unknown): ${ids.join(', ')}`,
+  )
   applyScopeRefinement(
     await validateChannelScope(db, {
       scope: 'customer',
@@ -199,7 +169,13 @@ export async function createWorkspaceAlertRule(
   db: Database,
   input: AlertRuleCreateInput,
 ): Promise<AlertRule> {
-  await validateWorkspaceChannelIds(db, input.channelIds)
+  await assertChannelsResolveAndActive(
+    db,
+    input.channelIds,
+    workspaceScopePredicate(),
+    (ids) =>
+      `Workspace AlertRule may reference workspace Channels only. Unknown ids: ${ids.join(', ')}`,
+  )
   const slug = normalizeSlug(input.slug)
   const id = newId('rul')
   try {
@@ -229,7 +205,13 @@ export async function updateWorkspaceAlertRule(
   ruleSlug: string,
   input: AlertRuleUpdateInput,
 ): Promise<AlertRule> {
-  await validateWorkspaceChannelIds(db, input.channelIds)
+  await assertChannelsResolveAndActive(
+    db,
+    input.channelIds,
+    workspaceScopePredicate(),
+    (ids) =>
+      `Workspace AlertRule may reference workspace Channels only. Unknown ids: ${ids.join(', ')}`,
+  )
   const result = await db
     .update(alertRules)
     .set({

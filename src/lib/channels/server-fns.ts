@@ -5,7 +5,7 @@ import { canArchiveWorkspaceChannel } from '@/lib/archive-policy/archive-policy'
 import { adminMiddleware } from '@/lib/auth/admin-middleware'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
-import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
+import { asMutationFailure, type MutationResult, runMutation } from '@/lib/mutation-result'
 import { type Channel, ChannelCreateInput, ChannelUpdateInput } from '@/shared/schemas/channel'
 import { z } from '@/shared/schemas/openapi'
 import {
@@ -158,47 +158,24 @@ export const getWorkspaceChannelFn = createServerFn({ method: 'GET' })
 export const createWorkspaceChannelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator((data: z.infer<typeof ChannelCreateInput>) => ChannelCreateInput.parse(data))
-  .handler(async ({ data }): Promise<MutationResult<Channel>> => {
-    try {
-      const channel = await createWorkspaceChannel(createDb(env.DB), data)
-      return { ok: true, data: channel }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
-  })
+  .handler(({ data }) => runMutation(() => createWorkspaceChannel(createDb(env.DB), data)))
 
 export const updateWorkspaceChannelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator((data: { channelSlug: string } & z.infer<typeof ChannelUpdateInput>) =>
     channelSlugOnly.extend(ChannelUpdateInput.shape).parse(data),
   )
-  .handler(async ({ data }): Promise<MutationResult<Channel>> => {
+  .handler(({ data }) => {
     const { channelSlug, ...input } = data
-    try {
-      const channel = await updateWorkspaceChannel(createDb(env.DB), channelSlug, input)
-      return { ok: true, data: channel }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
+    return runMutation(() => updateWorkspaceChannel(createDb(env.DB), channelSlug, input))
   })
 
 export const archiveWorkspaceChannelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator((data) => channelSlugOnly.parse(data))
-  .handler(async ({ data }): Promise<MutationResult<Channel>> => {
-    try {
-      const channel = await archiveWorkspaceChannel(createDb(env.DB), data.channelSlug)
-      return { ok: true, data: channel }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
-  })
+  .handler(({ data }) =>
+    runMutation(() => archiveWorkspaceChannel(createDb(env.DB), data.channelSlug)),
+  )
 
 export const restoreWorkspaceChannelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])

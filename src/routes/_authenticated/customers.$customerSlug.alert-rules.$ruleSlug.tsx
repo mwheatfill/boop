@@ -2,13 +2,12 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { createFileRoute, Link, Outlet, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
+import { AlertRuleDetailView } from '@/components/alerts/AlertRuleDetailView'
 import { useShortcut } from '@/components/keyboard/use-shortcut'
-import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { alertRuleQueryOptions } from '@/lib/alert-rules/query-options'
 import { archiveAlertRuleFn, restoreAlertRuleFn } from '@/lib/alert-rules/server-fns'
 import { listChannelsQueryOptions } from '@/lib/channels/query-options'
-import { summarizeRuleConfig } from '@/shared/schemas/alert-rule'
 
 export const Route = createFileRoute(
   '/_authenticated/customers/$customerSlug/alert-rules/$ruleSlug',
@@ -60,81 +59,38 @@ function AlertRuleDetailPage() {
   )
 
   return (
-    <div className="flex flex-col gap-6">
-      <Link
-        to="/customers/$customerSlug/alert-rules"
-        params={{ customerSlug }}
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-3" aria-hidden /> Alert Rules
-      </Link>
-      <header className="flex items-start justify-between">
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Alert Rule
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight">{rule.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-mono">{rule.slug}</span> · {summarizeRuleConfig(rule.config)}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <StatusBadge status={rule.status} />
-          {rule.status === 'active' ? (
-            <Button
-              size="sm"
-              variant="outline"
-              render={
-                <Link
-                  to="/customers/$customerSlug/alert-rules/$ruleSlug/edit"
-                  params={{ customerSlug, ruleSlug }}
-                />
-              }
-            >
-              <Pencil aria-hidden /> Edit
-            </Button>
-          ) : null}
-          {rule.status === 'active' ? (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={archive.isPending}
-              onClick={() => archive.mutate()}
-            >
-              Archive
-            </Button>
-          ) : (
-            <Button size="sm" disabled={restore.isPending} onClick={() => restore.mutate()}>
-              Restore
-            </Button>
-          )}
-        </div>
-      </header>
-
-      <section className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-4">
-        <h2 className="text-sm font-medium">Routes to</h2>
-        <ul className="flex flex-col gap-1 text-sm">
-          {rule.channelIds.map((id) => {
-            const channel = channelById.get(id)
-            return (
-              <li key={id} className="flex items-center gap-2">
-                <span className="text-foreground">{channel?.name ?? id}</span>
-                {channel && channel.status !== 'active' ? (
-                  <span className="text-xs text-warning">(archived — update routing)</span>
-                ) : null}
-              </li>
-            )
-          })}
-        </ul>
-      </section>
-
-      <section className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-4">
-        <h2 className="text-sm font-medium">Last fired</h2>
-        <p className="text-sm text-muted-foreground">
-          {rule.lastFiredAt ? new Date(rule.lastFiredAt).toLocaleString() : 'Never fired yet.'}
-        </p>
-      </section>
+    <>
+      <AlertRuleDetailView
+        rule={rule}
+        eyebrow="Alert Rule"
+        channelById={channelById}
+        backLink={
+          <Link
+            to="/customers/$customerSlug/alert-rules"
+            params={{ customerSlug }}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="size-3" aria-hidden /> Alert Rules
+          </Link>
+        }
+        editButton={
+          <Button
+            size="sm"
+            variant="outline"
+            render={
+              <Link
+                to="/customers/$customerSlug/alert-rules/$ruleSlug/edit"
+                params={{ customerSlug, ruleSlug }}
+              />
+            }
+          >
+            <Pencil aria-hidden /> Edit
+          </Button>
+        }
+        archive={{ onClick: () => archive.mutate(), isPending: archive.isPending }}
+        restore={{ onClick: () => restore.mutate(), isPending: restore.isPending }}
+      />
       <Outlet />
-    </div>
+    </>
   )
 }

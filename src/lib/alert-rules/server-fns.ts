@@ -3,7 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { adminMiddleware } from '@/lib/auth/admin-middleware'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
-import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
+import { asMutationFailure, type MutationResult, runMutation } from '@/lib/mutation-result'
 import {
   type AlertRule,
   AlertRuleCreateInput,
@@ -140,32 +140,16 @@ export const getWorkspaceAlertRuleFn = createServerFn({ method: 'GET' })
 export const createWorkspaceAlertRuleFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator((data: z.infer<typeof AlertRuleCreateInput>) => AlertRuleCreateInput.parse(data))
-  .handler(async ({ data }): Promise<MutationResult<AlertRule>> => {
-    try {
-      const rule = await createWorkspaceAlertRule(createDb(env.DB), data)
-      return { ok: true, data: rule }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
-  })
+  .handler(({ data }) => runMutation(() => createWorkspaceAlertRule(createDb(env.DB), data)))
 
 export const updateWorkspaceAlertRuleFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator((data: { ruleSlug: string } & z.infer<typeof AlertRuleUpdateInput>) =>
     ruleSlugOnly.extend(AlertRuleUpdateInput.shape).parse(data),
   )
-  .handler(async ({ data }): Promise<MutationResult<AlertRule>> => {
+  .handler(({ data }) => {
     const { ruleSlug, ...input } = data
-    try {
-      const rule = await updateWorkspaceAlertRule(createDb(env.DB), ruleSlug, input)
-      return { ok: true, data: rule }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
+    return runMutation(() => updateWorkspaceAlertRule(createDb(env.DB), ruleSlug, input))
   })
 
 export const archiveWorkspaceAlertRuleFn = createServerFn({ method: 'POST' })

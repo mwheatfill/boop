@@ -3,12 +3,10 @@ import type { ChannelScope } from '@/shared/schemas/channel'
 
 interface ChannelScopePillProps {
   scope: ChannelScope
-  customerName?: string | undefined
   className?: string | undefined
 }
 
-export function ChannelScopePill({ scope, customerName, className }: ChannelScopePillProps) {
-  const label = scope === 'workspace' ? 'workspace' : (customerName ?? 'Customer')
+export function ChannelScopePill({ scope, className }: ChannelScopePillProps) {
   return (
     <span
       className={cn(
@@ -17,7 +15,7 @@ export function ChannelScopePill({ scope, customerName, className }: ChannelScop
         className,
       )}
     >
-      {label}
+      {scope}
     </span>
   )
 }

@@ -30,7 +30,7 @@ import {
 import type { Channel } from '@/shared/schemas/channel'
 
 export type AlertRuleModalOwner =
-  | { scope: 'customer'; customerSlug: string; customerName?: string }
+  | { scope: 'customer'; customerSlug: string }
   | { scope: 'workspace' }
 
 interface KindOption {
@@ -317,10 +317,7 @@ export function AlertRuleModal({
             getLabel={(c) => c.name}
             getSecondary={(c) => (
               <span className="inline-flex items-center gap-1.5">
-                <ChannelScopePill
-                  scope={c.scope}
-                  customerName={!isWorkspace ? owner.customerName : undefined}
-                />
+                <ChannelScopePill scope={c.scope} />
                 <span>{c.kind}</span>
               </span>
             )}
@@ -383,18 +380,13 @@ export function AlertRuleModal({
       {nestedChannelOpen ? (
         <ChannelModal
           variant="create"
-          owner={
-            owner.scope === 'workspace'
-              ? { scope: 'workspace' }
-              : { scope: 'customer', customerSlug: owner.customerSlug }
-          }
+          owner={owner}
           onClose={() => setNestedChannelOpen(false)}
           onCreated={async (channel) => {
             await queryClient.invalidateQueries({
-              queryKey:
-                owner.scope === 'workspace'
-                  ? ['workspace', 'channels']
-                  : ['customers', owner.customerSlug, 'channels'],
+              queryKey: isWorkspace
+                ? ['workspace', 'channels']
+                : ['customers', owner.customerSlug, 'channels'],
             })
             form.setFieldValue('channelIds', [...form.state.values.channelIds, channel.id])
             setNestedChannelOpen(false)

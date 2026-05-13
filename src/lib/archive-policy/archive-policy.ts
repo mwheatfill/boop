@@ -1,4 +1,4 @@
-import { and, eq, ne } from 'drizzle-orm'
+import { and, eq, like, ne } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { alertRules, channels, jobs } from '@/lib/db/schema'
 
@@ -59,15 +59,15 @@ export async function canArchiveWorkspaceChannel(
   db: Database,
   channelId: string,
 ): Promise<ArchiveCheck> {
-  const rules = await db
+  const candidates = await db
     .select({
       id: alertRules.id,
       customerId: alertRules.customerId,
       channelIds: alertRules.channelIds,
     })
     .from(alertRules)
-    .where(eq(alertRules.status, 'active'))
-  const blocking = rules.filter((r) => ruleReferencesChannel(r.channelIds, channelId))
+    .where(and(eq(alertRules.status, 'active'), like(alertRules.channelIds, `%${channelId}%`)))
+  const blocking = candidates.filter((r) => ruleReferencesChannel(r.channelIds, channelId))
   if (blocking.length === 0) return { ok: true }
   const byCustomer = new Map<string | null, number>()
   for (const r of blocking) {
