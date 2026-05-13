@@ -4,6 +4,9 @@ import { z } from './openapi'
 export const CHANNEL_KINDS = ['teams', 'email', 'webhook'] as const
 export type ChannelKind = (typeof CHANNEL_KINDS)[number]
 
+export const CHANNEL_SCOPES = ['workspace', 'customer'] as const
+export type ChannelScope = (typeof CHANNEL_SCOPES)[number]
+
 export const WEBHOOK_METHODS = ['POST', 'PUT'] as const
 export const TEST_ALERT_STATUSES = ['pending', 'delivered', 'failed'] as const
 
@@ -57,7 +60,8 @@ export type ChannelConfig = z.infer<typeof ChannelConfigSchema>
 export const ChannelSchema = z
   .object({
     id: z.string().meta({ example: 'chn_abc123' }),
-    customerId: z.string().meta({ example: 'cust_abc123' }),
+    scope: z.enum(CHANNEL_SCOPES),
+    customerId: z.string().nullable().meta({ example: 'cust_abc123' }),
     kind: z.enum(CHANNEL_KINDS),
     name: z.string().meta({ example: 'SwitchThink ops Teams' }),
     slug: z.string().meta({ example: 'switchthink-ops-teams' }),
@@ -72,7 +76,8 @@ export const ChannelSchema = z
   })
   .meta({
     id: 'Channel',
-    description: 'A reusable outbound destination for alerts, owned by a Customer.',
+    description:
+      'A reusable outbound destination for alerts. Scope is workspace (cross-Customer, customerId null) or customer (owned by one Customer).',
   })
 
 export type Channel = z.infer<typeof ChannelSchema>

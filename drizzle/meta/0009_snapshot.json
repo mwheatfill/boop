@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "1cb9822b-578a-49d7-b8ef-ddec15350447",
-  "prevId": "62bc3d1b-7a97-4902-b5af-ffb24dc02375",
+  "id": "589f7e97-37d8-4dab-96f7-9068003f88a7",
+  "prevId": "1cb9822b-578a-49d7-b8ef-ddec15350447",
   "tables": {
     "alert_rules": {
       "name": "alert_rules",
@@ -606,6 +606,119 @@
         }
       }
     },
+    "customer_secrets": {
+      "name": "customer_secrets",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "value_hash": {
+          "name": "value_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "value_ciphertext": {
+          "name": "value_ciphertext",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "value_iv": {
+          "name": "value_iv",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_used_at": {
+          "name": "last_used_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "customer_secrets_active_name_idx": {
+          "name": "customer_secrets_active_name_idx",
+          "columns": [
+            "customer_id",
+            "name"
+          ],
+          "isUnique": true,
+          "where": "\"customer_secrets\".\"revoked_at\" IS NULL"
+        },
+        "customer_secrets_customer_idx": {
+          "name": "customer_secrets_customer_idx",
+          "columns": [
+            "customer_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "customer_secrets_customer_id_customers_id_fk": {
+          "name": "customer_secrets_customer_id_customers_id_fk",
+          "tableFrom": "customer_secrets",
+          "tableTo": "customers",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "customers": {
       "name": "customers",
       "columns": {
@@ -651,6 +764,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'active'"
+        },
+        "variables": {
+          "name": "variables",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{}'"
         },
         "seed_tag": {
           "name": "seed_tag",
@@ -786,6 +907,14 @@
         },
         "headers_template": {
           "name": "headers_template",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{}'"
+        },
+        "variables": {
+          "name": "variables",
           "type": "text",
           "primaryKey": false,
           "notNull": true,

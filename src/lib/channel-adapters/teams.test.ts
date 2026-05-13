@@ -27,6 +27,7 @@ const baseContext: AlertContext = {
 function teamsChannel(overrides: Partial<Channel> = {}): Channel {
   return {
     id: 'chn_1',
+    scope: 'customer',
     customerId: 'cust_1',
     kind: 'teams',
     name: 'Ops Teams',

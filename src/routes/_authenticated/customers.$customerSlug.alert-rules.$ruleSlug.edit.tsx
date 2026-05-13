@@ -23,7 +23,7 @@ function EditAlertRulePage() {
   return (
     <AlertRuleModal
       variant="edit"
-      customerSlug={customerSlug}
+      owner={{ scope: 'customer', customerSlug }}
       initialRule={rule}
       isAdmin={isAdmin(currentUser)}
       onClose={() =>

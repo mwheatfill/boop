@@ -7,7 +7,12 @@ import { SingleSelectPill } from '@/components/forms/SingleSelectPill'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { createChannelFn, updateChannelFn } from '@/lib/channels/server-fns'
+import {
+  createChannelFn,
+  createWorkspaceChannelFn,
+  updateChannelFn,
+  updateWorkspaceChannelFn,
+} from '@/lib/channels/server-fns'
 import { mailer } from '@/lib/email-recipe'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
@@ -19,6 +24,8 @@ import {
   EMAIL_DEFAULT_SUBJECT,
   WEBHOOK_DEFAULT_BODY,
 } from '@/shared/schemas/channel'
+
+export type ChannelModalOwner = { scope: 'customer'; customerSlug: string } | { scope: 'workspace' }
 
 interface KindOption {
   kind: ChannelKind
@@ -125,7 +132,7 @@ function parseHeaders(raw: string): Record<string, string> {
 
 interface ChannelModalProps {
   variant: 'create' | 'edit'
-  customerSlug: string
+  owner: ChannelModalOwner
   initialChannel?: Channel
   onClose: () => void
   /** When provided, the modal calls this with the created Channel instead of navigating away. */
@@ -134,7 +141,7 @@ interface ChannelModalProps {
 
 export function ChannelModal({
   variant,
-  customerSlug,
+  owner,
   initialChannel,
   onClose,
   onCreated,
@@ -142,6 +149,7 @@ export function ChannelModal({
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const slug = useSlugAutoFill(variant === 'edit')
+  const isWorkspace = owner.scope === 'workspace'
 
   const form = useForm({
     defaultValues: initialValues(initialChannel),
@@ -154,33 +162,60 @@ export function ChannelModal({
           return { fields: { config: flat.fieldErrors as never as string } }
         }
         const base = { name: value.name, config: parsed.data }
-        const result: MutationResult<Channel> =
-          variant === 'create'
-            ? await createChannelFn({
-                data: { customerSlug, slug: value.slug, ...base } as never,
-              })
-            : await updateChannelFn({
-                data: {
-                  customerSlug,
-                  channelSlug: initialChannel?.slug ?? '',
-                  ...base,
-                } as never,
-              })
+        let result: MutationResult<Channel>
+        if (isWorkspace) {
+          result =
+            variant === 'create'
+              ? await createWorkspaceChannelFn({
+                  data: { slug: value.slug, ...base } as never,
+                })
+              : await updateWorkspaceChannelFn({
+                  data: { channelSlug: initialChannel?.slug ?? '', ...base } as never,
+                })
+        } else {
+          const customerSlug = owner.customerSlug
+          result =
+            variant === 'create'
+              ? await createChannelFn({
+                  data: { customerSlug, slug: value.slug, ...base } as never,
+                })
+              : await updateChannelFn({
+                  data: {
+                    customerSlug,
+                    channelSlug: initialChannel?.slug ?? '',
+                    ...base,
+                  } as never,
+                })
+        }
         if (!result.ok) {
           return {
             ...(result.message ? { form: result.message } : {}),
             fields: fieldErrorsToTanstack(result.fieldErrors),
           }
         }
-        await queryClient.invalidateQueries({
-          queryKey: ['customers', customerSlug, 'channels'],
-        })
+        if (isWorkspace) {
+          await queryClient.invalidateQueries({ queryKey: ['workspace', 'channels'] })
+        } else {
+          await queryClient.invalidateQueries({
+            queryKey: ['customers', owner.customerSlug, 'channels'],
+          })
+        }
         if (variant === 'create' && onCreated) {
           await onCreated(result.data)
           return null
         }
         toast.success(variant === 'create' ? `Channel ${result.data.name} created` : 'Saved')
-        await navigate({ to: '/customers/$customerSlug', params: { customerSlug } })
+        if (isWorkspace) {
+          await navigate({
+            to: '/channels/$channelSlug',
+            params: { channelSlug: result.data.slug },
+          })
+        } else {
+          await navigate({
+            to: '/customers/$customerSlug',
+            params: { customerSlug: owner.customerSlug },
+          })
+        }
         return null
       },
     },

@@ -13,7 +13,7 @@ function NewAlertRulePage() {
   return (
     <AlertRuleModal
       variant="create"
-      customerSlug={customerSlug}
+      owner={{ scope: 'customer', customerSlug }}
       isAdmin={isAdmin(currentUser)}
       onClose={() =>
         navigate({ to: '/customers/$customerSlug/alert-rules', params: { customerSlug } })

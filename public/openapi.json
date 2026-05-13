@@ -2965,8 +2965,22 @@
             "type": "string",
             "example": "chn_abc123"
           },
-          "customerId": {
+          "scope": {
             "type": "string",
+            "enum": [
+              "workspace",
+              "customer"
+            ]
+          },
+          "customerId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "example": "cust_abc123"
           },
           "kind": {
@@ -3057,6 +3071,7 @@
         },
         "required": [
           "id",
+          "scope",
           "customerId",
           "kind",
           "name",
@@ -3071,7 +3086,7 @@
           "updatedAt"
         ],
         "additionalProperties": false,
-        "description": "A reusable outbound destination for alerts, owned by a Customer."
+        "description": "A reusable outbound destination for alerts. Scope is workspace (cross-Customer, customerId null) or customer (owned by one Customer)."
       },
       "ChannelCreateInput": {
         "type": "object",
@@ -3123,8 +3138,23 @@
             "type": "string",
             "example": "rul_abc123"
           },
-          "customerId": {
+          "scope": {
             "type": "string",
+            "enum": [
+              "workspace",
+              "customer",
+              "job"
+            ]
+          },
+          "customerId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "example": "cust_abc123"
           },
           "jobId": {
@@ -3196,6 +3226,7 @@
         },
         "required": [
           "id",
+          "scope",
           "customerId",
           "jobId",
           "kind",
@@ -3209,7 +3240,7 @@
           "updatedAt"
         ],
         "additionalProperties": false,
-        "description": "A predicate that decides when a terminal Run produces an alert, and where it fans out."
+        "description": "A predicate that decides when a terminal Run produces an alert, and where it fans out. Scope is workspace (cross-Customer), customer (Customer-scoped), or job (one Job)."
       },
       "AlertRuleCreateInput": {
         "type": "object",

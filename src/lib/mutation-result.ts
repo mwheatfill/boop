@@ -24,3 +24,13 @@ export function fieldErrorsToTanstack(
   }
   return out
 }
+
+export async function runMutation<T>(fn: () => Promise<T>): Promise<MutationResult<T>> {
+  try {
+    return { ok: true, data: await fn() }
+  } catch (err) {
+    const failure = asMutationFailure(err)
+    if (failure) return failure
+    throw err
+  }
+}

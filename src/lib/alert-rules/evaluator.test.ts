@@ -64,6 +64,7 @@ async function seedRule(
   const id = newId('rul')
   await db.insert(alertRules).values({
     id,
+    scope: 'customer',
     customerId,
     kind,
     name: `${kind} rule`,
@@ -71,6 +72,51 @@ async function seedRule(
     config: JSON.stringify(config),
     channelIds: JSON.stringify(channelIds),
     status,
+  })
+  return id
+}
+
+async function seedWorkspaceRule(
+  db: Database,
+  kind: 'first_failure' | 'consecutive_failures' | 'recovery' | 'slow_run',
+  config: object,
+  channelIds: string[],
+): Promise<string> {
+  const id = newId('rul')
+  await db.insert(alertRules).values({
+    id,
+    scope: 'workspace',
+    customerId: null,
+    kind,
+    name: `ws ${kind} rule`,
+    slug: `ws-${kind}-${id.slice(-4)}`,
+    config: JSON.stringify(config),
+    channelIds: JSON.stringify(channelIds),
+    status: 'active',
+  })
+  return id
+}
+
+async function seedJobRule(
+  db: Database,
+  customerId: string,
+  jobId: string,
+  kind: 'first_failure' | 'consecutive_failures' | 'recovery' | 'slow_run',
+  config: object,
+  channelIds: string[],
+): Promise<string> {
+  const id = newId('rul')
+  await db.insert(alertRules).values({
+    id,
+    scope: 'job',
+    customerId,
+    jobId,
+    kind,
+    name: `job ${kind} rule`,
+    slug: `job-${kind}-${id.slice(-4)}`,
+    config: JSON.stringify(config),
+    channelIds: JSON.stringify(channelIds),
+    status: 'active',
   })
   return id
 }
@@ -131,5 +177,51 @@ describe('evaluateRulesForRun', () => {
     const runId = await seedRun(db, jobId, customerId, 'failure', 7000)
     await seedRule(db, customerId, 'consecutive_failures', { count: 5 }, ['chn_a'])
     expect(await evaluateRulesForRun({ db, customerId, jobId, runId })).toHaveLength(1)
+  })
+
+  it('fires a workspace rule for any Customer', async () => {
+    const db = createTestDb()
+    const { customerId, jobId } = await seedJob(db)
+    await seedRun(db, jobId, customerId, 'success', 1000)
+    const runId = await seedRun(db, jobId, customerId, 'failure', 2000)
+    const ruleId = await seedWorkspaceRule(db, 'first_failure', {}, ['chn_ws'])
+    const firing = await evaluateRulesForRun({ db, customerId, jobId, runId })
+    expect(firing).toHaveLength(1)
+    expect(firing[0]).toMatchObject({ ruleId, channelIds: ['chn_ws'] })
+  })
+
+  it('unions workspace + customer + job rules; each rule fires independently', async () => {
+    const db = createTestDb()
+    const { customerId, jobId } = await seedJob(db)
+    await seedRun(db, jobId, customerId, 'success', 1000)
+    const runId = await seedRun(db, jobId, customerId, 'failure', 2000)
+    const wsId = await seedWorkspaceRule(db, 'first_failure', {}, ['chn_ws'])
+    const custId = await seedRule(db, customerId, 'first_failure', {}, ['chn_cust'])
+    const jobScopeId = await seedJobRule(db, customerId, jobId, 'first_failure', {}, ['chn_job'])
+    const firing = await evaluateRulesForRun({ db, customerId, jobId, runId })
+    expect(firing.map((f) => f.ruleId).sort()).toEqual([custId, jobScopeId, wsId].sort())
+  })
+
+  it('skips Customer rules for a different Customer', async () => {
+    const db = createTestDb()
+    const acme = await seedJob(db)
+    const otherCustomerId = newId('cust')
+    await db.insert(customers).values({
+      id: otherCustomerId,
+      name: 'Other',
+      slug: 'other',
+      timezone: 'UTC',
+    })
+    await seedRule(db, otherCustomerId, 'first_failure', {}, ['chn_other'])
+    await seedRun(db, acme.jobId, acme.customerId, 'success', 1000)
+    const runId = await seedRun(db, acme.jobId, acme.customerId, 'failure', 2000)
+    expect(
+      await evaluateRulesForRun({
+        db,
+        customerId: acme.customerId,
+        jobId: acme.jobId,
+        runId,
+      }),
+    ).toEqual([])
   })
 })

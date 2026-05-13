@@ -105,12 +105,12 @@ async function processTestMessage(
     message.ack()
     return
   }
-  const customer = await loadCustomer(db, channel.customerId)
+  const customer = channel.customerId ? await loadCustomer(db, channel.customerId) : undefined
   const alertContext = buildSyntheticTestContext(
     channel.name,
     channel.slug,
-    customer?.name ?? 'Unknown',
-    customer?.slug ?? 'unknown',
+    customer?.name ?? (channel.scope === 'workspace' ? 'Workspace' : 'Unknown'),
+    customer?.slug ?? (channel.scope === 'workspace' ? 'workspace' : 'unknown'),
     appOrigin,
   )
   const now = new Date()

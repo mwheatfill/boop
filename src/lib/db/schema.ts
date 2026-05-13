@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { check, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import { enumColumn, lifecycleCheck, timestamps } from './columns'
 
 const LIFECYCLE_STATUSES = ['active', 'archived'] as const
@@ -13,7 +13,9 @@ const RUN_STATUSES = ['scheduled', 'running', 'completed', 'canceled'] as const
 const RUN_OUTCOMES = ['success', 'failure', 'timeout'] as const
 const FAILURE_KINDS = ['timeout', 'network', 'http_4xx', 'http_5xx', 'non_2xx_other'] as const
 const CHANNEL_KINDS = ['teams', 'pagerduty', 'autotask', 'email', 'webhook'] as const
+const CHANNEL_SCOPES = ['workspace', 'customer'] as const
 const ALERT_RULE_KINDS = ['first_failure', 'consecutive_failures', 'recovery', 'slow_run'] as const
+const ALERT_RULE_SCOPES = ['workspace', 'customer', 'job'] as const
 const AUTHORING_SESSION_STATES = ['draft', 'confirmed', 'abandoned'] as const
 
 export const customers = sqliteTable(
@@ -177,9 +179,8 @@ export const channels = sqliteTable(
   'channels',
   {
     id: text('id').primaryKey(),
-    customerId: text('customer_id')
-      .notNull()
-      .references(() => customers.id, { onDelete: 'cascade' }),
+    scope: enumColumn('scope', CHANNEL_SCOPES).notNull().default('customer'),
+    customerId: text('customer_id').references(() => customers.id, { onDelete: 'cascade' }),
     kind: enumColumn('kind', CHANNEL_KINDS).notNull(),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
@@ -192,10 +193,22 @@ export const channels = sqliteTable(
     ...timestamps(),
   },
   (table) => [
-    uniqueIndex('channels_customer_slug_idx').on(table.customerId, table.slug),
+    uniqueIndex('channels_workspace_slug_idx')
+      .on(table.slug)
+      .where(sql`${table.scope} = 'workspace'`),
+    uniqueIndex('channels_customer_slug_idx')
+      .on(table.customerId, table.slug)
+      .where(sql`${table.scope} = 'customer'`),
     index('channels_customer_status_idx').on(table.customerId, table.status),
+    index('channels_scope_status_idx').on(table.scope, table.status),
+    check(
+      'channels_scope_customer_id_check',
+      sql`(${table.scope} = 'workspace' AND ${table.customerId} IS NULL)
+        OR (${table.scope} = 'customer' AND ${table.customerId} IS NOT NULL)`,
+    ),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
     lifecycleCheck(table.kind, CHANNEL_KINDS),
+    lifecycleCheck(table.scope, CHANNEL_SCOPES),
   ],
 )
 
@@ -203,9 +216,8 @@ export const alertRules = sqliteTable(
   'alert_rules',
   {
     id: text('id').primaryKey(),
-    customerId: text('customer_id')
-      .notNull()
-      .references(() => customers.id, { onDelete: 'cascade' }),
+    scope: enumColumn('scope', ALERT_RULE_SCOPES).notNull().default('customer'),
+    customerId: text('customer_id').references(() => customers.id, { onDelete: 'cascade' }),
     jobId: text('job_id').references(() => jobs.id, { onDelete: 'cascade' }),
     kind: enumColumn('kind', ALERT_RULE_KINDS).notNull(),
     name: text('name').notNull(),
@@ -217,11 +229,27 @@ export const alertRules = sqliteTable(
     ...timestamps(),
   },
   (table) => [
-    uniqueIndex('alert_rules_customer_slug_idx').on(table.customerId, table.slug),
+    uniqueIndex('alert_rules_workspace_slug_idx')
+      .on(table.slug)
+      .where(sql`${table.scope} = 'workspace'`),
+    uniqueIndex('alert_rules_customer_slug_idx')
+      .on(table.customerId, table.slug)
+      .where(sql`${table.scope} = 'customer'`),
+    uniqueIndex('alert_rules_job_slug_idx')
+      .on(table.jobId, table.slug)
+      .where(sql`${table.scope} = 'job'`),
     index('alert_rules_customer_status_idx').on(table.customerId, table.status),
     index('alert_rules_job_idx').on(table.jobId),
+    index('alert_rules_scope_status_idx').on(table.scope, table.status),
+    check(
+      'alert_rules_scope_owner_check',
+      sql`(${table.scope} = 'workspace' AND ${table.customerId} IS NULL AND ${table.jobId} IS NULL)
+        OR (${table.scope} = 'customer' AND ${table.customerId} IS NOT NULL AND ${table.jobId} IS NULL)
+        OR (${table.scope} = 'job' AND ${table.customerId} IS NOT NULL AND ${table.jobId} IS NOT NULL)`,
+    ),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
     lifecycleCheck(table.kind, ALERT_RULE_KINDS),
+    lifecycleCheck(table.scope, ALERT_RULE_SCOPES),
   ],
 )
 

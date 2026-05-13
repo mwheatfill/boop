@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Activity, Building2, History, Home, Pin } from 'lucide-react'
+import { Activity, Bell, Building2, History, Home, Pin, SendHorizonal } from 'lucide-react'
 import type { ComponentType, ReactNode } from 'react'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { UserMenu } from '@/components/UserMenu'
@@ -26,9 +26,10 @@ interface AppSidebarProps {
 
 interface NavItem {
   label: string
-  to: '/' | '/jobs' | '/customers' | '/runs'
+  to: '/' | '/jobs' | '/customers' | '/runs' | '/channels' | '/alert-rules'
   icon: ComponentType<{ 'aria-hidden'?: boolean }>
   exact?: boolean
+  adminOnly?: boolean
 }
 
 const NAV: NavItem[] = [
@@ -36,6 +37,8 @@ const NAV: NavItem[] = [
   { label: 'Jobs', to: '/jobs', icon: Activity },
   { label: 'Customers', to: '/customers', icon: Building2 },
   { label: 'Runs', to: '/runs', icon: History },
+  { label: 'Channels', to: '/channels', icon: SendHorizonal, adminOnly: true },
+  { label: 'Alert Rules', to: '/alert-rules', icon: Bell, adminOnly: true },
 ]
 
 type EntityKind = 'customer' | 'job'
@@ -89,6 +92,8 @@ function EntityLink({
 export function AppSidebar({ user }: AppSidebarProps) {
   const recents = useRecents()
   const { pinned } = usePinned()
+  const isAdmin = user.role === 'admin'
+  const navItems = NAV.filter((item) => !item.adminOnly || isAdmin)
 
   return (
     <Sidebar collapsible="icon">
@@ -109,7 +114,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {NAV.map((item) => (
+              {navItems.map((item) => (
                 <SidebarMenuItem key={item.to}>
                   <SidebarMenuButton
                     tooltip={item.label}
