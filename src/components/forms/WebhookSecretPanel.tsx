@@ -1,6 +1,7 @@
 import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { DateTime } from '@/components/DateTime'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,10 +53,6 @@ function isActive(secret: WebhookSecretSummary, now: number): boolean {
   if (secret.revokedAt) return false
   if (secret.expiresAt && new Date(secret.expiresAt).getTime() <= now) return false
   return true
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString()
 }
 
 export function WebhookSecretPanel({ customerSlug, jobSlug, origin }: WebhookSecretPanelProps) {
@@ -266,11 +263,13 @@ function ActiveState({
     <div className="flex flex-col gap-3">
       <p className="text-sm">
         <span className="text-muted-foreground">Current secret created on </span>
-        <span className="font-medium">{formatDate(newest.createdAt)}</span>
+        <span className="font-medium">
+          <DateTime value={newest.createdAt} />
+        </span>
       </p>
       {rotating ? (
         <p className="text-xs text-muted-foreground">
-          Previous secret expires {formatDate(rotating.expiresAt ?? '')}
+          Previous secret expires <DateTime value={rotating.expiresAt} />
         </p>
       ) : null}
       <div className="flex items-center gap-2">

@@ -31,7 +31,11 @@ function durationMsOf(run: RunRow): number {
 
 function failureKindOf(run: RunRow, attempts: readonly AttemptRow[]): string | null {
   if (run.outcome === 'success' || run.outcome === null) return null
-  const last = [...attempts].sort((a, b) => b.attemptNumber - a.attemptNumber)[0]
+  const last = attempts.reduce<AttemptRow | undefined>(
+    (latest, attempt) =>
+      latest && latest.attemptNumber > attempt.attemptNumber ? latest : attempt,
+    undefined,
+  )
   return last?.failureKind ?? null
 }
 

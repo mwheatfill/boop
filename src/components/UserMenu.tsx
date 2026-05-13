@@ -19,8 +19,7 @@ interface UserMenuProps {
 function deriveInitials(source: string): string {
   return source
     .split(/[\s.@]+/)
-    .map((p) => p[0])
-    .filter(Boolean)
+    .flatMap((p) => (p[0] ? [p[0]] : []))
     .slice(0, 2)
     .join('')
     .toUpperCase()

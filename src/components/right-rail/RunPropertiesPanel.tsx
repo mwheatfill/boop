@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
+import { DateTime } from '@/components/DateTime'
 import { RunStatusBadge } from '@/components/RunStatusBadge'
 import { formatRunDuration } from '@/lib/runs/format'
 import { getRunFn } from '@/lib/runs/server-fns'
@@ -69,12 +70,14 @@ function RunPropertiesBody({
       <PropertyRow label="Target" mono>
         {target.method} {target.name}
       </PropertyRow>
-      <PropertyRow label="Scheduled at">{new Date(run.scheduledAt).toLocaleString()}</PropertyRow>
+      <PropertyRow label="Scheduled at">
+        <DateTime value={run.scheduledAt} />
+      </PropertyRow>
       <PropertyRow label="Started at">
-        {run.startedAt ? new Date(run.startedAt).toLocaleString() : '—'}
+        <DateTime value={run.startedAt} fallback="Not started" />
       </PropertyRow>
       <PropertyRow label="Completed at">
-        {run.completedAt ? new Date(run.completedAt).toLocaleString() : '—'}
+        <DateTime value={run.completedAt} fallback="Not completed" />
       </PropertyRow>
       <PropertyRow label="Duration">
         {formatRunDuration(run.startedAt, run.completedAt)}

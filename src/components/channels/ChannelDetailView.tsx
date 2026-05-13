@@ -1,5 +1,6 @@
 import { SendHorizonal } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { DateTime } from '@/components/DateTime'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import type { Channel } from '@/shared/schemas/channel'
@@ -80,11 +81,11 @@ export function ChannelDetailView({
         <h2 className="text-sm font-medium">Last test alert</h2>
         {channel.lastTestAlertAt ? (
           <p className="text-sm text-muted-foreground">
-            {new Date(channel.lastTestAlertAt).toLocaleString()} ·{' '}
+            <DateTime value={channel.lastTestAlertAt} /> ·{' '}
             <span className={testStatusToneClass(channel.lastTestAlertStatus)}>
               {channel.lastTestAlertStatus ?? 'pending'}
             </span>
-            {channel.lastTestAlertReason ? ` — ${channel.lastTestAlertReason}` : null}
+            {channel.lastTestAlertReason ? `, ${channel.lastTestAlertReason}` : null}
           </p>
         ) : (
           <p className="text-sm text-muted-foreground">No test alert sent yet.</p>

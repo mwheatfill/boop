@@ -71,7 +71,7 @@ function TemplatesRoute() {
               searchKeywords={(c) => [c.slug]}
             />
             <Button type="button" size="sm" onClick={useTemplate} disabled={!customer}>
-              Continue
+              Create Job
             </Button>
             <Button
               type="button"

@@ -16,7 +16,7 @@ const items: Item[] = [alpha, bravo, charlie, delta]
 function Harness({
   apiRef,
   list = items,
-  storageKey = 't.recents',
+  storageKey = 't.recents:v1',
   limit = 3,
 }: {
   apiRef: { current: UsePickerRecentsResult<Item> | null }
@@ -59,7 +59,7 @@ describe('usePickerRecents', () => {
   })
 
   it('filters out ids no longer in the items list', () => {
-    localStorage.setItem('t.recents', JSON.stringify(['ghost', 'a']))
+    localStorage.setItem('t.recents:v1', JSON.stringify(['ghost', 'a']))
     const apiRef: { current: UsePickerRecentsResult<Item> | null } = { current: null }
     render(<Harness apiRef={apiRef} />)
     expect(apiRef.current?.recents.map((r) => r.id)).toEqual(['a'])

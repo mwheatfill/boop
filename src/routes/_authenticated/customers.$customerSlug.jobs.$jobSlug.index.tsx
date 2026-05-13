@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertsAppliedPanel } from '@/components/alerts/AlertsAppliedPanel'
 import { ContentChrome } from '@/components/ContentChrome'
+import { DateTime } from '@/components/DateTime'
 import { JobActionsMenu } from '@/components/forms/JobActionsMenu'
 import { RecentRunsPanel } from '@/components/forms/RecentRunsPanel'
 import { SaveJobTemplateModal } from '@/components/forms/SaveJobTemplateModal'
@@ -202,13 +203,13 @@ function JobDetailPage() {
         <div className="flex flex-col gap-1">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Last run</p>
           <p className="text-sm">
-            {job.lastFireAt ? new Date(job.lastFireAt).toLocaleString() : '—'}
+            <DateTime value={job.lastFireAt} fallback="No Runs yet" />
           </p>
         </div>
         <div className="flex flex-col gap-1">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Next run</p>
           <p className="text-sm">
-            {job.nextFireAt ? new Date(job.nextFireAt).toLocaleString() : '—'}
+            <DateTime value={job.nextFireAt} fallback="Not scheduled" />
           </p>
         </div>
       </section>

@@ -19,8 +19,7 @@ export function fuzzyScore(value: string, search: string, keywords: string[] = [
   // Acronym: split on spaces / hyphens / non-alphanumerics
   const initials = v
     .split(/[^a-z0-9]+/)
-    .map((w) => w[0])
-    .filter(Boolean)
+    .flatMap((w) => (w[0] ? [w[0]] : []))
     .join('')
   if (initials.startsWith(s)) return ACRONYM_SCORE
 

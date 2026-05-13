@@ -193,8 +193,9 @@ export function AlertRuleModal({
             queryKey: ['customers', owner.customerSlug, 'alert-rules'],
           })
         }
+        const channelById = new Map(activeChannels.map((channel) => [channel.id, channel]))
         for (const id of value.channelIds) {
-          const channel = activeChannels.find((c) => c.id === id)
+          const channel = channelById.get(id)
           if (channel) channelRecents.recordUse(channel)
         }
         toast.success(variant === 'create' ? `Alert rule ${result.data.name} created` : 'Saved')
@@ -220,7 +221,8 @@ export function AlertRuleModal({
   const channelIds = useStore(form.store, (s) => s.values.channelIds)
   const formError = useStore(form.store, (s) => s.errorMap.onSubmit)
   const selectedKindOption = KIND_OPTIONS.find((o) => o.kind === kind) ?? KIND_OPTIONS[0]
-  const selectedChannels = activeChannels.filter((c) => channelIds.includes(c.id))
+  const selectedChannelIds = new Set(channelIds)
+  const selectedChannels = activeChannels.filter((c) => selectedChannelIds.has(c.id))
 
   const channelCreateAffordance = isAdmin
     ? { enabled: true, onCreate: () => setNestedChannelOpen(true) }
@@ -261,7 +263,6 @@ export function AlertRuleModal({
                 value={field.state.value}
                 placeholder="Name this rule…"
                 onChange={(e) => field.handleChange(e.currentTarget.value)}
-                autoFocus
                 className="h-auto border-0 bg-transparent px-0 text-xl font-medium tracking-tight shadow-none placeholder:text-muted-foreground/50 focus-visible:ring-0"
               />
               <form.Field name="slug">

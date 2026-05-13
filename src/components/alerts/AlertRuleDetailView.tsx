@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { DateTime } from '@/components/DateTime'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { type AlertRule, summarizeRuleConfig } from '@/shared/schemas/alert-rule'
@@ -71,7 +72,7 @@ export function AlertRuleDetailView({
               <li key={id} className="flex items-center gap-2">
                 <span className="text-foreground">{channel?.name ?? id}</span>
                 {channel && channel.status !== 'active' ? (
-                  <span className="text-xs text-warning">(archived — update routing)</span>
+                  <span className="text-xs text-warning">(archived, update routing)</span>
                 ) : null}
               </li>
             )
@@ -82,7 +83,7 @@ export function AlertRuleDetailView({
       <section className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-4">
         <h2 className="text-sm font-medium">Last fired</h2>
         <p className="text-sm text-muted-foreground">
-          {rule.lastFiredAt ? new Date(rule.lastFiredAt).toLocaleString() : 'Never fired yet.'}
+          <DateTime value={rule.lastFiredAt} fallback="Never fired yet." />
         </p>
       </section>
     </div>

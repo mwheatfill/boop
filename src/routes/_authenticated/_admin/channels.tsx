@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Plus, SendHorizonal } from 'lucide-react'
 import { z } from 'zod'
 import { DataTable } from '@/components/DataTable'
+import { DateTime } from '@/components/DateTime'
 import { EmptyState } from '@/components/EmptyState'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
@@ -41,8 +42,7 @@ function workspaceChannelColumns(): ColumnDef<Channel>[] {
     {
       accessorKey: 'lastUsedAt',
       header: 'Last used',
-      cell: ({ row }) =>
-        row.original.lastUsedAt ? new Date(row.original.lastUsedAt).toLocaleString() : '—',
+      cell: ({ row }) => <DateTime value={row.original.lastUsedAt} fallback="Never" />,
     },
     {
       accessorKey: 'status',

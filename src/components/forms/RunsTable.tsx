@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/DataTable'
+import { DateTime } from '@/components/DateTime'
 import { RunStatusBadge } from '@/components/RunStatusBadge'
 import { formatDurationMs } from '@/lib/runs/format'
 import type { RunSummaryRow } from '@/shared/schemas/run'
@@ -39,8 +40,7 @@ export function runsColumns(): ColumnDef<RunSummaryRow>[] {
     {
       accessorKey: 'startedAt',
       header: 'Started',
-      cell: ({ row }) =>
-        row.original.startedAt ? new Date(row.original.startedAt).toLocaleString() : '—',
+      cell: ({ row }) => <DateTime value={row.original.startedAt} fallback="Not started" />,
     },
     {
       accessorKey: 'durationMs',

@@ -108,7 +108,10 @@ export async function evaluateRulesForRun({
         ),
       ),
     )
-  const rules = ruleRows.map(parseRuleRow).filter((r): r is LoadedRule => r !== null)
+  const rules = ruleRows.flatMap((row) => {
+    const rule = parseRuleRow(row)
+    return rule ? [rule] : []
+  })
   if (rules.length === 0) return []
 
   const depth = historyDepthFor(rules)

@@ -447,7 +447,6 @@ export function JobModal({
                 value={field.state.value}
                 placeholder="Name this Job…"
                 onChange={(e) => field.handleChange(e.currentTarget.value)}
-                autoFocus
                 aria-invalid={field.state.meta.errors[0] ? 'true' : undefined}
                 className="h-auto border-0 bg-transparent px-0 text-xl font-medium tracking-tight shadow-none placeholder:text-muted-foreground/50 focus-visible:ring-0"
               />

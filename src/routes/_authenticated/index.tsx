@@ -166,7 +166,7 @@ function DashboardPage() {
 function NeedsAttentionList({ rows }: { rows: NeedsAttentionRow[] }) {
   if (rows.length === 0) {
     return (
-      <div className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 rounded-md border border-border bg-muted/20 p-3 text-sm text-muted-foreground">
         <CircleCheck className="size-4 text-success" aria-hidden /> Everything's green.
       </div>
     )
@@ -242,7 +242,7 @@ function UpcomingFiresList({ rows }: { rows: UpcomingFireRow[] }) {
 function RecentFailuresList({ rows }: { rows: RecentFailureRow[] }) {
   if (rows.length === 0) {
     return (
-      <div className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 rounded-md border border-border bg-muted/20 p-3 text-sm text-muted-foreground">
         <CircleCheck className="size-4 text-success" aria-hidden /> No recent failures.
       </div>
     )

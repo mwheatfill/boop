@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useCallback, useContext, useMemo } from 'react'
+import { createContext, type ReactNode, use, useCallback, useMemo } from 'react'
 import { useLocalStorage } from '@/lib/use-local-storage'
 import { type RightRailContent, useRightRailContent } from './useRightRailContent'
 
@@ -32,7 +32,7 @@ export function RightRailProvider({ children }: { children: ReactNode }) {
 }
 
 export function useRightRail(): RightRailContextValue {
-  const ctx = useContext(RightRailContext)
+  const ctx = use(RightRailContext)
   if (!ctx) throw new Error('useRightRail must be used inside <RightRailProvider>')
   return ctx
 }

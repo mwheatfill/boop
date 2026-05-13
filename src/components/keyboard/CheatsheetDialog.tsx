@@ -29,9 +29,10 @@ export function CheatsheetDialog() {
       list.push(entry)
       bySection.set(entry.section, list)
     }
-    return SECTION_ORDER.map((s) => ({ section: s, entries: bySection.get(s) ?? [] })).filter(
-      (g) => g.entries.length > 0,
-    )
+    return SECTION_ORDER.flatMap((section) => {
+      const entries = bySection.get(section) ?? []
+      return entries.length > 0 ? [{ section, entries }] : []
+    })
   }, [registry])
 
   return (

@@ -24,10 +24,11 @@ interface TimezoneComboboxProps {
 function buildOptions(): TimezoneOption[] {
   const allIanas = listAllTimezones()
   const curatedIanas = new Set(CURATED_TIMEZONES.map((o) => o.iana))
-  const derived = allIanas
-    .filter((iana) => !curatedIanas.has(iana))
-    .map((iana) => describeTimezone(iana))
-    .sort((a, b) => a.city.localeCompare(b.city))
+  const derived: TimezoneOption[] = []
+  for (const iana of allIanas) {
+    if (!curatedIanas.has(iana)) derived.push(describeTimezone(iana))
+  }
+  derived.sort((a, b) => a.city.localeCompare(b.city))
   return [...CURATED_TIMEZONES, ...derived]
 }
 

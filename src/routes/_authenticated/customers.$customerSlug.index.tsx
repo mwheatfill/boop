@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import { ContentChrome } from '@/components/ContentChrome'
 import { DataTable } from '@/components/DataTable'
+import { DateTime } from '@/components/DateTime'
 import { EmptyState } from '@/components/EmptyState'
 import { useShortcut } from '@/components/keyboard/use-shortcut'
 import { PinButton } from '@/components/PinButton'
@@ -65,16 +66,12 @@ function jobsColumns(customerSlug: string): ColumnDef<JobSummary>[] {
     {
       accessorKey: 'nextFireAt',
       header: 'Next run',
-      cell: ({ row }) =>
-        row.original.nextFireAt ? new Date(row.original.nextFireAt).toLocaleString() : '—',
+      cell: ({ row }) => <DateTime value={row.original.nextFireAt} fallback="Not scheduled" />,
     },
     {
       accessorKey: 'lastRunStartedAt',
       header: 'Last run',
-      cell: ({ row }) =>
-        row.original.lastRunStartedAt
-          ? new Date(row.original.lastRunStartedAt).toLocaleString()
-          : '—',
+      cell: ({ row }) => <DateTime value={row.original.lastRunStartedAt} fallback="No Runs yet" />,
     },
     {
       accessorKey: 'status',
