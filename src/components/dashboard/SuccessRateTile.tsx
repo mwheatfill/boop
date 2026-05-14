@@ -1,6 +1,7 @@
-import { TrendingDown, TrendingUp } from 'lucide-react'
+import { Minus, TrendingDown, TrendingUp } from 'lucide-react'
 import { Label, PolarGrid, PolarRadiusAxis, RadialBar, RadialBarChart } from 'recharts'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardAction, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer } from '@/components/ui/chart'
 
 interface SuccessRateTileProps {
@@ -20,31 +21,35 @@ const deltaFmt = new Intl.NumberFormat('en-US', {
 
 export function SuccessRateTile({ label, value, delta }: SuccessRateTileProps) {
   const data = [{ name: 'rate', value, fill: 'var(--color-rate)' }]
-  const TrendIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : null
+  const TrendIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus
   const endAngle = 90 - (Math.min(Math.max(value, 0), 100) / 100) * 360
 
   return (
-    <Card className="flex flex-col">
-      <CardHeader className="pb-0">
-        <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          {label}
-        </CardTitle>
+    <Card className="@container/card">
+      <CardHeader>
+        <CardDescription>{label}</CardDescription>
+        <CardAction>
+          <Badge variant="outline">
+            <TrendIcon className="size-3" aria-hidden />
+            {deltaFmt.format(delta)}%
+          </Badge>
+        </CardAction>
       </CardHeader>
-      <CardContent className="flex-1 pb-0">
-        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[180px]">
+      <CardContent className="pb-2">
+        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[160px]">
           <RadialBarChart
             data={data}
             startAngle={90}
             endAngle={endAngle}
-            outerRadius={80}
-            innerRadius={64}
+            outerRadius={70}
+            innerRadius={56}
           >
             <PolarGrid
               gridType="circle"
               radialLines={false}
               stroke="none"
               className="first:fill-muted last:fill-background"
-              polarRadius={[80, 64]}
+              polarRadius={[70, 56]}
             />
             <RadialBar dataKey="value" background cornerRadius={8} />
             <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
@@ -74,14 +79,6 @@ export function SuccessRateTile({ label, value, delta }: SuccessRateTileProps) {
           </RadialBarChart>
         </ChartContainer>
       </CardContent>
-      {TrendIcon ? (
-        <CardFooter className="justify-center pt-0 pb-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1 tabular-nums">
-            <TrendIcon className="size-3" aria-hidden />
-            {deltaFmt.format(delta)}% vs. yesterday
-          </span>
-        </CardFooter>
-      ) : null}
     </Card>
   )
 }

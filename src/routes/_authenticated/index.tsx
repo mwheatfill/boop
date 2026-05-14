@@ -5,11 +5,10 @@ import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { ContentChrome } from '@/components/ContentChrome'
-import { CountTile } from '@/components/dashboard/CountTile'
 import { JobRowActions } from '@/components/dashboard/JobRowActions'
+import { KpiCard } from '@/components/dashboard/KpiCard'
 import { RunsAreaChart } from '@/components/dashboard/RunsAreaChart'
 import { SearchHint } from '@/components/dashboard/SearchHint'
-import { SparklineTile } from '@/components/dashboard/SparklineTile'
 import { SuccessRateTile } from '@/components/dashboard/SuccessRateTile'
 import { EmptyState } from '@/components/EmptyState'
 import { Badge } from '@/components/ui/badge'
@@ -101,25 +100,35 @@ function DashboardPage() {
         </div>
       </header>
 
-      <section aria-label="Workspace stats" className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <CountTile label="Failing Jobs" value={summary.stats.failingJobsNow} />
+      <section
+        aria-label="Workspace stats"
+        className="grid grid-cols-1 gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs sm:grid-cols-2 lg:grid-cols-4 dark:*:data-[slot=card]:bg-card"
+      >
+        <KpiCard
+          label="Failing Jobs"
+          value={summary.stats.failingJobsNow}
+          footerPrimary="Jobs in a failing streak"
+          footerSecondary="Right now"
+        />
         <SuccessRateTile
-          label="Success Rate"
+          label="Success Rate (24h)"
           value={summary.stats.successRate24h}
           delta={summary.stats.successRate24hDelta}
         />
-        <SparklineTile
-          label="Runs 24h"
+        <KpiCard
+          label="Runs (24h)"
           value={summary.stats.runs24h.toLocaleString()}
-          sparkline={summary.sparklines.runs24h}
           delta={summary.stats.runs24hDelta}
+          footerPrimary="Total runs in the last 24h"
+          footerSecondary="Compared to the previous 24h"
         />
-        <SparklineTile
-          label="Avg Duration 24h"
+        <KpiCard
+          label="Avg Duration (24h)"
           value={formatDuration(summary.stats.avgDurationMs24h)}
-          sparkline={summary.sparklines.avgDurationMs24h}
           delta={summary.stats.avgDurationMs24hDelta}
           deltaSuffix="ms"
+          footerPrimary="Mean run duration"
+          footerSecondary="Compared to the previous 24h"
         />
       </section>
 
