@@ -4,7 +4,6 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import type { ReactNode } from 'react'
-import { DensityProvider } from '@/components/density/DensityProvider'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { Toaster } from '@/components/ui/sonner'
 import { getCurrentUserFn } from '@/lib/auth/server-fns'
@@ -45,17 +44,15 @@ function RootDocument({ children }: { children: ReactNode }) {
       </head>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <ThemeProvider>
-          <DensityProvider>
-            {children}
-            <Toaster />
-            {import.meta.env.DEV && (
-              <>
-                <TanStackRouterDevtools position="bottom-right" />
-                <ReactQueryDevtools buttonPosition="bottom-left" />
-              </>
-            )}
-            <Scripts />
-          </DensityProvider>
+          {children}
+          <Toaster />
+          {import.meta.env.DEV && (
+            <>
+              <TanStackRouterDevtools position="bottom-right" />
+              <ReactQueryDevtools buttonPosition="bottom-left" />
+            </>
+          )}
+          <Scripts />
         </ThemeProvider>
       </body>
     </html>

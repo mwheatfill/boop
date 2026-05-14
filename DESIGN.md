@@ -18,29 +18,24 @@ The brand-vs-UI-accent split is load-bearing. The UI chrome is monochrome dark w
 
 ## 3. Visual tokens
 
-See [ADR-022](docs/adr/022-design-language-pass-2.md) for the full token table and derivation rules. The system has three anchors, every other token derives.
+Canonical shadcn flat OKLCH tokens on `base-vega` (Base UI). Two blocks in `src/styles/app.css`: `:root` (light) and `.dark`. Every token has a value in each. Per [ADR-022](docs/adr/022-design-language-pass-2.md).
 
-| Anchor | Default (dark) | `.light` override |
+**Theme refresh workflow.** Open [`ui.shadcn.com/create`](https://ui.shadcn.com/create), tune a theme, copy the CSS block, paste into `src/styles/app.css` over the `:root` + `.dark` blocks. Re-add the three project token extensions (`--success` / `--warning` / `--info` and their foregrounds) if the paste removed them. The shape matches verbatim — no translation step.
+
+**Mode structure is light-first; dark is the user default.** `:root` carries light values; `.dark` overrides. `next-themes` `defaultTheme="dark"` keeps the user-facing default unchanged. The CSS structure matches the shape `shadcn-create` emits so pastes are verbatim.
+
+**Project token extensions** beyond shadcn's canonical set: `--success`, `--warning`, `--info` and their foreground variants. Defined in both blocks; mapped through `@theme inline` to Tailwind utilities (`bg-success`, `text-warning-foreground`, etc.).
+
+**Semantic state values** (low chroma, hue-canonical):
+
+| Token | Light (`:root`) | Dark (`.dark`) |
 |---|---|---|
-| `--theme-base` | `oklch(0.16 0.006 250)` (cool slate, near-neutral) | `oklch(0.985 0.004 250)` (cool off-white, matching hue) |
-| `--theme-accent` | `oklch(0.68 0.16 240)` (cool blue, lifted for dark) | `oklch(0.55 0.18 240)` (cool blue, darkened for light) |
-| `--theme-contrast` | `0.7` (Linear-midpoint readability) | `0.75` (slightly higher on light surfaces) |
-| `--surface-step` | `0.04` (lift surfaces toward white) | `-0.025` (step surfaces toward black) |
+| `--success` | `oklch(0.55 0.12 150)` | `oklch(0.7 0.1 150)` |
+| `--warning` | `oklch(0.65 0.13 85)` | `oklch(0.78 0.1 85)` |
+| `--info` | `oklch(0.55 0.13 235)` | `oklch(0.7 0.1 235)` |
+| `--destructive` | `oklch(0.55 0.18 25)` | `oklch(0.62 0.15 25)` |
 
-Derived tokens use OKLCH relative-color syntax: `oklch(from var(--theme-base) calc(l + var(--surface-step)) c h)` for card / popover / sidebar; `calc(l + var(--surface-step) * 2)` for secondary / muted / accent. The signed `--surface-step` flips direction in `.light` so a `0.985` base steps DOWN to visible cards instead of clamping at `1.0`. Foreground uses `oklch(from var(--theme-base) calc((1 - l) * var(--theme-contrast) + l * (1 - var(--theme-contrast))) calc(c * 0.4) h)`. Muted foreground is `color-mix(in oklch, var(--foreground) 70%, var(--background))` (the `l + offset` pattern clamps on a near-1.0 base). Change one anchor, every derived token follows.
-
-**Default mode is dark.** `:root` carries dark values; `.light` overrides only the anchors. `next-themes` `defaultTheme="dark"`. Per [ADR-022](docs/adr/022-design-language-pass-2.md).
-
-**Semantic states are Linear-orthodox** (low chroma, hue-canonical):
-
-| Token | Dark | Light |
-|---|---|---|
-| `--success` | `oklch(0.7 0.1 150)` | `oklch(0.55 0.12 150)` |
-| `--warning` | `oklch(0.78 0.1 85)` | `oklch(0.65 0.13 85)` |
-| `--info` | `oklch(0.7 0.1 235)` | `oklch(0.55 0.13 235)` |
-| `--destructive` | `oklch(0.62 0.15 25)` | `oklch(0.55 0.18 25)` |
-
-**Borders are hairlines at low alpha.** Dark: `oklch(1 0 0 / 0.08)`. Light: `oklch(0 0 0 / 0.10)`. Structure emerges from border lines, not gaps or shadows.
+**Borders are hairlines at low alpha.** Light: `oklch(0 0 0 / 0.10)`. Dark: `oklch(1 0 0 / 0.08)`. Structure emerges from border lines, not gaps or shadows.
 
 **Radius is `0.5rem` (8px)** for default-radius surfaces. Smaller / larger derive from `--radius-sm` / `--radius-lg` / `--radius-xl`. Radius applies only to floating overlays and interactive controls (see § 5 Lists and tables for the no-rounded-data-surface rule).
 
@@ -62,7 +57,7 @@ Derived tokens use OKLCH relative-color syntax: `oklch(from var(--theme-base) ca
 /w/$customerSlug/$jobSlug                                   Public webhook receiver
 ```
 
-**Current layout: inverted-L sidebar.** A fixed-left sidebar at ~16rem (~256px) collapses to a ~3rem icon rail. Sections from top: workspace mark, primary nav (Home, Jobs, Customers, Runs), `Recent` (shared store with the Cmd+K palette), `Pinned` (device-local, capped at 20), footer with theme toggle + user menu. Below the `md` breakpoint the sidebar becomes a slide-in drawer via the shadcn `sidebar` primitive's built-in `Sheet` integration. Content area scrolls independently. Right rail (properties panel) appears contextually on detail views — Job, Run, Customer, Target — and is hidden on list views. Three-icon cluster top-right of list / detail views: filter / display options / right-rail toggle. The brand-vs-UI-accent split holds: chrome stays monochrome with the cool-blue accent reserved for selection and primary action.
+**Current layout: inverted-L sidebar.** A fixed-left sidebar at ~16rem (~256px) collapses to a ~3rem icon rail. Sections from top: workspace mark, primary nav (Home, Jobs, Customers, Runs), `Recent` (shared store with the Cmd+K palette), `Pinned` (device-local, capped at 20), footer with theme toggle + user menu. Below the `md` breakpoint the sidebar becomes a slide-in drawer via the shadcn `sidebar` primitive's built-in `Sheet` integration. Content area scrolls independently. The brand-vs-UI-accent split holds: chrome stays monochrome with the cool-blue accent reserved for selection and primary action.
 
 **Title strategy:**
 - List views: small heading at top-left (`My Jobs`, `Customers`, `Runs`). The data is the focus, not the page name.
@@ -133,7 +128,7 @@ See `docs/design-direction.md` for queue state.
 |---|---|---|
 | **With-CTA** | The user can act to fix the empty | Centered icon + title + description + primary CTA button. Example: "No Jobs yet. Create one to schedule HTTP calls." + `Create new Job` button. |
 | **Icon-only** | Descriptive empty, no action needed | Centered icon + muted message. Example: "No unread notifications." |
-| **Inline** | Contextual empty in a sub-panel | Muted text only, no icon. Example: right rail "No labels used." |
+| **Inline** | Contextual empty in a sub-panel | Muted text only, no icon. Example: a properties row that reads "No labels used." |
 
 Pick the variant that matches whether action would help.
 
@@ -151,13 +146,7 @@ Pick the variant that matches whether action would help.
 
 **Contrast.** At `--theme-contrast: 0.7` (default), foreground / background contrast is in WCAG AA range for body text. A future `--theme-contrast: 0.95` mode lands as an accessibility theme toggle without code changes to components (the derivation handles it).
 
-## 11. Density
-
-**Compact is the default.** Operator tooling earns density.
-
-**Density toggle.** `data-density="compact" | "spacious"` on `<html>`, persisted at `boop.density` and toggled from the display-options popover in the three-icon cluster (§ 4). Compact stays at the slice-1 / slice-2 dense values. Spacious adds +50% vertical padding on list rows and form rows, +25% interior padding on dashboard stat tiles. The CSS variables `--row-py`, `--tile-p`, `--form-row-py` live in `src/styles/app.css`; consumer components reference them via `py-(--row-py)` / `p-(--tile-p)` / `py-(--form-row-py)`. Chrome (sidebar, breadcrumbs, popovers) does not consume the density tokens — the workspace shell stays tight while content breathes.
-
-## 12. Anti-patterns
+## 11. Anti-patterns
 
 The most common ways to break this design system. Each undermines the core aesthetic.
 
@@ -168,11 +157,12 @@ The most common ways to break this design system. Each undermines the core aesth
 - **Tables for non-tabular data.** Activity feeds, comments, narrative content — render as styled row lists with typography hierarchy. Reserve `<table>` for genuinely columnar data.
 - **Color absence as "restraint."** "Color restraint" means small and intentional, not "zero color." Status colors, primary accent, brand orange in charts are all in scope. The right amount is "where it carries meaning, nowhere else."
 - **Bland empty states.** "No items found" is not an empty state. Pick the right variant from § 9 (with-CTA / icon-only / inline).
-- **Warm orange as UI chrome accent.** The brand palette lives in `--chart-1..3` and dashboard accents. Primary CTAs, focus rings, selected rows use `--theme-accent` (cool blue). See [ADR-022](docs/adr/022-design-language-pass-2.md) § brand-vs-UI-accent split.
-- **`--accent` as a duplicate of `--secondary`.** `--accent` is a faint warm tint (or cool-tinted muted in dark) for hovered items in dropdowns and contextual emphasis. `--secondary` is the larger muted surface. Treating them as identical loses the dropdown-item hover affordance.
-- **Workaround flags in CSS / config.** Same rule as the research-first protocol re-anchored each turn: no workaround when a canonical alternative exists. If you find yourself adding a one-off CSS variable to compensate for a derivation that "doesn't quite work," re-derive from the anchors instead.
+- **Warm orange as UI chrome accent.** The brand palette lives in `--chart-1..3` and dashboard accents. Primary CTAs, focus rings, selected rows use `--primary` (currently cool blue). See [ADR-022](docs/adr/022-design-language-pass-2.md) brand-vs-UI-accent decision.
+- **`--accent` as a duplicate of `--secondary`.** `--accent` is the faint tint for hovered items in dropdowns and contextual emphasis. `--secondary` is the larger muted surface. Treating them as identical loses the dropdown-item hover affordance.
+- **Workaround flags in CSS / config.** Same rule as the research-first protocol re-anchored each turn: no workaround when a canonical alternative exists. If a token you need does not exist, add it as a project extension (mapped in both `:root` and `.dark`, exposed via `@theme inline`) — do not hand-roll an arbitrary color at the call site.
+- **Re-introducing a derivation layer.** Anchor-derived tokens (e.g. `oklch(from var(--theme-base) calc(l + step) c h)`) were tried and removed in ADR-022. Theme refreshes go through the `ui.shadcn.com/create` paste workflow; values are pre-computed.
 
-## 13. Further reading
+## 12. Further reading
 
 ADRs that govern interface decisions:
 

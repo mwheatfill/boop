@@ -25,7 +25,7 @@ export function StatTile({ label, value, sparkline, trend, trendSuffix }: StatTi
   const trendColor = hasTrend && trend > 0 ? 'text-success' : 'text-destructive'
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-(--tile-p)">
+    <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-4">
       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="text-3xl font-semibold tabular-nums">{value}</p>
       {hasTrend ? (

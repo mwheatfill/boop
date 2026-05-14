@@ -1,4 +1,4 @@
-// Mechanical anti-pattern guard for DESIGN.md § 12. See ADR-009 for the
+// Mechanical anti-pattern guard for DESIGN.md § 11. See ADR-009 for the
 // audit-patterns rationale and ADR-022 for the design system being enforced.
 // High-confidence catches only: Tailwind color classes that bypass the theme
 // tokens, hardcoded color values inside className strings. Heuristic catches
@@ -42,7 +42,7 @@ const rules: Rule[] = [
       `(?:^|[\\s"'\`])(?:${TW_COLOR_PREFIXES})-\\[(?:#|rgb|hsl|oklch|var\\(--[^)]*color)`,
     ),
     message:
-      'Tailwind arbitrary color values (text-[#abc], bg-[oklch(...)], etc.) bypass the token system. Use a token class. If a token does not yet exist, propose it in DESIGN.md § 3 first. See DESIGN.md § 12 Anti-patterns.',
+      'Tailwind arbitrary color values (text-[#abc], bg-[oklch(...)], etc.) bypass the token system. Use a token class. If a token does not yet exist, propose it in DESIGN.md § 3 first. See DESIGN.md § 11 Anti-patterns.',
     severity: 'error',
   },
   {
@@ -53,7 +53,7 @@ const rules: Rule[] = [
     pattern:
       /(?:className|style|fill|stroke|color)\s*[:=]\s*\{?\s*[`"'][\s\S]{0,400}?(#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6,8})(?![0-9a-fA-F])|oklch\(|rgb\(|hsl\()/,
     message:
-      'Hardcoded color in a JSX attribute bypasses the token system. Move the color to src/styles/app.css and use a token class. See DESIGN.md § 3 + § 12.',
+      'Hardcoded color in a JSX attribute bypasses the token system. Move the color to src/styles/app.css and use a token class. See DESIGN.md § 3 + § 11.',
     severity: 'error',
   },
 ]
@@ -76,7 +76,7 @@ export function runDesignAudit(): AuditResult {
             file: rel,
             line: idx + 1,
             message: rule.message,
-            source: 'DESIGN.md § 3 Visual tokens, § 12 Anti-patterns',
+            source: 'DESIGN.md § 3 Visual tokens, § 11 Anti-patterns',
           })
         }
       })

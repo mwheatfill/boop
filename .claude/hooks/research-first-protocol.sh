@@ -55,6 +55,6 @@ UI ADDENDUM (when the task touches src/components/**, src/routes/**, or src/styl
   bg-card not bg-zinc-900. text-success/warning/info/destructive not
   text-green-600/amber-500/blue-500/red-500. Arbitrary colors (text-[#abc],
   bg-[oklch(...)]) and hardcoded JSX color literals are forbidden.
-- scripts/audit-patterns/design.ts enforces DESIGN.md § 12 anti-patterns at CI
+- scripts/audit-patterns/design.ts enforces DESIGN.md § 11 anti-patterns at CI
   time. Failing them is a CI failure, not advisory.
 PROTOCOL

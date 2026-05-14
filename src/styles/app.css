@@ -2,165 +2,90 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Three-anchor theme system. See ADR-022.
- *
- * --theme-base    background hue. Dark-first; .light overrides.
- * --theme-accent  primary action color. Cool blue, not warm orange.
- *                 (Warm orange retreats to --chart-1..5 per the brand-vs-UI-accent split.)
- * --theme-contrast 0..1 multiplier for foreground/border intensity.
- *                  Default 0.7 matches Linear's contrast slider midpoint.
- * --surface-step  signed lightness lift for derived surfaces. Positive in
- *                 dark mode (lift toward white); negative in .light (step
- *                 toward black). Without the sign flip, `l + 0.04` clamps
- *                 at 1.0 on a 0.985 base and every surface collapses.
- *
- * Every derived token below is computed from these via OKLCH's
- * relative-color syntax: `oklch(from <color> <l> <c> <h>)`. Change one
- * anchor, every derived token follows. Browser support: Chrome 119+,
- * Safari 16.4+, Firefox 128+.
- */
+/* See ADR-022. Flat shadcn tokens, light-first; .dark overrides. Edit values
+ * with a paste from ui.shadcn.com/create over the two blocks below. */
 :root {
-  /* Anchors: dark mode by default */
-  --theme-base: oklch(0.16 0.006 250);
-  --theme-accent: oklch(0.68 0.16 240);
-  --theme-contrast: 0.7;
-  --surface-step: 0.04;
-  --radius: 0.5rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.841 0.238 128.85);
+  --primary-foreground: oklch(0.405 0.101 131.063);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.897 0.196 126.665);
+  --chart-2: oklch(0.768 0.233 130.85);
+  --chart-3: oklch(0.648 0.2 131.684);
+  --chart-4: oklch(0.532 0.157 131.589);
+  --chart-5: oklch(0.453 0.124 130.933);
+  --radius: 0;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.648 0.2 131.684);
+  --sidebar-primary-foreground: oklch(0.986 0.031 120.757);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 
-  /* Surfaces derived from --theme-base. Card and popover lift slightly
-   * from background to create the tiled-flat hierarchy by tone, not gap. */
-  --background: var(--theme-base);
-  --card: oklch(from var(--theme-base) calc(l + var(--surface-step)) c h);
-  --popover: oklch(from var(--theme-base) calc(l + var(--surface-step)) c h);
-  --secondary: oklch(from var(--theme-base) calc(l + var(--surface-step) * 2) c h);
-  --muted: oklch(from var(--theme-base) calc(l + var(--surface-step) * 2) c h);
-  --accent: oklch(from var(--theme-base) calc(l + var(--surface-step) * 2) c h);
-  --sidebar: oklch(from var(--theme-base) calc(l + var(--surface-step)) c h);
-
-  /* Foreground: perceptually opposite lightness, modulated by contrast.
-   * At contrast 1.0: foreground sits at (1 - base.l). At contrast 0.0:
-   * foreground equals background (no contrast). Chroma drops to a hint. */
-  --foreground: oklch(
-    from var(--theme-base) calc((1 - l) * var(--theme-contrast) + l * (1 - var(--theme-contrast)))
-      calc(c * 0.4) h
-  );
-  --card-foreground: var(--foreground);
-  --popover-foreground: var(--foreground);
-  --secondary-foreground: var(--foreground);
-  --accent-foreground: var(--foreground);
-  --sidebar-foreground: var(--foreground);
-
-  /* Muted foreground: ~70% of the way from background to foreground.
-   * color-mix sidesteps the `l + offset` clamp that bites on a 0.985 base. */
-  --muted-foreground: color-mix(in oklch, var(--foreground) 70%, var(--background));
-
-  /* Borders + inputs: hairline at low alpha against the foreground hue.
-   * Dark mode: white-at-low-alpha. Light mode (.light): black-at-low-alpha. */
-  --border: oklch(1 0 0 / 0.08);
-  --input: oklch(1 0 0 / 0.12);
-
-  /* Primary action: the accent anchor directly. Foreground is a fixed
-   * near-white at the accent hue. The accent stays in the 0.55..0.68
-   * lightness band across modes, where near-white is always the readable
-   * choice; a perceptual-inverse derivation lands in the same band and
-   * reads as dim-on-dim. */
-  --primary: var(--theme-accent);
-  --primary-foreground: oklch(0.985 0.005 240);
-  --primary-hover: oklch(from var(--theme-accent) calc(l + 0.06) c h);
-  --primary-muted: oklch(from var(--theme-accent) calc(l - 0.4) calc(c * 0.5) h);
-
-  /* Ring: the accent at full chroma for focus visibility. */
-  --ring: var(--theme-accent);
-  --sidebar-primary: var(--theme-accent);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: oklch(from var(--theme-base) calc(l + var(--surface-step) * 2) c h);
-  --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
-
-  /* Semantic states. Linear-orthodox: low chroma, hue-canonical, restrained.
-   * The gold-warning-to-dodge-orange decision from ADR-021 is moot now that
-   * primary is cool blue at hue 240 (44° from warning amber at hue 85). */
-  --success: oklch(0.7 0.1 150);
-  --success-foreground: oklch(0.18 0.012 150);
-  --warning: oklch(0.78 0.1 85);
-  --warning-foreground: oklch(0.18 0.012 85);
-  --info: oklch(0.7 0.1 235);
-  --info-foreground: oklch(0.18 0.012 235);
-  --destructive: oklch(0.62 0.15 25);
-  --destructive-foreground: oklch(0.96 0.005 25);
-
-  /* Chart palette: the warm orange brand identity lives here. Chart-1..3
-   * are the original ADR-021 warm orange family; chart-4..5 are
-   * complementary hues for variety in stacked or multi-series charts. */
-  --chart-1: oklch(0.72 0.155 52);
-  --chart-2: oklch(0.84 0.135 55);
-  --chart-3: oklch(0.55 0.136 49);
-  --chart-4: oklch(0.7 0.1 235);
-  --chart-5: oklch(0.7 0.1 150);
-}
-
-.light {
-  /* Light mode: override only the anchors. Every derived token re-computes
-   * automatically. The accent is darkened slightly so it reads on light
-   * surfaces; the semantic states drop a touch of lightness for contrast.
-   * --surface-step flips sign so card/sidebar/secondary step DOWN from
-   * the base instead of clamping at 1.0. The magnitude is smaller because
-   * the eye reads dark-on-light steps more strongly than light-on-dark. */
-  --theme-base: oklch(0.985 0.004 250);
-  --theme-accent: oklch(0.55 0.18 240);
-  --theme-contrast: 0.75;
-  --surface-step: -0.025;
-
-  /* Borders flip to dark-on-light at low alpha. */
-  --border: oklch(0 0 0 / 0.1);
-  --input: oklch(0 0 0 / 0.14);
-
-  /* Semantic states recalibrated for light backgrounds. */
+  /* Project extensions: semantic states beyond the shadcn canonical set. */
   --success: oklch(0.55 0.12 150);
   --success-foreground: oklch(0.98 0.003 150);
   --warning: oklch(0.65 0.13 85);
   --warning-foreground: oklch(0.18 0.012 85);
   --info: oklch(0.55 0.13 235);
   --info-foreground: oklch(0.98 0.003 235);
-  --destructive: oklch(0.55 0.18 25);
-  --destructive-foreground: oklch(0.98 0.003 25);
-
-  /* Chart palette: same warm orange family, calibrated for light surfaces. */
-  --chart-1: oklch(0.676 0.16 50.9);
-  --chart-2: oklch(0.817 0.119 54.9);
-  --chart-3: oklch(0.539 0.136 49.1);
-  --chart-4: oklch(0.55 0.13 235);
-  --chart-5: oklch(0.55 0.12 150);
 }
 
-/* Density tokens. See PRD #44, DESIGN.md § 11. Compact is the default for
- * power-user scanning; spacious adds ~50% vertical room for stakeholder
- * demos and accessibility. Chrome (sidebar, top bar, breadcrumbs) is
- * unaffected — only content surfaces consume these. */
-:root {
-  --row-py-compact: 0.5rem;
-  --row-py-spacious: 0.75rem;
-  --tile-p-compact: 1rem;
-  --tile-p-spacious: 1.25rem;
-  --form-row-py-compact: 0.5rem;
-  --form-row-py-spacious: 0.75rem;
-  --row-py: var(--row-py-compact);
-  --tile-p: var(--tile-p-compact);
-  --form-row-py: var(--form-row-py-compact);
-  --right-rail-width: 20rem;
-}
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.768 0.233 130.85);
+  --primary-foreground: oklch(0.405 0.101 131.063);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.897 0.196 126.665);
+  --chart-2: oklch(0.768 0.233 130.85);
+  --chart-3: oklch(0.648 0.2 131.684);
+  --chart-4: oklch(0.532 0.157 131.589);
+  --chart-5: oklch(0.453 0.124 130.933);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.768 0.233 130.85);
+  --sidebar-primary-foreground: oklch(0.274 0.072 132.109);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
 
-html[data-density="compact"] {
-  --row-py: var(--row-py-compact);
-  --tile-p: var(--tile-p-compact);
-  --form-row-py: var(--form-row-py-compact);
-}
-
-html[data-density="spacious"] {
-  --row-py: var(--row-py-spacious);
-  --tile-p: var(--tile-p-spacious);
-  --form-row-py: var(--form-row-py-spacious);
+  --success: oklch(0.7 0.1 150);
+  --success-foreground: oklch(0.18 0.012 150);
+  --warning: oklch(0.78 0.1 85);
+  --warning-foreground: oklch(0.18 0.012 85);
+  --info: oklch(0.7 0.1 235);
+  --info-foreground: oklch(0.18 0.012 235);
 }
 
 @theme inline {
@@ -172,8 +97,6 @@ html[data-density="spacious"] {
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-primary-hover: var(--primary-hover);
-  --color-primary-muted: var(--primary-muted);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -187,7 +110,6 @@ html[data-density="spacious"] {
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
   --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
