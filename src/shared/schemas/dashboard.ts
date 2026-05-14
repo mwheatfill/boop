@@ -3,10 +3,13 @@ import { tzSchema } from './timezone'
 
 export const StatsSchema = z
   .object({
-    activeJobs: z.int(),
-    failingToday: z.int(),
-    runsToday: z.int(),
-    successRate7d: z.number(),
+    failingJobsNow: z.int(),
+    successRate24h: z.number(),
+    successRate24hDelta: z.number(),
+    runs24h: z.int(),
+    runs24hDelta: z.int(),
+    avgDurationMs24h: z.number().nullable(),
+    avgDurationMs24hDelta: z.number().nullable(),
   })
   .meta({ id: 'DashboardStats' })
 
@@ -16,10 +19,8 @@ const SparklinePointSchema = z.object({ t: z.number(), v: z.number() })
 
 export const SparklinesSchema = z
   .object({
-    activeJobs: z.array(SparklinePointSchema),
-    failingToday: z.array(SparklinePointSchema),
-    runsToday: z.array(SparklinePointSchema),
-    successRate7d: z.array(SparklinePointSchema),
+    runs24h: z.array(SparklinePointSchema),
+    avgDurationMs24h: z.array(SparklinePointSchema),
   })
   .meta({ id: 'DashboardSparklines' })
 

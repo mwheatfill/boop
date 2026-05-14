@@ -1,5 +1,5 @@
 import { Cron } from 'croner'
-import { and, count, desc, eq, gte, inArray, sql } from 'drizzle-orm'
+import { and, count, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { customers, jobs, runs } from '@/lib/db/schema'
 import type {
@@ -35,121 +35,125 @@ export async function dashboardSummary(db: Database, now = new Date()): Promise<
 
 async function computeStats(db: Database, now: Date): Promise<Stats> {
   const dayAgo = new Date(now.getTime() - DAY_MS)
-  const sevenDaysAgo = new Date(now.getTime() - 7 * DAY_MS)
+  const twoDaysAgo = new Date(now.getTime() - 2 * DAY_MS)
+  const terminal = ['success', 'failure', 'timeout'] as const
+  const failures = ['failure', 'timeout'] as const
 
-  const [[activeRow], [runsTodayRow], [failingTodayRow], [success7d], [total7d]] =
-    await Promise.all([
-      db.select({ n: count() }).from(jobs).where(eq(jobs.status, 'active')),
-      db.select({ n: count() }).from(runs).where(gte(runs.startedAt, dayAgo)),
-      db
-        .select({ n: sql<number>`count(distinct ${runs.jobId})` })
-        .from(runs)
-        .where(and(gte(runs.completedAt, dayAgo), inArray(runs.outcome, ['failure', 'timeout']))),
-      db
-        .select({ n: count() })
-        .from(runs)
-        .where(and(gte(runs.completedAt, sevenDaysAgo), eq(runs.outcome, 'success'))),
-      db
-        .select({ n: count() })
-        .from(runs)
-        .where(
-          and(
-            gte(runs.completedAt, sevenDaysAgo),
-            inArray(runs.outcome, ['success', 'failure', 'timeout']),
-          ),
+  const [
+    [failingJobsRow],
+    [runs24hRow],
+    [runs24hPrevRow],
+    [rate24hRow],
+    [rate24hPrevRow],
+    [duration24hRow],
+    [duration24hPrevRow],
+  ] = await Promise.all([
+    db
+      .select({ n: sql<number>`count(distinct ${runs.jobId})` })
+      .from(runs)
+      .where(and(gte(runs.completedAt, dayAgo), inArray(runs.outcome, failures))),
+    db.select({ n: count() }).from(runs).where(gte(runs.startedAt, dayAgo)),
+    db
+      .select({ n: count() })
+      .from(runs)
+      .where(and(gte(runs.startedAt, twoDaysAgo), lt(runs.startedAt, dayAgo))),
+    db
+      .select({
+        succ: sql<number>`sum(case when ${runs.outcome} = 'success' then 1 else 0 end)`,
+        total: count(),
+      })
+      .from(runs)
+      .where(and(gte(runs.completedAt, dayAgo), inArray(runs.outcome, terminal))),
+    db
+      .select({
+        succ: sql<number>`sum(case when ${runs.outcome} = 'success' then 1 else 0 end)`,
+        total: count(),
+      })
+      .from(runs)
+      .where(
+        and(
+          gte(runs.completedAt, twoDaysAgo),
+          lt(runs.completedAt, dayAgo),
+          inArray(runs.outcome, terminal),
         ),
-    ])
+      ),
+    db
+      .select({
+        ms: sql<number | null>`avg(${runs.completedAt} - ${runs.startedAt})`,
+      })
+      .from(runs)
+      .where(and(gte(runs.completedAt, dayAgo), inArray(runs.outcome, terminal))),
+    db
+      .select({
+        ms: sql<number | null>`avg(${runs.completedAt} - ${runs.startedAt})`,
+      })
+      .from(runs)
+      .where(
+        and(
+          gte(runs.completedAt, twoDaysAgo),
+          lt(runs.completedAt, dayAgo),
+          inArray(runs.outcome, terminal),
+        ),
+      ),
+  ])
 
-  const successRate7d =
-    total7d?.n && total7d.n > 0 ? Math.round(((success7d?.n ?? 0) / total7d.n) * 1000) / 10 : 0
+  const successRate24h =
+    rate24hRow?.total && rate24hRow.total > 0
+      ? Math.round(((rate24hRow.succ ?? 0) / rate24hRow.total) * 1000) / 10
+      : 0
+  const successRate24hPrev =
+    rate24hPrevRow?.total && rate24hPrevRow.total > 0
+      ? Math.round(((rate24hPrevRow.succ ?? 0) / rate24hPrevRow.total) * 1000) / 10
+      : 0
+
+  const avgMs = duration24hRow?.ms != null ? Math.round(duration24hRow.ms) : null
+  const avgMsPrev = duration24hPrevRow?.ms != null ? Math.round(duration24hPrevRow.ms) : null
 
   return {
-    activeJobs: activeRow?.n ?? 0,
-    failingToday: failingTodayRow?.n ?? 0,
-    runsToday: runsTodayRow?.n ?? 0,
-    successRate7d,
+    failingJobsNow: failingJobsRow?.n ?? 0,
+    successRate24h,
+    successRate24hDelta: Math.round((successRate24h - successRate24hPrev) * 10) / 10,
+    runs24h: runs24hRow?.n ?? 0,
+    runs24hDelta: (runs24hRow?.n ?? 0) - (runs24hPrevRow?.n ?? 0),
+    avgDurationMs24h: avgMs,
+    avgDurationMs24hDelta: avgMs != null && avgMsPrev != null ? avgMs - avgMsPrev : null,
   }
 }
 
 async function computeSparklines(db: Database, now: Date): Promise<Sparklines> {
   const dayAgo = new Date(now.getTime() - DAY_MS)
-  const sevenDaysAgo = new Date(now.getTime() - 7 * DAY_MS)
 
-  // Hourly buckets over last 24h for runs (total) and failures.
+  // SQLite AVG ignores nulls, so the avgMs bucket reflects completed runs only.
   const last24h = await db
     .select({
       hour: sql<number>`(${runs.startedAt} / ${HOUR_MS})`,
-      outcome: runs.outcome,
       n: count(),
+      avgMs: sql<number | null>`avg(${runs.completedAt} - ${runs.startedAt})`,
     })
     .from(runs)
     .where(gte(runs.startedAt, dayAgo))
-    .groupBy(sql`(${runs.startedAt} / ${HOUR_MS})`, runs.outcome)
+    .groupBy(sql`(${runs.startedAt} / ${HOUR_MS})`)
 
   const totalByHour = new Map<number, number>()
-  const failByHour = new Map<number, number>()
+  const avgByHour = new Map<number, number>()
   for (const row of last24h) {
-    totalByHour.set(row.hour, (totalByHour.get(row.hour) ?? 0) + row.n)
-    if (row.outcome === 'failure' || row.outcome === 'timeout') {
-      failByHour.set(row.hour, (failByHour.get(row.hour) ?? 0) + row.n)
-    }
+    totalByHour.set(row.hour, row.n)
+    if (row.avgMs != null) avgByHour.set(row.hour, Math.round(row.avgMs))
   }
 
   const startHour = Math.floor(dayAgo.getTime() / HOUR_MS)
-  const runsTodayPoints = Array.from({ length: 24 }, (_, i) => {
+  const runs24hPoints = Array.from({ length: 24 }, (_, i) => {
     const h = startHour + i
     return { t: h * HOUR_MS, v: totalByHour.get(h) ?? 0 }
   })
-  const failingTodayPoints = Array.from({ length: 24 }, (_, i) => {
+  const avgDurationMs24hPoints = Array.from({ length: 24 }, (_, i) => {
     const h = startHour + i
-    return { t: h * HOUR_MS, v: failByHour.get(h) ?? 0 }
+    return { t: h * HOUR_MS, v: avgByHour.get(h) ?? 0 }
   })
-
-  // Daily success rate over last 7 days.
-  const last7d = await db
-    .select({
-      day: sql<number>`(${runs.completedAt} / ${DAY_MS})`,
-      outcome: runs.outcome,
-      n: count(),
-    })
-    .from(runs)
-    .where(
-      and(
-        gte(runs.completedAt, sevenDaysAgo),
-        inArray(runs.outcome, ['success', 'failure', 'timeout']),
-      ),
-    )
-    .groupBy(sql`(${runs.completedAt} / ${DAY_MS})`, runs.outcome)
-
-  const succByDay = new Map<number, number>()
-  const totalByDay = new Map<number, number>()
-  for (const row of last7d) {
-    if (row.outcome === 'success') succByDay.set(row.day, (succByDay.get(row.day) ?? 0) + row.n)
-    totalByDay.set(row.day, (totalByDay.get(row.day) ?? 0) + row.n)
-  }
-
-  const startDay = Math.floor(sevenDaysAgo.getTime() / DAY_MS)
-  const successRate7dPoints = Array.from({ length: 7 }, (_, i) => {
-    const d = startDay + i
-    const total = totalByDay.get(d) ?? 0
-    const rate = total > 0 ? ((succByDay.get(d) ?? 0) / total) * 100 : 0
-    return { t: d * DAY_MS, v: Math.round(rate * 10) / 10 }
-  })
-
-  // activeJobs sparkline: no historical snapshots in v1; emit a flat
-  // 7-point series at the current count so the trend reads as 0.
-  const [activeRow] = await db.select({ n: count() }).from(jobs).where(eq(jobs.status, 'active'))
-  const activeCurrent = activeRow?.n ?? 0
-  const activeJobsPoints = Array.from({ length: 7 }, (_, i) => ({
-    t: (startDay + i) * DAY_MS,
-    v: activeCurrent,
-  }))
 
   return {
-    activeJobs: activeJobsPoints,
-    failingToday: failingTodayPoints,
-    runsToday: runsTodayPoints,
-    successRate7d: successRate7dPoints,
+    runs24h: runs24hPoints,
+    avgDurationMs24h: avgDurationMs24hPoints,
   }
 }
 

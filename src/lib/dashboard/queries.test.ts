@@ -51,21 +51,22 @@ describe('dashboardSummary', () => {
   it('returns zeros for an empty workspace', async () => {
     const db = createTestDb()
     const summary = await dashboardSummary(db)
-    expect(summary.stats.activeJobs).toBe(0)
-    expect(summary.stats.runsToday).toBe(0)
-    expect(summary.stats.failingToday).toBe(0)
-    expect(summary.stats.successRate7d).toBe(0)
+    expect(summary.stats.failingJobsNow).toBe(0)
+    expect(summary.stats.runs24h).toBe(0)
+    expect(summary.stats.successRate24h).toBe(0)
+    expect(summary.stats.avgDurationMs24h).toBeNull()
+    expect(summary.sparklines.runs24h).toHaveLength(24)
+    expect(summary.sparklines.avgDurationMs24h).toHaveLength(24)
     expect(summary.runsSeries7d).toHaveLength(7)
     expect(summary.needsAttention).toEqual([])
     expect(summary.upcomingFires).toEqual([])
     expect(summary.recentFailures).toEqual([])
   })
 
-  it('counts active jobs and computes upcoming fires for cron Jobs', async () => {
+  it('computes upcoming fires for cron Jobs', async () => {
     const db = createTestDb()
     const { now } = await seedCustomerJob(db)
     const summary = await dashboardSummary(db, now)
-    expect(summary.stats.activeJobs).toBe(1)
     expect(summary.upcomingFires).toHaveLength(1)
     expect(summary.upcomingFires[0]?.jobSlug).toBe('backup')
     expect(summary.upcomingFires[0]?.nextFireAt).toBeGreaterThan(now.getTime())
@@ -91,7 +92,7 @@ describe('dashboardSummary', () => {
     })
 
     const summary = await dashboardSummary(db, now)
-    expect(summary.stats.failingToday).toBe(1)
+    expect(summary.stats.failingJobsNow).toBe(1)
     expect(
       summary.needsAttention.some((r) => r.jobSlug === 'backup' && r.status === 'failing'),
     ).toBe(true)

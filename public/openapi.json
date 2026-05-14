@@ -591,36 +591,62 @@
       "DashboardStats": {
         "type": "object",
         "properties": {
-          "activeJobs": {
+          "failingJobsNow": {
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
-          "failingToday": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "runsToday": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "successRate7d": {
+          "successRate24h": {
             "type": "number"
+          },
+          "successRate24hDelta": {
+            "type": "number"
+          },
+          "runs24h": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "runs24hDelta": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "avgDurationMs24h": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avgDurationMs24hDelta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
-          "activeJobs",
-          "failingToday",
-          "runsToday",
-          "successRate7d"
+          "failingJobsNow",
+          "successRate24h",
+          "successRate24hDelta",
+          "runs24h",
+          "runs24hDelta",
+          "avgDurationMs24h",
+          "avgDurationMs24hDelta"
         ]
       },
       "DashboardSparklines": {
         "type": "object",
         "properties": {
-          "activeJobs": {
+          "runs24h": {
             "type": "array",
             "items": {
               "type": "object",
@@ -638,43 +664,7 @@
               ]
             }
           },
-          "failingToday": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "t": {
-                  "type": "number"
-                },
-                "v": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "t",
-                "v"
-              ]
-            }
-          },
-          "runsToday": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "t": {
-                  "type": "number"
-                },
-                "v": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "t",
-                "v"
-              ]
-            }
-          },
-          "successRate7d": {
+          "avgDurationMs24h": {
             "type": "array",
             "items": {
               "type": "object",
@@ -694,10 +684,8 @@
           }
         },
         "required": [
-          "activeJobs",
-          "failingToday",
-          "runsToday",
-          "successRate7d"
+          "runs24h",
+          "avgDurationMs24h"
         ]
       },
       "RunsDailyBucket": {
@@ -1468,37 +1456,63 @@
       "DashboardStatsOutput": {
         "type": "object",
         "properties": {
-          "activeJobs": {
+          "failingJobsNow": {
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
-          "failingToday": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "runsToday": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "successRate7d": {
+          "successRate24h": {
             "type": "number"
+          },
+          "successRate24hDelta": {
+            "type": "number"
+          },
+          "runs24h": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "runs24hDelta": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "avgDurationMs24h": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avgDurationMs24hDelta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
-          "activeJobs",
-          "failingToday",
-          "runsToday",
-          "successRate7d"
+          "failingJobsNow",
+          "successRate24h",
+          "successRate24hDelta",
+          "runs24h",
+          "runs24hDelta",
+          "avgDurationMs24h",
+          "avgDurationMs24hDelta"
         ],
         "additionalProperties": false
       },
       "DashboardSparklinesOutput": {
         "type": "object",
         "properties": {
-          "activeJobs": {
+          "runs24h": {
             "type": "array",
             "items": {
               "type": "object",
@@ -1517,45 +1531,7 @@
               "additionalProperties": false
             }
           },
-          "failingToday": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "t": {
-                  "type": "number"
-                },
-                "v": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "t",
-                "v"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "runsToday": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "t": {
-                  "type": "number"
-                },
-                "v": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "t",
-                "v"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "successRate7d": {
+          "avgDurationMs24h": {
             "type": "array",
             "items": {
               "type": "object",
@@ -1576,10 +1552,8 @@
           }
         },
         "required": [
-          "activeJobs",
-          "failingToday",
-          "runsToday",
-          "successRate7d"
+          "runs24h",
+          "avgDurationMs24h"
         ],
         "additionalProperties": false
       },

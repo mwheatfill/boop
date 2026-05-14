@@ -5,10 +5,12 @@ import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { ContentChrome } from '@/components/ContentChrome'
+import { CountTile } from '@/components/dashboard/CountTile'
 import { JobRowActions } from '@/components/dashboard/JobRowActions'
 import { RunsAreaChart } from '@/components/dashboard/RunsAreaChart'
 import { SearchHint } from '@/components/dashboard/SearchHint'
-import { StatTile } from '@/components/dashboard/StatTile'
+import { SparklineTile } from '@/components/dashboard/SparklineTile'
+import { SuccessRateTile } from '@/components/dashboard/SuccessRateTile'
 import { EmptyState } from '@/components/EmptyState'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -47,11 +49,11 @@ export const Route = createFileRoute('/_authenticated/')({
   component: DashboardPage,
 })
 
-function trendDelta(points: { v: number }[]): number {
-  if (points.length < 2) return 0
-  const first = points[0]?.v ?? 0
-  const last = points[points.length - 1]?.v ?? 0
-  return Math.round((last - first) * 10) / 10
+function formatDuration(ms: number | null): string {
+  if (ms == null) return '—'
+  if (ms < 1000) return `${ms}ms`
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`
+  return `${(ms / 60_000).toFixed(1)}m`
 }
 
 function DashboardPage() {
@@ -100,30 +102,24 @@ function DashboardPage() {
       </header>
 
       <section aria-label="Workspace stats" className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatTile
-          label="Active Jobs"
-          value={summary.stats.activeJobs}
-          sparkline={summary.sparklines.activeJobs}
-          trend={trendDelta(summary.sparklines.activeJobs)}
+        <CountTile label="Failing Jobs" value={summary.stats.failingJobsNow} />
+        <SuccessRateTile
+          label="Success Rate"
+          value={summary.stats.successRate24h}
+          delta={summary.stats.successRate24hDelta}
         />
-        <StatTile
-          label="Failing 24h"
-          value={summary.stats.failingToday}
-          sparkline={summary.sparklines.failingToday}
-          trend={-trendDelta(summary.sparklines.failingToday)}
-        />
-        <StatTile
+        <SparklineTile
           label="Runs 24h"
-          value={summary.stats.runsToday}
-          sparkline={summary.sparklines.runsToday}
-          trend={trendDelta(summary.sparklines.runsToday)}
+          value={summary.stats.runs24h.toLocaleString()}
+          sparkline={summary.sparklines.runs24h}
+          delta={summary.stats.runs24hDelta}
         />
-        <StatTile
-          label="Success 7d"
-          value={`${summary.stats.successRate7d}%`}
-          sparkline={summary.sparklines.successRate7d}
-          trend={trendDelta(summary.sparklines.successRate7d)}
-          trendSuffix="%"
+        <SparklineTile
+          label="Avg Duration 24h"
+          value={formatDuration(summary.stats.avgDurationMs24h)}
+          sparkline={summary.sparklines.avgDurationMs24h}
+          delta={summary.stats.avgDurationMs24hDelta}
+          deltaSuffix="ms"
         />
       </section>
 
