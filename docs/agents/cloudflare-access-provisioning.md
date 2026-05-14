@@ -32,41 +32,54 @@ Under **Token configuration → Add groups claim**, include `Security groups` so
 
 ## 2. Add Entra as a Cloudflare Access IdP
 
-Cloudflare dashboard → **Zero Trust → Settings → Authentication → Login methods → Add new → OpenID Connect**:
+Cloudflare dashboard → **Zero Trust → Integrations → Identity providers → Add new identity provider → Azure AD**.
+
+(Cloudflare hasn't renamed the chip to "Entra ID" yet. Same thing. Pick this preset, not Generic OIDC — it takes three fields instead of seven.)
 
 | Field | Value |
 | --- | --- |
-| Name | `Entra (SwitchThink)` |
+| Name | `Entra (<tenant-name>)` |
 | App ID | the Application (client) ID from step 1 |
 | Client secret | the secret Value from step 1 |
-| Auth URL | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/authorize` |
-| Token URL | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` |
-| Certificate URL | `https://login.microsoftonline.com/<tenant-id>/discovery/v2.0/keys` |
-| OIDC Claims | `email`, `name`, `groups` |
-| Scopes | `openid profile email` |
+| Directory ID | the Directory (tenant) ID from step 1 |
+
+Expand **Optional configurations** and flip on:
+
+- **Proof Key for Code Exchange** — PKCE; defense-in-depth on the auth-code exchange.
+- **Support Groups** — populates the `groups` array claim. Boop doesn't read it yet; future RBAC will.
+
+> **Gotcha — Email claim source.** Cloudflare's allow-rule matching reads the OIDC `email` claim. **Lab-tenant Entra accounts often have no `Mail` attribute set**, so the claim comes back empty and policy evaluation gets nothing to match against. Symptom later (step 6): "That account does not have access" after a successful Entra sign-in. Fix preemptively: set the **Email claim** field on the IdP to `preferred_username`. The UPN (`<user>@<verified-domain>`) then flows into the slot Access reads. For production tenants where every operator has a real mailbox, leave the default.
 
 **Test** the IdP from this same screen before continuing. Cloudflare opens the Entra consent flow; expect a successful redirect back showing your identity claims.
 
 ## 3. Create the Access application
 
-Zero Trust → **Access → Applications → Add an application → Self-hosted**:
+For a `*.workers.dev` URL, use the one-click flow:
+
+**Workers & Pages → boop-dev → Settings → Domains & Routes**. Find the `workers.dev` row and click **Enable Cloudflare Access**. Cloudflare creates a self-hosted Access application bound to that URL and a reusable policy named `<worker-name> - Production` (per the Dec 2025 reusable-policies update).
+
+The same button now reads **Manage Cloudflare Access**. Click it to open the auto-created app.
+
+> **Gotcha — one-click defaults to "accept all IdPs."** The auto-created app does not restrict to the IdP you wired in step 2; it accepts every IdP enabled on your team (which includes Cloudflare's built-in One-Time PIN). Symptom: hitting the protected URL shows the **Cloudflare Access OTP login** screen ("Email" + "Send login code"), not the Entra redirect. Fix immediately:
+
+In the Access app → **Authentication** tab:
+
+- Uncheck **Accept all available identity providers**.
+- Check only the Entra IdP from step 2.
+- Save.
+
+In the Access app → **Policies** tab, edit the auto-created `<worker-name> - Production` policy:
 
 | Field | Value |
 | --- | --- |
-| Application name | `boop-dev` |
-| Session duration | 24 hours (sane default; bump for less-friction internal tooling) |
-| Application domain | `boop-dev.<account-subdomain>.workers.dev` (or your custom domain) |
-| Identity providers | check the Entra IdP from step 2 |
-
-On the next screen, **Add a policy**:
-
-| Field | Value |
-| --- | --- |
-| Policy name | `Allow SwitchThink operators` |
+| Policy name | `Allow <tenant> operators` (rename for clarity) |
 | Action | Allow |
-| Include rule | Emails ending in `@switchthink.com` (or a specific Entra group once group claims are wired) |
+| Session duration | 24 hours (sane default; bump for less-friction internal tooling) |
+| Include rule | Emails ending in `@<verified-domain>` (or specific email list / Entra group) |
 
-Save the application.
+Save.
+
+For URLs **not** on `workers.dev` (custom domain, Pages, anything else), use the manual flow: Zero Trust → **Access → Applications → Add an application → Self-hosted** with the same field set above plus `Application domain` = your hostname.
 
 ## 4. Capture the AUD tag and Team Domain
 
