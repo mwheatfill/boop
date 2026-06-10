@@ -1,18 +1,22 @@
-# Cloudflare Access JWT verification — per-environment values
-# Pull these from the Cloudflare Zero Trust dashboard's Access application
-TEAM_DOMAIN=https://<your-team>.cloudflareaccess.com
-POLICY_AUD=<your-application-AUD-tag>
+# Local development values for `pnpm dev`. Copy to .dev.vars (gitignored).
+# Deployed Workers get TEAM_DOMAIN + POLICY_AUD from wrangler.jsonc `vars` and
+# BOOP_SECRETS_KEK from the account Secrets Store; this file only feeds the
+# local Worker.
 
-# Local dev only: when set and PUBLIC_ENV=dev, getCurrentUser falls back to
-# this email when no Cf-Access-Jwt-Assertion header is present. The bypass
-# logs a warning on each use and is hard-gated to PUBLIC_ENV=dev so it
-# cannot accidentally activate in production.
+# Local dev only: when PUBLIC_ENV=dev and no Cf-Access-Jwt-Assertion header is
+# present, getCurrentUser falls back to this email (src/lib/auth/dev-bypass.ts).
+# Hard-gated to PUBLIC_ENV=dev. Kept here, never in committed vars, so it cannot
+# ship to a deployed Worker.
 DEV_USER_EMAIL=dev@switchthink.com
 
-# Customer-secrets envelope KEK. Base64-encoded raw 32-byte AES-256 key.
-# Generate one with:
+# Local origin override; wrangler.jsonc points the dev Worker at its real host.
+PUBLIC_APP_ORIGIN=http://localhost:5173
+
+# Customer-secrets envelope KEK. Bound via Secrets Store in wrangler.jsonc and
+# read with env.BOOP_SECRETS_KEK.get(). Locally, provide the value either here
+# (Miniflare) or with a local-scoped store secret:
+#   wrangler secrets-store secret create 806c567ab8fb4847a628e8c39380e1f5 \
+#     --name boop-secrets-kek-dev --scopes workers
+# Base64 raw 32-byte AES-256 key. Generate:
 #   node -e "console.log(Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64'))"
-# Then `wrangler secret put BOOP_SECRETS_KEK` (dev + prod) and replace the
-# placeholder below. Rotating this key re-encrypts every customer secret;
-# don't change it without a planned re-encryption pass.
 BOOP_SECRETS_KEK=replace-me-with-a-base64-32-byte-key

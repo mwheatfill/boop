@@ -38,20 +38,14 @@ pnpm exec wrangler queues create boop-alerts-dlq-dev
 
 Durable Object class registration happens automatically on the first `wrangler deploy --env production`.
 
-## 2. Wire the custom domain
+## 2. Custom domains
 
-Pick the production hostname (e.g. `boop.example.com`). The hostname must sit on a Cloudflare zone you control.
+Both Workers bind their hostname declaratively in `wrangler.jsonc` via `custom_domain`, so the route lives in git and Cloudflare provisions the DNS record + SSL cert on deploy:
 
-Two ways to attach the route to the Worker:
+- dev (top-level block): `"routes": [{ "pattern": "boop-dev.stlabs.org", "custom_domain": true }]`
+- prod (`env.production`): `"routes": [{ "pattern": "boop.stlabs.org", "custom_domain": true }]`
 
-- **Dashboard.** Workers & Pages → boop-prod → Settings → Triggers → Custom Domains → Add. Cloudflare provisions the DNS record and SSL cert automatically.
-- **Wrangler config.** Add a `routes` block under `env.production` and re-deploy:
-
-  ```jsonc
-  "routes": [{ "pattern": "boop.example.com/*", "zone_name": "example.com" }]
-  ```
-
-The dashboard path keeps DNS lifecycle out of git.
+The hostnames must sit on a Cloudflare zone in this account (`stlabs.org`). The first `wrangler deploy` run under a login with zone access creates the custom domain; later CI deploys with a Workers-scoped token are no-ops against it. `"workers_dev": false` in both blocks keeps the un-gated `*.workers.dev` URL from bypassing Access.
 
 ## 3. Create the two Cloudflare Access Applications
 
@@ -63,7 +57,7 @@ Per the [Cloudflare Access "Bypass a public endpoint" docs](https://developers.c
 | --- | --- |
 | Application type | Self-hosted |
 | Application name | `boop operator UI` |
-| Domain | `boop.example.com` |
+| Domain | `boop.stlabs.org` (prod) / `boop-dev.stlabs.org` (dev) |
 | Path | `*` (or blank for the full domain) |
 | Identity provider | Entra (or whichever IdP the org uses) |
 | Session duration | 24h (recommended) |
@@ -74,7 +68,7 @@ Policy:
 | --- | --- | --- | --- |
 | Allow | Include | Emails ending in | `@switchthink.com` (or the Entra group equivalent) |
 
-After saving, copy the **Application Audience (AUD) tag** from the Application's Overview tab. `src/lib/auth/verify-access-jwt.ts` matches against it. The value goes into the `CF_ACCESS_AUD` secret in step 5.
+After saving, copy the **Application Audience (AUD) tag** from the Application's Overview tab. `src/lib/auth/verify-access-jwt.ts` matches against it. The value goes into the `POLICY_AUD` secret in step 5.
 
 ### App #2: Webhook receiver (bypassed)
 
@@ -82,7 +76,7 @@ After saving, copy the **Application Audience (AUD) tag** from the Application's
 | --- | --- |
 | Application type | Self-hosted |
 | Application name | `boop webhook receiver` |
-| Domain | `boop.example.com` |
+| Domain | `boop.stlabs.org` (prod) / `boop-dev.stlabs.org` (dev) |
 | Path | `w/*` |
 
 Policy:
@@ -91,7 +85,7 @@ Policy:
 | --- | --- | --- | --- |
 | Bypass | Include | Everyone | Everyone |
 
-This makes `boop.example.com/w/$customerSlug/$jobSlug` reachable without an Access JWT. Requests to `/w/*` are not logged by Access; webhook hardening (PRD #24) adds HMAC verification and rate limiting at the application layer to compensate.
+This makes `boop.stlabs.org/w/$customerSlug/$jobSlug` reachable without an Access JWT. Requests to `/w/*` are not logged by Access; webhook hardening (PRD #24) adds HMAC verification and rate limiting at the application layer to compensate.
 
 Naming both Applications clearly is load-bearing. A future operator who edits the wrong one can break auth or webhook reachability silently.
 
@@ -108,14 +102,22 @@ The token's account scope contains the blast radius. A leaked CI token cannot ed
 
 ## 5. Set the production Worker secrets
 
-After the first deploy succeeds, set the Worker secrets via [`wrangler secret put`](https://developers.cloudflare.com/workers/configuration/secrets/):
+`TEAM_DOMAIN` and `POLICY_AUD` are not secrets (a public team domain and a public AUD tag); `src/lib/auth/verify-access-jwt.ts` reads them from `wrangler.jsonc` `vars` per environment. Set them from the Access application values (step 3):
 
-```sh
-pnpm exec wrangler secret put CF_ACCESS_AUD --env production
-# → paste the AUD from Access App #1's Overview tab
+```jsonc
+// env.production.vars
+"TEAM_DOMAIN": "https://<team>.cloudflareaccess.com",
+"POLICY_AUD": "<prod Access app AUD tag>"
 ```
 
-`wrangler secret put` creates a new Worker version and deploys it immediately. Subsequent application deploys inherit the secret. `wrangler secret list --env production` verifies.
+`BOOP_SECRETS_KEK` is the one real secret; it lives in the account Secrets Store and `src/lib/customer-secrets/server-fns.ts` reads it via `env.BOOP_SECRETS_KEK.get()`. Create one secret per environment (separate encryption domains), bound by the `secrets_store_secrets` entry in `wrangler.jsonc`:
+
+```sh
+pnpm exec wrangler secrets-store secret create <STORE_ID> --name boop-secrets-kek-prod --scopes workers --remote
+# dev Worker: --name boop-secrets-kek-dev
+```
+
+`wrangler secrets-store secret list <STORE_ID> --remote` verifies.
 
 ## 6. First deploy
 
@@ -139,7 +141,7 @@ The Actions tab surfaces the deployed worker URL and version id. Durable Object 
 
 Sign-in path:
 
-1. Visit `https://boop.example.com/`.
+1. Visit `https://boop.stlabs.org/`.
 2. Cloudflare Access redirects to the Entra IdP.
 3. Sign in.
 4. Land on the home page. The first user is auto-promoted to Admin per ADR-016; the empty state reads "Welcome to boop. Create your first Customer to get started."
@@ -147,7 +149,7 @@ Sign-in path:
 Webhook-bypass path (after at least one webhook-typed Job exists):
 
 ```sh
-curl -i https://boop.example.com/w/<customer-slug>/<job-slug>
+curl -i https://boop.stlabs.org/w/<customer-slug>/<job-slug>
 # → 200 once a matching Job exists; 404 otherwise. No Access JWT required.
 ```
 

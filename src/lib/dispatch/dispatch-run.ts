@@ -28,7 +28,7 @@ export interface DispatchEnv {
   DB: D1Database
   BODIES: R2Bucket
   ALERT_QUEUE?: Queue<AlertQueueMessage>
-  BOOP_SECRETS_KEK?: string
+  BOOP_SECRETS_KEK?: SecretsStoreSecret
 }
 
 export interface DispatchDeps {
@@ -387,12 +387,19 @@ export async function dispatchRun(
   scheduledAt: Date,
   triggerSource: TriggerSource = 'cron',
 ): Promise<void> {
+  // KEK is optional; without it customer-secret substitution is skipped.
+  let kek: string | undefined
+  try {
+    kek = await env.BOOP_SECRETS_KEK?.get()
+  } catch {
+    kek = undefined
+  }
   return runDispatch(
     {
       db: createDb(env.DB),
       bodies: env.BODIES,
       ...(env.ALERT_QUEUE ? { alertQueue: env.ALERT_QUEUE } : {}),
-      ...(env.BOOP_SECRETS_KEK ? { kek: env.BOOP_SECRETS_KEK } : {}),
+      ...(kek ? { kek } : {}),
     },
     jobId,
     scheduledAt,

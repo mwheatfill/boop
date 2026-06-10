@@ -9,7 +9,7 @@ The Worker-side code already exists at `src/lib/auth/` (verify-access-jwt, get-c
 - Cloudflare account with Zero Trust enabled.
 - Entra ID admin access to the tenant that owns the operators (SwitchThink tenant).
 - `wrangler` CLI authenticated to the Cloudflare account (`wrangler login` once per machine).
-- The deployed Worker URL for the environment you are provisioning. For `boop-dev` this is `boop-dev.<account-subdomain>.workers.dev` unless a custom domain is bound.
+- The deployed Worker URL for the environment you are provisioning. Both boop Workers run on custom domains: `boop-dev.stlabs.org` (dev) and `boop.stlabs.org` (prod), with `workers_dev` off.
 
 ## 1. Register the OIDC app in Entra
 
@@ -54,21 +54,22 @@ Expand **Optional configurations** and flip on:
 
 ## 3. Create the Access application
 
-For a `*.workers.dev` URL, use the one-click flow:
+boop's Workers run on custom domains with `workers_dev: false`, so use the manual self-hosted flow — one gated application per environment.
 
-**Workers & Pages → boop-dev → Settings → Domains & Routes**. Find the `workers.dev` row and click **Enable Cloudflare Access**. Cloudflare creates a self-hosted Access application bound to that URL and a reusable policy named `<worker-name> - Production` (per the Dec 2025 reusable-policies update).
+Zero Trust → **Access → Applications → Add an application → Self-hosted**:
 
-The same button now reads **Manage Cloudflare Access**. Click it to open the auto-created app.
+| Field | Value |
+| --- | --- |
+| Application name | `boop operator UI (dev)` / `boop operator UI (prod)` |
+| Application domain | `boop-dev.stlabs.org` / `boop.stlabs.org` |
+| Path | `*` |
 
-> **Gotcha — one-click defaults to "accept all IdPs."** The auto-created app does not restrict to the IdP you wired in step 2; it accepts every IdP enabled on your team (which includes Cloudflare's built-in One-Time PIN). Symptom: hitting the protected URL shows the **Cloudflare Access OTP login** screen ("Email" + "Send login code"), not the Entra redirect. Fix immediately:
+On the **Authentication** step, restrict the app to one identity:
 
-In the Access app → **Authentication** tab:
+- Uncheck **Accept all available identity providers** — otherwise Cloudflare's built-in One-Time PIN is accepted and the protected URL shows the OTP login screen ("Email" + "Send login code") instead of the Entra redirect.
+- Check only the Entra IdP from step 2. If the org already wired Entra for other apps, reuse it — steps 1–2 are a no-op.
 
-- Uncheck **Accept all available identity providers**.
-- Check only the Entra IdP from step 2.
-- Save.
-
-In the Access app → **Policies** tab, edit the auto-created `<worker-name> - Production` policy:
+Add a policy:
 
 | Field | Value |
 | --- | --- |
@@ -79,7 +80,7 @@ In the Access app → **Policies** tab, edit the auto-created `<worker-name> - P
 
 Save.
 
-For URLs **not** on `workers.dev` (custom domain, Pages, anything else), use the manual flow: Zero Trust → **Access → Applications → Add an application → Self-hosted** with the same field set above plus `Application domain` = your hostname.
+The companion **webhook receiver** bypass app (path `w/*`, Bypass = Everyone) is created the same way; see [`first-deploy.md`](../operations/first-deploy.md) § 3. Repeat this section once per environment — each gated app has its own AUD, so `POLICY_AUD` differs dev vs prod.
 
 ## 4. Capture the AUD tag and Team Domain
 
@@ -87,32 +88,21 @@ From the saved Access application → **Configure → Overview → Application A
 
 From Zero Trust → **Settings → Custom Pages**, or any URL under your Zero Trust dashboard, the team domain is `https://<your-team-name>.cloudflareaccess.com`. That's `TEAM_DOMAIN`.
 
-## 5. Set the wrangler secrets
+## 5. Set TEAM_DOMAIN + POLICY_AUD
 
-For the dev Worker:
+`TEAM_DOMAIN` and `POLICY_AUD` are non-secret Access config (a public team domain and a public AUD tag), so they live in `wrangler.jsonc` `vars`, not in secrets. Set them per environment from step 4:
 
-```bash
-wrangler secret put TEAM_DOMAIN     # paste https://<team>.cloudflareaccess.com
-wrangler secret put POLICY_AUD      # paste the AUD tag from step 4
+```jsonc
+// top-level (dev) vars
+"TEAM_DOMAIN": "https://<team>.cloudflareaccess.com",
+"POLICY_AUD": "<dev Access app AUD>"
+
+// env.production.vars
+"TEAM_DOMAIN": "https://<team>.cloudflareaccess.com",
+"POLICY_AUD": "<prod Access app AUD>"
 ```
 
-For production, repeat with `--env production`:
-
-```bash
-wrangler secret put TEAM_DOMAIN --env production
-wrangler secret put POLICY_AUD --env production
-```
-
-Each environment has its own Access application (different AUD), so `POLICY_AUD` differs between dev and prod. `TEAM_DOMAIN` is the same across all environments under one Cloudflare account.
-
-Verify with:
-
-```bash
-wrangler secret list                    # boop-dev
-wrangler secret list --env production   # boop-prod
-```
-
-Both `TEAM_DOMAIN` and `POLICY_AUD` must appear (the list shows names, not values).
+Each environment has its own Access application, so `POLICY_AUD` differs between dev and prod. `TEAM_DOMAIN` is the same under one Cloudflare account. (`BOOP_SECRETS_KEK` is unrelated to Access; it lives in the account Secrets Store, see [`first-deploy.md`](../operations/first-deploy.md) § 5.)
 
 ## 6. Local development
 
@@ -123,7 +113,7 @@ To exercise the real Access flow locally, hit the deployed dev URL through your 
 ## 7. End-to-end verification
 
 ```bash
-curl -i https://boop-dev.<account-subdomain>.workers.dev/me
+curl -i https://boop-dev.stlabs.org/me
 ```
 
 Without authentication you should get a 302 to the Entra login flow (Access intercepting), not a 200 from the Worker. After authenticating in a browser, the Worker receives the JWT, `verifyAccessJwt` validates against the JWKS at `${TEAM_DOMAIN}/cdn-cgi/access/certs`, `provisionUser` upserts the User row, and `/me` returns the operator identity.
