@@ -38,6 +38,7 @@ export interface DispatchDeps {
   preCreatedRunId?: string
   alertQueue?: Queue<AlertQueueMessage>
   kek?: string
+  bodyReadTimeoutMs?: number
 }
 
 async function evaluateAndEnqueueAlerts(
@@ -82,6 +83,8 @@ type Outcome = NonNullable<(typeof runs.$inferSelect)['outcome']>
 
 const DEFAULT_ATTEMPT_TIMEOUT_MS = 30_000
 const BACKOFF_BASE_MS = 30_000
+const MAX_RESPONSE_BODY_BYTES = 1_048_576
+const RESPONSE_BODY_READ_TIMEOUT_MS = 10_000
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
@@ -136,12 +139,84 @@ interface AttemptOutcome {
   redactedHeaders: Record<string, string>
 }
 
+function abortableRead(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  signal: AbortSignal,
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+  if (signal.aborted) return Promise.reject(signal.reason)
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject(signal.reason)
+    signal.addEventListener('abort', onAbort, { once: true })
+    reader.read().then(
+      (result) => {
+        signal.removeEventListener('abort', onAbort)
+        resolve(result)
+      },
+      (err) => {
+        signal.removeEventListener('abort', onAbort)
+        reject(err)
+      },
+    )
+  })
+}
+
+// Read into memory bounded by size and time so a target that streams without a
+// Content-Length (or never closes) can't stall the dispatch.
+async function readCappedBody(
+  body: ReadableStream<Uint8Array> | null,
+  timeoutMs: number,
+): Promise<Uint8Array> {
+  if (!body) return new Uint8Array()
+  const reader = body.getReader()
+  const signal = AbortSignal.timeout(timeoutMs)
+  const chunks: Uint8Array[] = []
+  let total = 0
+  try {
+    while (total < MAX_RESPONSE_BODY_BYTES) {
+      const { done, value } = await abortableRead(reader, signal)
+      if (done) break
+      if (value?.byteLength) {
+        chunks.push(value)
+        total += value.byteLength
+      }
+    }
+  } catch {
+    // Timed out, aborted, or stream error: persist whatever arrived.
+  } finally {
+    reader.cancel().catch(() => {})
+  }
+  const size = Math.min(total, MAX_RESPONSE_BODY_BYTES)
+  const out = new Uint8Array(size)
+  let offset = 0
+  for (const chunk of chunks) {
+    if (offset >= size) break
+    const slice = chunk.subarray(0, size - offset)
+    out.set(slice, offset)
+    offset += slice.byteLength
+  }
+  return out
+}
+
+async function persistResponseBody(
+  bodies: R2Bucket,
+  key: string,
+  body: ReadableStream<Uint8Array> | null,
+  timeoutMs: number,
+): Promise<void> {
+  try {
+    await bodies.put(key, await readCappedBody(body, timeoutMs))
+  } catch (err) {
+    logError('dispatch.response_persist_failed', err, { key })
+  }
+}
+
 async function performAttempt(
   bodies: R2Bucket,
   target: Target,
   renderedBody: string,
   renderedHeaders: string,
   responseKey: string,
+  bodyReadTimeoutMs: number,
 ): Promise<AttemptOutcome> {
   const hasBody = target.method !== 'GET' && target.method !== 'HEAD'
   const rawHeaders = parseHeaders(renderedHeaders)
@@ -153,7 +228,8 @@ async function performAttempt(
       ...(hasBody && { body: renderedBody }),
       signal: AbortSignal.timeout(DEFAULT_ATTEMPT_TIMEOUT_MS),
     })
-    await bodies.put(responseKey, response.body)
+    // Outcome is the HTTP status; body persistence is best-effort (a Content-Length-less body must not become a timeout).
+    await persistResponseBody(bodies, responseKey, response.body, bodyReadTimeoutMs)
     if (response.ok) {
       return { httpStatus: response.status, failureKind: null, error: null, redactedHeaders }
     }
@@ -191,7 +267,15 @@ async function cancelPreCreatedRun(db: Database, runId: string, reason: string):
 }
 
 export async function runDispatch(
-  { db, bodies, sleep = defaultSleep, preCreatedRunId, alertQueue, kek }: DispatchDeps,
+  {
+    db,
+    bodies,
+    sleep = defaultSleep,
+    preCreatedRunId,
+    alertQueue,
+    kek,
+    bodyReadTimeoutMs = RESPONSE_BODY_READ_TIMEOUT_MS,
+  }: DispatchDeps,
   jobId: string,
   scheduledAt: Date,
   triggerSource: TriggerSource = 'cron',
@@ -296,6 +380,7 @@ export async function runDispatch(
         renderedBody,
         renderedHeaders,
         responseKey,
+        bodyReadTimeoutMs,
       )
       const attemptCompletedAt = new Date()
       await db
