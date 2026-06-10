@@ -32,8 +32,8 @@ async function resolveCustomerId(
   return row.id
 }
 
-function requireKek(): string {
-  const kek = (env as { BOOP_SECRETS_KEK?: string }).BOOP_SECRETS_KEK
+async function requireKek(): Promise<string> {
+  const kek = await env.BOOP_SECRETS_KEK.get()
   if (!kek) {
     throw new Error('BOOP_SECRETS_KEK is not configured for this environment')
   }
@@ -56,7 +56,7 @@ export const createCustomerSecretFn = createServerFn({ method: 'POST' })
     const db = createDb(env.DB)
     const customerId = await resolveCustomerId(db, data.customerSlug)
     try {
-      return await createSecretCmd({ db, kek: requireKek() }, customerId, {
+      return await createSecretCmd({ db, kek: await requireKek() }, customerId, {
         name: data.name,
         plaintext: data.plaintext,
       })
@@ -80,7 +80,7 @@ export const rotateCustomerSecretFn = createServerFn({ method: 'POST' })
     const db = createDb(env.DB)
     const customerId = await resolveCustomerId(db, data.customerSlug)
     try {
-      return await rotateSecretCmd({ db, kek: requireKek() }, customerId, data.name, {
+      return await rotateSecretCmd({ db, kek: await requireKek() }, customerId, data.name, {
         plaintext: data.plaintext,
       })
     } catch (err) {

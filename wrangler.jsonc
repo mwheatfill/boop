@@ -4,6 +4,8 @@
   "compatibility_date": "2026-05-09",
   "compatibility_flags": ["nodejs_compat"],
   "main": "./src/server-entry.ts",
+  "workers_dev": false,
+  "routes": [{ "pattern": "boop-dev.stlabs.org", "custom_domain": true }],
   "observability": {
     "enabled": true,
     "logs": {
@@ -14,15 +16,19 @@
   "vars": {
     "PUBLIC_APP_NAME": "boop-dev",
     "PUBLIC_ENV": "dev",
-    "PUBLIC_APP_ORIGIN": "http://localhost:5173",
-    "DEV_USER_EMAIL": "michael.wheatfill@switchthink.com"
+    "PUBLIC_APP_ORIGIN": "https://boop-dev.stlabs.org",
+    "TEAM_DOMAIN": "https://switchthink.cloudflareaccess.com",
+    "POLICY_AUD": "b286056314c5c0c603f964cc366580c76f32b99cae6f94523a243af4b02e897f"
   },
-  // Secrets, per cloudflare-docs (Workers Configuration > Secrets), are
-  // declared here for type generation + deploy-time validation; their
-  // values are set with `wrangler secret put` (prod) or `.dev.vars` (local).
-  "secrets": {
-    "required": ["BOOP_SECRETS_KEK", "TEAM_DOMAIN", "POLICY_AUD"]
-  },
+  // BOOP_SECRETS_KEK lives in the account Secrets Store (read via env.BOOP_SECRETS_KEK.get()).
+  // TEAM_DOMAIN + POLICY_AUD are non-secret Access config and live in vars per env.
+  "secrets_store_secrets": [
+    {
+      "binding": "BOOP_SECRETS_KEK",
+      "store_id": "806c567ab8fb4847a628e8c39380e1f5",
+      "secret_name": "boop-secrets-kek-dev"
+    }
+  ],
   "triggers": {
     "crons": ["* * * * *"]
   },
@@ -30,7 +36,7 @@
     {
       "binding": "DB",
       "database_name": "boop-dev",
-      "database_id": "45d84867-7a4d-4119-9108-f80278c459c3",
+      "database_id": "7677bae9-8b87-454f-8101-2f27cfa011a7",
       "migrations_dir": "drizzle"
     }
   ],
@@ -92,14 +98,22 @@
   "env": {
     "production": {
       "name": "boop-prod",
+      "workers_dev": false,
+      "routes": [{ "pattern": "boop.stlabs.org", "custom_domain": true }],
       "vars": {
         "PUBLIC_APP_NAME": "boop-prod",
         "PUBLIC_ENV": "production",
-        "PUBLIC_APP_ORIGIN": "https://boop.example.com"
+        "PUBLIC_APP_ORIGIN": "https://boop.stlabs.org",
+        "TEAM_DOMAIN": "https://switchthink.cloudflareaccess.com",
+        "POLICY_AUD": "14365b36cd81148634254fa8571cbb4b5d47195289b5a97197e717da6e8114ca"
       },
-      "secrets": {
-        "required": ["BOOP_SECRETS_KEK"]
-      },
+      "secrets_store_secrets": [
+        {
+          "binding": "BOOP_SECRETS_KEK",
+          "store_id": "806c567ab8fb4847a628e8c39380e1f5",
+          "secret_name": "boop-secrets-kek-prod"
+        }
+      ],
       "triggers": {
         "crons": ["* * * * *"]
       },
@@ -107,7 +121,7 @@
         {
           "binding": "DB",
           "database_name": "boop-prod",
-          "database_id": "2b612221-7684-4af3-be8d-6f8ef098079d",
+          "database_id": "7b1222e4-1a06-49d4-970b-71a0540f5489",
           "migrations_dir": "drizzle"
         }
       ],
