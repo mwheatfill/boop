@@ -97,6 +97,48 @@ describe('dispatchRun (happy path)', () => {
   })
 })
 
+describe('dispatchRun (response body handling)', () => {
+  it('records success without timing out when the response body never closes', async () => {
+    const db = createTestDb()
+    const bodies = createTestR2()
+    const { jobId } = await seedFixture(db)
+    const neverClosing = new ReadableStream<Uint8Array>({ start() {} })
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(neverClosing, { status: 200 }))
+
+    await runDispatch({ db, bodies, sleep: noSleep, bodyReadTimeoutMs: 20 }, jobId, new Date())
+
+    const [runRow] = await db.select().from(runs).where(eq(runs.jobId, jobId))
+    expect(runRow?.status).toBe('completed')
+    expect(runRow?.outcome).toBe('success')
+    const [attemptRow] = await db
+      .select()
+      .from(attempts)
+      .where(eq(attempts.runId, runRow?.id ?? ''))
+    expect(attemptRow?.httpStatus).toBe(200)
+    expect(attemptRow?.failureKind).toBeNull()
+  })
+
+  it('truncates response bodies larger than the cap', async () => {
+    const db = createTestDb()
+    const bodies = createTestR2()
+    const { jobId } = await seedFixture(db)
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('x'.repeat(1_200_000), { status: 200 }),
+    )
+
+    await runDispatch({ db, bodies, sleep: noSleep }, jobId, new Date())
+
+    const [runRow] = await db.select().from(runs).where(eq(runs.jobId, jobId))
+    expect(runRow?.outcome).toBe('success')
+    const [attemptRow] = await db
+      .select()
+      .from(attempts)
+      .where(eq(attempts.runId, runRow?.id ?? ''))
+    const stored = bodies._store.get(attemptRow?.responseBodyR2Key ?? '')
+    expect(stored?.byteLength).toBe(1_048_576)
+  })
+})
+
 describe('dispatchRun (retry semantics)', () => {
   it('retries 503 503 → 200: success with three Attempts', async () => {
     const db = createTestDb()
