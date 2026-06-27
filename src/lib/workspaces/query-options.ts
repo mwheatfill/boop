@@ -10,6 +10,7 @@ export const listWorkspacesQueryOptions = (includeArchived = false) =>
 export const defaultWorkspaceQueryOptions = queryOptions({
   queryKey: ['workspaces', 'default'],
   queryFn: () => getDefaultWorkspaceFn(),
+  staleTime: Number.POSITIVE_INFINITY,
 })
 
 export const orgTimezoneQueryOptions = queryOptions({

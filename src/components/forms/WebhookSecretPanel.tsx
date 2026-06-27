@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { copyToClipboard } from '@/lib/clipboard'
 import {
   generateWebhookSecretFn,
   listWebhookSecretsFn,
@@ -97,15 +98,6 @@ function webhookSecretReducer(
   }
 }
 
-async function copyToClipboard(value: string, label: string) {
-  try {
-    await navigator.clipboard.writeText(value)
-    toast.success(`${label} copied`)
-  } catch {
-    toast.error('Unable to copy. Check clipboard permissions.')
-  }
-}
-
 function isActive(secret: WebhookSecretSummary, now: number): boolean {
   if (secret.revokedAt) return false
   if (secret.expiresAt && new Date(secret.expiresAt).getTime() <= now) return false
@@ -182,7 +174,7 @@ export function WebhookSecretPanel({ workspaceSlug, jobSlug, origin }: WebhookSe
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => copyToClipboard(url, 'Webhook URL')}
+            onClick={() => copyToClipboard(url, 'Webhook URL copied')}
           >
             Copy
           </Button>
@@ -299,7 +291,7 @@ function JustGeneratedState({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => copyToClipboard(created.plaintext, 'Secret')}
+          onClick={() => copyToClipboard(created.plaintext, 'Secret copied')}
         >
           Copy
         </Button>

@@ -16,21 +16,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { copyToClipboard } from '@/lib/clipboard'
 import { workspaceSecretsQueryOptions } from '@/lib/workspace-secrets/query-options'
 import {
   createWorkspaceSecretFn,
   revokeWorkspaceSecretFn,
 } from '@/lib/workspace-secrets/server-fns'
 import type { SecretRevealedResponse, SecretSummary } from '@/shared/schemas/workspace-secret'
-
-async function copyToClipboard(value: string) {
-  try {
-    await navigator.clipboard.writeText(value)
-    toast.success('Secret value copied to clipboard')
-  } catch {
-    toast.error('Clipboard not available')
-  }
-}
 
 interface WorkspaceSecretsPanelProps {
   workspaceSlug: string
@@ -272,7 +264,9 @@ export function WorkspaceSecretsPanel({ workspaceSlug, canEdit }: WorkspaceSecre
                 variant="ghost"
                 size="icon"
                 aria-label="Copy plaintext"
-                onClick={() => void copyToClipboard(justRevealed.plaintext)}
+                onClick={() =>
+                  void copyToClipboard(justRevealed.plaintext, 'Secret value copied to clipboard')
+                }
               >
                 <Copy className="size-3.5" aria-hidden />
               </Button>
