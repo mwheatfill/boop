@@ -11,6 +11,7 @@ export const ID_PREFIXES = [
   'jtpl',
   'whs',
   'csec',
+  'tnl',
 ] as const
 
 export type IdPrefix = (typeof ID_PREFIXES)[number]

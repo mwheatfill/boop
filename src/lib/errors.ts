@@ -10,13 +10,18 @@ export class FieldValidationError extends Error {
   }
 }
 
-export type ArchiveBlockedEntityKind = 'workspace' | 'target' | 'channel'
+export type ArchiveBlockedEntityKind = 'workspace' | 'target' | 'channel' | 'tunnel'
 
 function archiveBlockedMessage(entityKind: ArchiveBlockedEntityKind, count: number): string {
   if (entityKind === 'channel') {
     return count === 1
       ? 'This Channel is referenced by 1 active alert rule. Update that rule before archiving this Channel.'
       : `This Channel is referenced by ${count} active alert rules. Update those rules before archiving this Channel.`
+  }
+  if (entityKind === 'tunnel') {
+    return count === 1
+      ? 'This Tunnel is used by 1 active Target. Archive that Target before removing this Tunnel.'
+      : `This Tunnel is used by ${count} active Targets. Archive those Targets before removing this Tunnel.`
   }
   const noun = entityKind === 'workspace' ? 'Workspace' : 'Target'
   return count === 1

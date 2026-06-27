@@ -1,6 +1,6 @@
 import { and, eq, ne, or } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
-import { alertRules, channels, jobs } from '@/lib/db/schema'
+import { alertRules, channels, jobs, targets } from '@/lib/db/schema'
 
 export interface ArchiveWorkspaceBreakdownEntry {
   workspaceId: string | null
@@ -11,7 +11,7 @@ export type ArchiveCheck =
   | { ok: true }
   | {
       ok: false
-      reason: 'has_active_jobs' | 'has_active_alert_rules'
+      reason: 'has_active_jobs' | 'has_active_alert_rules' | 'has_active_targets'
       blockingCount: number
       breakdown?: ArchiveWorkspaceBreakdownEntry[]
     }
@@ -26,6 +26,15 @@ export async function canArchiveWorkspace(
     .where(and(eq(jobs.workspaceId, workspaceId), ne(jobs.status, 'archived')))
   if (rows.length === 0) return { ok: true }
   return { ok: false, reason: 'has_active_jobs', blockingCount: rows.length }
+}
+
+export async function canDecommissionTunnel(db: Database, tunnelId: string): Promise<ArchiveCheck> {
+  const rows = await db
+    .select({ id: targets.id })
+    .from(targets)
+    .where(and(eq(targets.tunnelId, tunnelId), ne(targets.status, 'archived')))
+  if (rows.length === 0) return { ok: true }
+  return { ok: false, reason: 'has_active_targets', blockingCount: rows.length }
 }
 
 export async function canArchiveTarget(db: Database, targetId: string): Promise<ArchiveCheck> {
