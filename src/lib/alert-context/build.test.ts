@@ -90,6 +90,7 @@ const target: TargetRow = {
   authKind: 'none',
   authConfig: null,
   reachability: 'public',
+  tunnelId: null,
   status: 'active',
   createdAt: new Date(),
   updatedAt: new Date(),

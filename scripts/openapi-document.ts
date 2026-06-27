@@ -47,6 +47,11 @@ import {
 } from '../src/shared/schemas/run'
 import { TargetCreateInput, TargetSchema, TargetUpdateInput } from '../src/shared/schemas/target'
 import {
+  TunnelCreateInput,
+  TunnelSchema,
+  TunnelVerifyResultSchema,
+} from '../src/shared/schemas/tunnel'
+import {
   RotateInputSchema,
   WebhookSecretCreatedResponseSchema,
   WebhookSecretSummarySchema,
@@ -84,6 +89,9 @@ export const document = createDocument({
       Target: TargetSchema,
       TargetCreateInput,
       TargetUpdateInput,
+      Tunnel: TunnelSchema,
+      TunnelCreateInput,
+      TunnelVerifyResult: TunnelVerifyResultSchema,
       Job: JobSchema,
       JobSummary: JobSummarySchema,
       JobCreateInput,

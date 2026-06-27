@@ -1979,6 +1979,16 @@
               "tunnel"
             ]
           },
+          "tunnelId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -2007,6 +2017,7 @@
           "authKind",
           "authConfig",
           "reachability",
+          "tunnelId",
           "status",
           "createdAt",
           "updatedAt"
@@ -2063,6 +2074,16 @@
             "enum": [
               "public",
               "tunnel"
+            ]
+          },
+          "tunnelId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "slug": {
@@ -2132,6 +2153,16 @@
               "public",
               "tunnel"
             ]
+          },
+          "tunnelId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -2140,6 +2171,192 @@
           "method",
           "authKind",
           "reachability"
+        ],
+        "additionalProperties": false
+      },
+      "Tunnel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "tnl_abc123"
+          },
+          "workspaceId": {
+            "type": "string",
+            "example": "cust_abc123"
+          },
+          "name": {
+            "type": "string",
+            "example": "Acme HQ"
+          },
+          "slug": {
+            "type": "string",
+            "example": "acme-hq"
+          },
+          "hostname": {
+            "type": "string",
+            "example": "acme-hq.tunnels.stlabs.org"
+          },
+          "internalOrigin": {
+            "type": "string",
+            "example": "http://10.0.1.50:8080"
+          },
+          "connectorStatus": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "healthy",
+                  "degraded",
+                  "down",
+                  "inactive"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "connectorCheckedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastVerifyOutcome": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "ok",
+                  "unauthorized",
+                  "forbidden",
+                  "network",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastVerifiedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "health": {
+            "type": "string",
+            "enum": [
+              "operational",
+              "degraded",
+              "down",
+              "not_connected",
+              "unverified"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "name",
+          "slug",
+          "hostname",
+          "internalOrigin",
+          "connectorStatus",
+          "connectorCheckedAt",
+          "lastVerifyOutcome",
+          "lastVerifiedAt",
+          "health",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "description": "A Cloudflare Tunnel to a private-network origin, owned by a Workspace."
+      },
+      "TunnelCreateInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "internalOrigin": {
+            "type": "string",
+            "maxLength": 2048,
+            "format": "uri",
+            "example": "http://10.0.1.50:8080"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "internalOrigin"
+        ],
+        "additionalProperties": false
+      },
+      "TunnelVerifyResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "unauthorized",
+              "forbidden",
+              "network",
+              "unknown"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "outcome",
+          "detail"
         ],
         "additionalProperties": false
       },

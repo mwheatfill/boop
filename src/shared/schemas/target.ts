@@ -18,6 +18,7 @@ export const TargetSchema = z
     authKind: z.enum(TARGET_AUTH_KINDS),
     authConfig: z.string().nullable(),
     reachability: z.enum(TARGET_REACHABILITIES),
+    tunnelId: z.string().nullable(),
     status: z.enum(['active', 'archived']),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
@@ -36,6 +37,7 @@ const targetMutableFields = {
   authKind: z.enum(TARGET_AUTH_KINDS),
   authConfig: z.string().max(4096).nullable().optional(),
   reachability: z.enum(TARGET_REACHABILITIES),
+  tunnelId: z.string().nullable().optional(),
 }
 
 export const TargetCreateInput = z

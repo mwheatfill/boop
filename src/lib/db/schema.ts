@@ -22,6 +22,8 @@ const ALERT_RULE_KINDS = [
 ] as const
 const ALERT_RULE_SCOPES = ['workspace', 'job'] as const
 const AUTHORING_SESSION_STATES = ['draft', 'confirmed', 'abandoned'] as const
+const TUNNEL_CONNECTOR_STATUSES = ['healthy', 'degraded', 'down', 'inactive'] as const
+const TUNNEL_VERIFY_OUTCOMES = ['ok', 'unauthorized', 'forbidden', 'network', 'unknown'] as const
 const JOB_TEMPLATE_TAGS = [
   'backups',
   'health-checks',
@@ -73,6 +75,47 @@ export const users = sqliteTable(
   ],
 )
 
+// Cloudflare resource ids and Access service-token secret references for a
+// provisioned Tunnel live here so the dispatcher and the decommission saga
+// resolve them without another Cloudflare round-trip. A Tunnel is fronted by
+// one or more Connectors. See ADR-028.
+export const tunnels = sqliteTable(
+  'tunnels',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'restrict' }),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    hostname: text('hostname').notNull(),
+    internalOrigin: text('internal_origin').notNull(),
+    cfTunnelId: text('cf_tunnel_id').notNull(),
+    cfAccessAppId: text('cf_access_app_id').notNull(),
+    cfAccessPolicyId: text('cf_access_policy_id').notNull(),
+    cfServiceTokenId: text('cf_service_token_id').notNull(),
+    cfDnsRecordId: text('cf_dns_record_id'),
+    clientIdSecretName: text('client_id_secret_name').notNull(),
+    clientSecretSecretName: text('client_secret_secret_name').notNull(),
+    connectorStatus: enumColumn('connector_status', TUNNEL_CONNECTOR_STATUSES),
+    connectorCheckedAt: integer('connector_checked_at', { mode: 'timestamp_ms' }),
+    lastVerifyOutcome: enumColumn('last_verify_outcome', TUNNEL_VERIFY_OUTCOMES),
+    lastVerifiedAt: integer('last_verified_at', { mode: 'timestamp_ms' }),
+    status: enumColumn('status', LIFECYCLE_STATUSES).notNull().default('active'),
+    archivedAt: integer('archived_at', { mode: 'timestamp_ms' }),
+    ...timestamps(),
+  },
+  (table) => [
+    uniqueIndex('tunnels_workspace_slug_idx').on(table.workspaceId, table.slug),
+    uniqueIndex('tunnels_hostname_idx').on(table.hostname),
+    uniqueIndex('tunnels_cf_tunnel_id_idx').on(table.cfTunnelId),
+    index('tunnels_workspace_status_idx').on(table.workspaceId, table.status),
+    lifecycleCheck(table.status, LIFECYCLE_STATUSES),
+    lifecycleCheck(table.connectorStatus, TUNNEL_CONNECTOR_STATUSES),
+    lifecycleCheck(table.lastVerifyOutcome, TUNNEL_VERIFY_OUTCOMES),
+  ],
+)
+
 export const targets = sqliteTable(
   'targets',
   {
@@ -87,6 +130,7 @@ export const targets = sqliteTable(
     authKind: enumColumn('auth_kind', TARGET_AUTH_KINDS).notNull().default('none'),
     authConfig: text('auth_config'),
     reachability: enumColumn('reachability', TARGET_REACHABILITIES).notNull().default('public'),
+    tunnelId: text('tunnel_id').references(() => tunnels.id, { onDelete: 'restrict' }),
     status: enumColumn('status', LIFECYCLE_STATUSES).notNull().default('active'),
     ...timestamps(),
   },
