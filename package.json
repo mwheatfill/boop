@@ -19,7 +19,7 @@
     "check": "biome check .",
     "check:fix": "biome check --write .",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply DB --local && pnpm db:seed:starters",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local && pnpm db:seed:starters && wrangler d1 execute DB --local --file scripts/seed-default-workspace.sql",
     "db:migrate:prod": "wrangler d1 migrations apply DB --remote",
     "db:studio": "drizzle-kit studio",
     "openapi:generate": "tsx scripts/generate-openapi.ts",

@@ -53,6 +53,7 @@ jobs:
             echo "No migrations to apply (empty schema)."
           fi
           pnpm exec wrangler d1 execute DB --env production --remote --file scripts/starter-recipes.sql
+          pnpm exec wrangler d1 execute DB --env production --remote --file scripts/seed-default-workspace.sql
 
       - name: Deploy to production
         # cloudflare/wrangler-action is Cloudflare's canonical CI deploy
