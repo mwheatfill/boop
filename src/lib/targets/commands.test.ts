@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { createCustomer } from '@/lib/customers/commands'
 import { newId } from '@/lib/db/ids'
 import { jobs } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { ArchiveBlockedError, FieldValidationError, NotFoundError } from '@/lib/errors'
+import { createWorkspace } from '@/lib/workspaces/commands'
 import { archiveTarget, createTarget, restoreTarget, updateTarget } from './commands'
 
-const customerInput = { name: 'Acme', slug: 'acme', timezone: 'UTC' }
+const workspaceInput = { name: 'Acme', slug: 'acme', timezone: 'UTC' }
 
 const targetInput = {
   name: 'Primary API',
@@ -18,24 +18,24 @@ const targetInput = {
 }
 
 describe('createTarget', () => {
-  it('inserts a target scoped to the customer', async () => {
+  it('inserts a target scoped to the workspace', async () => {
     const db = createTestDb()
-    await createCustomer(db, customerInput)
+    await createWorkspace(db, workspaceInput)
     const target = await createTarget(db, 'acme', targetInput)
     expect(target.id).toMatch(/^tgt_/)
-    expect(target.customerId).toMatch(/^cust_/)
+    expect(target.workspaceId).toMatch(/^cust_/)
     expect(target.slug).toBe('primary-api')
     expect(target.status).toBe('active')
   })
 
-  it('throws NotFoundError when the customer slug does not exist', async () => {
+  it('throws NotFoundError when the workspace slug does not exist', async () => {
     const db = createTestDb()
     await expect(createTarget(db, 'missing', targetInput)).rejects.toBeInstanceOf(NotFoundError)
   })
 
-  it('rejects duplicate slugs within the same customer', async () => {
+  it('rejects duplicate slugs within the same workspace', async () => {
     const db = createTestDb()
-    await createCustomer(db, customerInput)
+    await createWorkspace(db, workspaceInput)
     await createTarget(db, 'acme', targetInput)
     let thrown: unknown
     try {
@@ -47,10 +47,10 @@ describe('createTarget', () => {
     expect((thrown as FieldValidationError).fieldErrors).toHaveProperty('slug')
   })
 
-  it('permits the same slug under a different customer', async () => {
+  it('permits the same slug under a different workspace', async () => {
     const db = createTestDb()
-    await createCustomer(db, customerInput)
-    await createCustomer(db, { ...customerInput, name: 'Beta', slug: 'beta' })
+    await createWorkspace(db, workspaceInput)
+    await createWorkspace(db, { ...workspaceInput, name: 'Beta', slug: 'beta' })
     await createTarget(db, 'acme', targetInput)
     const second = await createTarget(db, 'beta', targetInput)
     expect(second.slug).toBe('primary-api')
@@ -60,7 +60,7 @@ describe('createTarget', () => {
 describe('updateTarget', () => {
   it('updates url, method, auth, and reachability fields', async () => {
     const db = createTestDb()
-    await createCustomer(db, customerInput)
+    await createWorkspace(db, workspaceInput)
     await createTarget(db, 'acme', targetInput)
     const updated = await updateTarget(db, 'acme', 'primary-api', {
       name: 'Renamed API',
@@ -78,9 +78,9 @@ describe('updateTarget', () => {
     expect(updated.reachability).toBe('tunnel')
   })
 
-  it('throws NotFoundError when the target slug does not exist for the customer', async () => {
+  it('throws NotFoundError when the target slug does not exist for the workspace', async () => {
     const db = createTestDb()
-    await createCustomer(db, customerInput)
+    await createWorkspace(db, workspaceInput)
     await expect(
       updateTarget(db, 'acme', 'missing', {
         name: 'X',
@@ -96,7 +96,7 @@ describe('updateTarget', () => {
 describe('archiveTarget', () => {
   it('archives a target with no jobs referencing it', async () => {
     const db = createTestDb()
-    await createCustomer(db, customerInput)
+    await createWorkspace(db, workspaceInput)
     await createTarget(db, 'acme', targetInput)
     const archived = await archiveTarget(db, 'acme', 'primary-api')
     expect(archived.status).toBe('archived')
@@ -104,11 +104,11 @@ describe('archiveTarget', () => {
 
   it('blocks when an active job references the target, with the blocking count', async () => {
     const db = createTestDb()
-    const customer = await createCustomer(db, customerInput)
+    const workspace = await createWorkspace(db, workspaceInput)
     const target = await createTarget(db, 'acme', targetInput)
     await db.insert(jobs).values({
       id: newId('job'),
-      customerId: customer.id,
+      workspaceId: workspace.id,
       targetId: target.id,
       name: 'Daily',
       slug: 'daily',
@@ -131,7 +131,7 @@ describe('archiveTarget', () => {
 describe('restoreTarget', () => {
   it('restores an archived target', async () => {
     const db = createTestDb()
-    await createCustomer(db, customerInput)
+    await createWorkspace(db, workspaceInput)
     await createTarget(db, 'acme', targetInput)
     await archiveTarget(db, 'acme', 'primary-api')
     const restored = await restoreTarget(db, 'acme', 'primary-api')

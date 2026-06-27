@@ -8,6 +8,7 @@ import {
   Home,
   Pin,
   SendHorizonal,
+  Target as TargetIcon,
 } from 'lucide-react'
 import type { ComponentType, ReactNode } from 'react'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -35,7 +36,7 @@ interface AppSidebarProps {
 
 interface NavItem {
   label: string
-  to: '/' | '/jobs' | '/customers' | '/runs' | '/templates' | '/channels' | '/alert-rules'
+  to: '/' | '/jobs' | '/runs' | '/templates' | '/targets' | '/channels' | '/alert-rules'
   icon: ComponentType<{ 'aria-hidden'?: boolean }>
   exact?: boolean
   adminOnly?: boolean
@@ -44,20 +45,20 @@ interface NavItem {
 const NAV: NavItem[] = [
   { label: 'Home', to: '/', icon: Home, exact: true },
   { label: 'Jobs', to: '/jobs', icon: Activity },
-  { label: 'Templates', to: '/templates', icon: BookTemplate },
-  { label: 'Customers', to: '/customers', icon: Building2 },
   { label: 'Runs', to: '/runs', icon: History },
-  { label: 'Channels', to: '/channels', icon: SendHorizonal, adminOnly: true },
-  { label: 'Alert Rules', to: '/alert-rules', icon: Bell, adminOnly: true },
+  { label: 'Targets', to: '/targets', icon: TargetIcon },
+  { label: 'Channels', to: '/channels', icon: SendHorizonal },
+  { label: 'Alert Rules', to: '/alert-rules', icon: Bell },
+  { label: 'Templates', to: '/templates', icon: BookTemplate },
 ]
 
-type EntityKind = 'customer' | 'job'
+type EntityKind = 'workspace' | 'job'
 
 interface EntityRef {
   kind: EntityKind
   label: string
   slug: string
-  customerSlug?: string
+  workspaceSlug?: string
 }
 
 type EntityLinkProps = {
@@ -72,23 +73,18 @@ function EntityLink({ entity, icon: Icon, ...slotProps }: EntityLinkProps): Reac
       <span>{entity.label}</span>
     </>
   )
-  if (entity.kind === 'customer') {
+  if (entity.kind === 'workspace') {
     return (
-      <Link
-        to="/customers/$customerSlug"
-        params={{ customerSlug: entity.slug }}
-        activeProps={{ 'data-active': 'true' }}
-        {...slotProps}
-      >
+      <Link to="/" activeProps={{ 'data-active': 'true' }} {...slotProps}>
         {body}
       </Link>
     )
   }
-  if (entity.customerSlug) {
+  if (entity.workspaceSlug) {
     return (
       <Link
-        to="/customers/$customerSlug/jobs/$jobSlug"
-        params={{ customerSlug: entity.customerSlug, jobSlug: entity.slug }}
+        to="/jobs/$jobSlug"
+        params={{ jobSlug: entity.slug }}
         activeProps={{ 'data-active': 'true' }}
         {...slotProps}
       >
@@ -156,7 +152,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
               <SidebarMenu>
                 {recents.map((r) => {
                   const entity: EntityRef = { kind: r.entity, label: r.label, slug: r.slug }
-                  if (r.customerSlug) entity.customerSlug = r.customerSlug
+                  if (r.workspaceSlug) entity.workspaceSlug = r.workspaceSlug
                   return (
                     <SidebarMenuItem key={r.id}>
                       <SidebarMenuButton
@@ -164,7 +160,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                         render={
                           <EntityLink
                             entity={entity}
-                            icon={r.entity === 'customer' ? Building2 : Activity}
+                            icon={r.entity === 'workspace' ? Building2 : Activity}
                           />
                         }
                       />
@@ -181,7 +177,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
           <SidebarGroupContent>
             {pinned.length === 0 ? (
               <p className="px-2 py-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-                Pin a Customer or Job from its detail page.
+                Pin a Job from its detail page.
               </p>
             ) : (
               <SidebarMenu>

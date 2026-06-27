@@ -5,19 +5,19 @@ import { useState } from 'react'
 import { SearchableCombobox } from '@/components/forms/SearchableCombobox'
 import { TemplateGallery } from '@/components/templates/TemplateGallery'
 import { Button } from '@/components/ui/button'
-import { listCustomersQueryOptions } from '@/lib/customers/query-options'
 import { listJobTemplatesQueryOptions } from '@/lib/job-templates/query-options'
-import type { Customer } from '@/shared/schemas/customer'
+import { listWorkspacesQueryOptions } from '@/lib/workspaces/query-options'
 import type { JobTemplate } from '@/shared/schemas/job-template'
+import type { Workspace } from '@/shared/schemas/workspace'
 
 const templatesOptions = listJobTemplatesQueryOptions(undefined)
-const customersOptions = listCustomersQueryOptions(false)
+const workspacesOptions = listWorkspacesQueryOptions(false)
 
 export const Route = createFileRoute('/_authenticated/templates')({
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(templatesOptions),
-      context.queryClient.ensureQueryData(customersOptions),
+      context.queryClient.ensureQueryData(workspacesOptions),
     ])
   },
   component: TemplatesRoute,
@@ -26,15 +26,14 @@ export const Route = createFileRoute('/_authenticated/templates')({
 function TemplatesRoute() {
   const goTo = useNavigate()
   const { data: templates } = useSuspenseQuery(templatesOptions)
-  const { data: customers } = useSuspenseQuery(customersOptions)
+  const { data: workspaces } = useSuspenseQuery(workspacesOptions)
   const [pendingTemplate, setPendingTemplate] = useState<JobTemplate | null>(null)
-  const [customer, setCustomer] = useState<Customer | null>(customers[0] ?? null)
+  const [workspace, setWorkspace] = useState<Workspace | null>(workspaces[0] ?? null)
 
   const useTemplate = async () => {
-    if (!pendingTemplate || !customer) return
+    if (!pendingTemplate || !workspace) return
     await goTo({
-      to: '/customers/$customerSlug/jobs/new',
-      params: { customerSlug: customer.slug },
+      to: '/jobs/new',
       search: { from: pendingTemplate.id },
     })
   }
@@ -57,20 +56,20 @@ function TemplatesRoute() {
         <section className="flex flex-col gap-3 rounded-md border border-border bg-muted/20 p-3">
           <div>
             <p className="text-sm font-medium">Use {pendingTemplate.name}</p>
-            <p className="text-xs text-muted-foreground">Choose the Customer for this new Job.</p>
+            <p className="text-xs text-muted-foreground">Choose the Workspace for this new Job.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <SearchableCombobox<Customer>
-              label="Customer"
-              items={customers}
-              value={customer}
-              onValueChange={setCustomer}
+            <SearchableCombobox<Workspace>
+              label="Workspace"
+              items={workspaces}
+              value={workspace}
+              onValueChange={setWorkspace}
               getId={(c) => c.slug}
               getLabel={(c) => c.name}
               getSecondary={(c) => c.slug}
               searchKeywords={(c) => [c.slug]}
             />
-            <Button type="button" size="sm" onClick={useTemplate} disabled={!customer}>
+            <Button type="button" size="sm" onClick={useTemplate} disabled={!workspace}>
               Create Job
             </Button>
             <Button

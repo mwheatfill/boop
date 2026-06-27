@@ -5,7 +5,7 @@ import { demoId } from './ids'
 type ChannelKind = 'teams' | 'email' | 'webhook'
 
 export type DemoChannelSpec = {
-  customerSlug: string
+  workspaceSlug: string
   slug: string
   name: string
   kind: ChannelKind
@@ -15,7 +15,7 @@ export type DemoChannelSpec = {
 export const DEMO_CHANNELS: readonly DemoChannelSpec[] = [
   // Desert Vista (critical) — Teams + PagerDuty-via-webhook + email
   {
-    customerSlug: 'desert-vista-cu',
+    workspaceSlug: 'desert-vista-cu',
     slug: 'ops-teams',
     name: 'Desert Vista Ops Teams',
     kind: 'teams',
@@ -24,7 +24,7 @@ export const DEMO_CHANNELS: readonly DemoChannelSpec[] = [
     },
   },
   {
-    customerSlug: 'desert-vista-cu',
+    workspaceSlug: 'desert-vista-cu',
     slug: 'pagerduty-critical',
     name: 'Desert Vista PagerDuty (critical)',
     kind: 'webhook',
@@ -36,48 +36,48 @@ export const DEMO_CHANNELS: readonly DemoChannelSpec[] = [
     },
   },
   {
-    customerSlug: 'desert-vista-cu',
+    workspaceSlug: 'desert-vista-cu',
     slug: 'compliance-email',
     name: 'Compliance Email',
     kind: 'email',
     config: {
       recipients: ['compliance@desertvistacu.example'],
-      subject_template: '[boop] {{ customer_name }} - {{ job_name }} {{ outcome }}',
+      subject_template: '[boop] {{ workspace_name }} - {{ job_name }} {{ outcome }}',
       body_template:
-        'Job {{ job_name }} ({{ customer_name }}) {{ outcome }}.\n\nRun: {{ run_url }}',
+        'Job {{ job_name }} ({{ workspace_name }}) {{ outcome }}.\n\nRun: {{ run_url }}',
     },
   },
 
   // Cactus Title — Teams + email
   {
-    customerSlug: 'cactus-title',
+    workspaceSlug: 'cactus-title',
     slug: 'ops-teams',
     name: 'Cactus Title Ops Teams',
     kind: 'teams',
     config: { webhook_url: 'https://outlook.office.com/webhook/demo_only_cactus_title_ops' },
   },
   {
-    customerSlug: 'cactus-title',
+    workspaceSlug: 'cactus-title',
     slug: 'closings-email',
     name: 'Closings Email',
     kind: 'email',
     config: {
       recipients: ['closings@cactustitle.example'],
-      subject_template: '[boop] {{ customer_name }} - {{ job_name }} {{ outcome }}',
+      subject_template: '[boop] {{ workspace_name }} - {{ job_name }} {{ outcome }}',
       body_template: 'Job {{ job_name }} ({{ outcome }}).',
     },
   },
 
   // Sun Valley Insurance — Teams + Autotask-via-webhook
   {
-    customerSlug: 'sun-valley-insurance',
+    workspaceSlug: 'sun-valley-insurance',
     slug: 'ops-teams',
     name: 'Sun Valley Ops Teams',
     kind: 'teams',
     config: { webhook_url: 'https://outlook.office.com/webhook/demo_only_sun_valley_ops' },
   },
   {
-    customerSlug: 'sun-valley-insurance',
+    workspaceSlug: 'sun-valley-insurance',
     slug: 'autotask-webhook',
     name: 'Sun Valley Autotask Bridge',
     kind: 'webhook',
@@ -91,14 +91,14 @@ export const DEMO_CHANNELS: readonly DemoChannelSpec[] = [
 
   // Phoenix Healthcare — Teams + PagerDuty-critical
   {
-    customerSlug: 'phoenix-healthcare-partners',
+    workspaceSlug: 'phoenix-healthcare-partners',
     slug: 'ops-teams',
     name: 'Phoenix Healthcare Ops Teams',
     kind: 'teams',
     config: { webhook_url: 'https://outlook.office.com/webhook/demo_only_phoenix_hc_ops' },
   },
   {
-    customerSlug: 'phoenix-healthcare-partners',
+    workspaceSlug: 'phoenix-healthcare-partners',
     slug: 'pagerduty-critical',
     name: 'Phoenix Healthcare PagerDuty',
     kind: 'webhook',
@@ -112,7 +112,7 @@ export const DEMO_CHANNELS: readonly DemoChannelSpec[] = [
 
   // Mesa Manufacturing — Teams
   {
-    customerSlug: 'mesa-manufacturing',
+    workspaceSlug: 'mesa-manufacturing',
     slug: 'shop-teams',
     name: 'Mesa Shop Floor Teams',
     kind: 'teams',
@@ -121,7 +121,7 @@ export const DEMO_CHANNELS: readonly DemoChannelSpec[] = [
 
   // Salt River Logistics — Teams
   {
-    customerSlug: 'salt-river-logistics',
+    workspaceSlug: 'salt-river-logistics',
     slug: 'ops-teams',
     name: 'Salt River Ops Teams',
     kind: 'teams',
@@ -130,27 +130,27 @@ export const DEMO_CHANNELS: readonly DemoChannelSpec[] = [
 
   // Tempe Tech Group — Teams + email
   {
-    customerSlug: 'tempe-tech-group',
+    workspaceSlug: 'tempe-tech-group',
     slug: 'ops-teams',
     name: 'Tempe Tech Ops Teams',
     kind: 'teams',
     config: { webhook_url: 'https://outlook.office.com/webhook/demo_only_tempe_tech_ops' },
   },
   {
-    customerSlug: 'tempe-tech-group',
+    workspaceSlug: 'tempe-tech-group',
     slug: 'billing-email',
     name: 'Billing Email',
     kind: 'email',
     config: {
       recipients: ['billing@tempetech.example'],
-      subject_template: '[boop] {{ customer_name }} - {{ job_name }} {{ outcome }}',
+      subject_template: '[boop] {{ workspace_name }} - {{ job_name }} {{ outcome }}',
       body_template: 'Job {{ job_name }} ({{ outcome }}).',
     },
   },
 
   // Skyline Realty Trust — Teams
   {
-    customerSlug: 'skyline-realty-trust',
+    workspaceSlug: 'skyline-realty-trust',
     slug: 'ops-teams',
     name: 'Skyline Ops Teams',
     kind: 'teams',
@@ -159,14 +159,14 @@ export const DEMO_CHANNELS: readonly DemoChannelSpec[] = [
 
   // SwitchThink (internal) — Teams + PagerDuty + email
   {
-    customerSlug: 'switchthink',
+    workspaceSlug: 'switchthink',
     slug: 'internal-teams',
     name: 'SwitchThink Internal Teams',
     kind: 'teams',
     config: { webhook_url: 'https://outlook.office.com/webhook/demo_only_switchthink_internal' },
   },
   {
-    customerSlug: 'switchthink',
+    workspaceSlug: 'switchthink',
     slug: 'pagerduty-critical',
     name: 'SwitchThink PagerDuty (critical)',
     kind: 'webhook',
@@ -178,13 +178,13 @@ export const DEMO_CHANNELS: readonly DemoChannelSpec[] = [
     },
   },
   {
-    customerSlug: 'switchthink',
+    workspaceSlug: 'switchthink',
     slug: 'oncall-email',
     name: 'On-call Email',
     kind: 'email',
     config: {
       recipients: ['oncall@switchthink.com'],
-      subject_template: '[boop] {{ customer_name }} - {{ job_name }} {{ outcome }}',
+      subject_template: '[boop] {{ workspace_name }} - {{ job_name }} {{ outcome }}',
       body_template: 'Run: {{ run_url }}',
     },
   },
@@ -194,12 +194,12 @@ type ChannelInsert = InferInsertModel<typeof channels>
 
 export function channelRow(
   spec: DemoChannelSpec,
-  customerId: string,
-  customerCreatedAt: Date,
+  workspaceId: string,
+  workspaceCreatedAt: Date,
 ): ChannelInsert {
   return {
-    id: demoId('chn', spec.customerSlug, spec.slug),
-    customerId,
+    id: demoId('chn', spec.workspaceSlug, spec.slug),
+    workspaceId,
     kind: spec.kind,
     name: spec.name,
     slug: spec.slug,
@@ -209,7 +209,7 @@ export function channelRow(
     lastTestAlertAt: null,
     lastTestAlertStatus: null,
     lastTestAlertReason: null,
-    createdAt: customerCreatedAt,
-    updatedAt: customerCreatedAt,
+    createdAt: workspaceCreatedAt,
+    updatedAt: workspaceCreatedAt,
   }
 }

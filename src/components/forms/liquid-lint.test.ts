@@ -7,7 +7,7 @@ describe('lintLiquidSource', () => {
   })
 
   it('returns no diagnostics for a valid template', () => {
-    expect(lintLiquidSource('Hello {{ customer_name }}')).toEqual([])
+    expect(lintLiquidSource('Hello {{ workspace_name }}')).toEqual([])
   })
 
   it('returns no diagnostics for a well-formed if/endif block', () => {

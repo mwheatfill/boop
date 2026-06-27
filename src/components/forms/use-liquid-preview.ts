@@ -5,8 +5,8 @@ export type LiquidPreviewVariant = 'body' | 'headers'
 
 export interface UseLiquidPreviewInput {
   template: string
-  customerName: string
-  customerTimezone: string
+  workspaceName: string
+  workspaceTimezone: string
   variant: LiquidPreviewVariant
   debounceMs?: number
 }
@@ -20,8 +20,8 @@ const DEFAULT_DEBOUNCE_MS = 150
 
 export function useLiquidPreview({
   template,
-  customerName,
-  customerTimezone,
+  workspaceName,
+  workspaceTimezone,
   variant,
   debounceMs = DEFAULT_DEBOUNCE_MS,
 }: UseLiquidPreviewInput): UseLiquidPreviewResult {
@@ -30,7 +30,7 @@ export function useLiquidPreview({
   useEffect(() => {
     let canceled = false
     const timer = setTimeout(async () => {
-      const context = syntheticRenderContext({ customerName, customerTimezone })
+      const context = syntheticRenderContext({ workspaceName, workspaceTimezone })
       const result =
         variant === 'headers'
           ? await previewHeaders(template, context)
@@ -46,7 +46,7 @@ export function useLiquidPreview({
       canceled = true
       clearTimeout(timer)
     }
-  }, [template, customerName, customerTimezone, variant, debounceMs])
+  }, [template, workspaceName, workspaceTimezone, variant, debounceMs])
 
   return state
 }

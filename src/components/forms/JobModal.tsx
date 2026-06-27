@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useReducer } from 'react'
 import { toast } from 'sonner'
-import { CustomerModal } from '@/components/forms/CustomerModal'
 import { EntityModal } from '@/components/forms/EntityModal'
 import type { FormApiFor } from '@/components/forms/form-api'
 import {
@@ -13,7 +12,7 @@ import {
 } from '@/components/forms/JobModal.sections'
 import { TargetModal } from '@/components/forms/TargetModal'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
-import { customerSecretsQueryOptions } from '@/lib/customer-secrets/query-options'
+import { WorkspaceModal } from '@/components/forms/WorkspaceModal'
 import { PICKER_KEYS, PICKER_RECENT_LIMITS } from '@/lib/forms/picker-keys'
 import { useEntityDefault } from '@/lib/forms/use-entity-default'
 import { useLastUsed } from '@/lib/forms/use-last-used'
@@ -24,17 +23,18 @@ import { createJobFn, updateJobFn } from '@/lib/jobs/server-fns'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
 import { listTargetsQueryOptions } from '@/lib/targets/query-options'
-import type { Customer } from '@/shared/schemas/customer'
+import { workspaceSecretsQueryOptions } from '@/lib/workspace-secrets/query-options'
 import type { Job, TriggerKind } from '@/shared/schemas/job'
 import type { JobTemplate } from '@/shared/schemas/job-template'
 import type { Target } from '@/shared/schemas/target'
+import type { Workspace } from '@/shared/schemas/workspace'
 
-export type CustomerOption = Pick<Customer, 'slug' | 'name' | 'timezone' | 'variables'>
+export type WorkspaceOption = Pick<Workspace, 'slug' | 'name' | 'timezone' | 'variables'>
 
 export interface JobFormValues {
   name: string
   slug: string
-  customerSlug: string
+  workspaceSlug: string
   targetSlug: string
   triggerKind: TriggerKind
   cronExpression: string
@@ -51,8 +51,8 @@ export type JobFormApi = FormApiFor<JobFormValues>
 
 interface JobModalProps {
   variant: 'create' | 'edit'
-  presetCustomer?: CustomerOption
-  customers: CustomerOption[]
+  presetWorkspace?: WorkspaceOption
+  workspaces: WorkspaceOption[]
   initialJob?: Job
   initialTargets?: Target[]
   initialTemplateId?: string | undefined
@@ -67,15 +67,15 @@ const ADMIN_ONLY_REASON = 'Admin only'
 
 export type TemplateApplyOptions = {
   template: JobTemplate
-  customerSlug: string
+  workspaceSlug: string
   fallbackTimezone: string
 }
 
 interface JobModalUiState {
   createAnother: boolean
   nestedTargetOpen: boolean
-  nestedCustomerOpen: boolean
-  nestedCustomerSeed: string
+  nestedWorkspaceOpen: boolean
+  nestedWorkspaceSeed: string
   view: 'form' | 'templates'
   targetPlaceholder: string | null
 }
@@ -84,16 +84,16 @@ export type JobModalUiAction =
   | { type: 'create-another-changed'; enabled: boolean }
   | { type: 'target-create-opened' }
   | { type: 'target-create-closed' }
-  | { type: 'customer-create-opened'; seed: string }
-  | { type: 'customer-create-closed' }
+  | { type: 'workspace-create-opened'; seed: string }
+  | { type: 'workspace-create-closed' }
   | { type: 'view-changed'; view: 'form' | 'templates' }
   | { type: 'template-applied'; targetPlaceholder: string | null }
 
 const initialJobModalUiState: JobModalUiState = {
   createAnother: false,
   nestedTargetOpen: false,
-  nestedCustomerOpen: false,
-  nestedCustomerSeed: '',
+  nestedWorkspaceOpen: false,
+  nestedWorkspaceSeed: '',
   view: 'form',
   targetPlaceholder: null,
 }
@@ -106,10 +106,10 @@ function jobModalUiReducer(state: JobModalUiState, action: JobModalUiAction): Jo
       return { ...state, nestedTargetOpen: true }
     case 'target-create-closed':
       return { ...state, nestedTargetOpen: false }
-    case 'customer-create-opened':
-      return { ...state, nestedCustomerOpen: true, nestedCustomerSeed: action.seed }
-    case 'customer-create-closed':
-      return { ...state, nestedCustomerOpen: false, nestedCustomerSeed: '' }
+    case 'workspace-create-opened':
+      return { ...state, nestedWorkspaceOpen: true, nestedWorkspaceSeed: action.seed }
+    case 'workspace-create-closed':
+      return { ...state, nestedWorkspaceOpen: false, nestedWorkspaceSeed: '' }
     case 'view-changed':
       return { ...state, view: action.view }
     case 'template-applied':
@@ -119,8 +119,8 @@ function jobModalUiReducer(state: JobModalUiState, action: JobModalUiAction): Jo
 
 export function JobModal({
   variant,
-  presetCustomer,
-  customers,
+  presetWorkspace,
+  workspaces,
   initialJob,
   initialTargets,
   initialTemplateId,
@@ -130,41 +130,41 @@ export function JobModal({
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
-  const customerRecents = usePickerRecents<CustomerOption>(
-    PICKER_KEYS.recentCustomers,
-    customers,
+  const workspaceRecents = usePickerRecents<WorkspaceOption>(
+    PICKER_KEYS.recentWorkspaces,
+    workspaces,
     (c) => c.slug,
-    PICKER_RECENT_LIMITS.customers,
+    PICKER_RECENT_LIMITS.workspaces,
   )
-  const lastCustomer = useLastUsed<CustomerOption>(
-    PICKER_KEYS.lastCustomer,
-    customers,
+  const lastWorkspace = useLastUsed<WorkspaceOption>(
+    PICKER_KEYS.lastWorkspace,
+    workspaces,
     (c) => c.slug,
   )
   const switchthink = useMemo(
-    () => customers.find((c) => c.slug === SWITCHTHINK_SLUG) ?? null,
-    [customers],
+    () => workspaces.find((c) => c.slug === SWITCHTHINK_SLUG) ?? null,
+    [workspaces],
   )
-  const firstActive = customers[0] ?? null
+  const firstActive = workspaces[0] ?? null
 
-  const customerDefault = useEntityDefault<CustomerOption>({
-    urlSourceValue: variant === 'edit' ? null : (presetCustomer ?? null),
-    lastUsedValue: variant === 'edit' ? null : lastCustomer.lastUsed,
+  const workspaceDefault = useEntityDefault<WorkspaceOption>({
+    urlSourceValue: variant === 'edit' ? null : (presetWorkspace ?? null),
+    lastUsedValue: variant === 'edit' ? null : lastWorkspace.lastUsed,
     fallbackChain: variant === 'edit' ? [] : [switchthink, firstActive],
   })
 
-  const initialCustomer = useMemo<CustomerOption | null>(() => {
+  const initialWorkspace = useMemo<WorkspaceOption | null>(() => {
     if (initialJob) {
-      const fromList = customers.find((c) => c.slug === initialJob.customerSlug)
+      const fromList = workspaces.find((c) => c.slug === initialJob.workspaceSlug)
       return {
-        slug: initialJob.customerSlug,
-        name: initialJob.customerName,
-        timezone: initialJob.customerTimezone,
+        slug: initialJob.workspaceSlug,
+        name: initialJob.workspaceName,
+        timezone: initialJob.workspaceTimezone,
         variables: fromList?.variables ?? {},
       }
     }
-    return customerDefault
-  }, [initialJob, customerDefault, customers])
+    return workspaceDefault
+  }, [initialJob, workspaceDefault, workspaces])
 
   const startSlug = initialJob?.slug ?? ''
   const slug = useSlugAutoFill(variant === 'edit')
@@ -172,8 +172,8 @@ export function JobModal({
   const {
     createAnother,
     nestedTargetOpen,
-    nestedCustomerOpen,
-    nestedCustomerSeed,
+    nestedWorkspaceOpen,
+    nestedWorkspaceSeed,
     view,
     targetPlaceholder,
   } = uiState
@@ -182,12 +182,12 @@ export function JobModal({
     defaultValues: {
       name: initialJob?.name ?? '',
       slug: startSlug,
-      customerSlug: initialCustomer?.slug ?? '',
+      workspaceSlug: initialWorkspace?.slug ?? '',
       targetSlug: initialJob?.targetSlug ?? initialTargets?.[0]?.slug ?? '',
       triggerKind: initialJob?.triggerKind ?? 'cron',
       cronExpression: initialJob?.cronExpression ?? DEFAULT_CRON,
       intervalSeconds: initialJob?.intervalSeconds ?? DEFAULT_INTERVAL,
-      triggerTimezone: initialJob?.triggerTimezone ?? initialCustomer?.timezone ?? 'UTC',
+      triggerTimezone: initialJob?.triggerTimezone ?? initialWorkspace?.timezone ?? 'UTC',
       bodyTemplate: initialJob?.bodyTemplate ?? '',
       headersTemplate: initialJob?.headersTemplate ?? '{}',
       variables: initialJob?.variables ?? {},
@@ -196,8 +196,10 @@ export function JobModal({
     } satisfies JobFormValues,
     validators: {
       onSubmitAsync: async ({ value }) => {
-        if (!value.customerSlug) return { fields: { customerSlug: 'Pick a Customer' } }
+        if (!value.workspaceSlug) return { fields: { workspaceSlug: 'Pick a Workspace' } }
         if (!value.targetSlug) return { fields: { targetSlug: 'Pick a Target' } }
+        if (!value.name.trim()) return { fields: { name: 'Name is required' } }
+        if (!value.slug.trim()) return { fields: { slug: 'Slug is required' } }
 
         const trigger =
           value.triggerKind === 'cron'
@@ -225,14 +227,14 @@ export function JobModal({
           variant === 'create'
             ? await createJobFn({
                 data: {
-                  customerSlug: value.customerSlug,
+                  workspaceSlug: value.workspaceSlug,
                   slug: value.slug,
                   ...base,
                 } as never,
               })
             : await updateJobFn({
                 data: {
-                  customerSlug: value.customerSlug,
+                  workspaceSlug: value.workspaceSlug,
                   jobSlug: startSlug,
                   ...base,
                 } as never,
@@ -245,10 +247,10 @@ export function JobModal({
           }
         }
 
-        const submittedCustomer = customers.find((c) => c.slug === value.customerSlug)
-        if (submittedCustomer) {
-          lastCustomer.recordUse(submittedCustomer)
-          customerRecents.recordUse(submittedCustomer)
+        const submittedWorkspace = workspaces.find((c) => c.slug === value.workspaceSlug)
+        if (submittedWorkspace) {
+          lastWorkspace.recordUse(submittedWorkspace)
+          workspaceRecents.recordUse(submittedWorkspace)
         }
         const submittedTarget = targets.find((t) => t.slug === value.targetSlug)
         if (submittedTarget) {
@@ -258,7 +260,7 @@ export function JobModal({
 
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['jobs'] }),
-          queryClient.invalidateQueries({ queryKey: ['customers', value.customerSlug] }),
+          queryClient.invalidateQueries({ queryKey: ['workspaces', value.workspaceSlug] }),
           queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
         ])
 
@@ -274,15 +276,15 @@ export function JobModal({
 
         toast.success(variant === 'create' ? `Job ${result.data.name} created` : 'Saved')
         await navigate({
-          to: '/customers/$customerSlug/jobs/$jobSlug',
-          params: { customerSlug: value.customerSlug, jobSlug: result.data.slug },
+          to: '/jobs/$jobSlug',
+          params: { jobSlug: result.data.slug },
         })
         return null
       },
     },
   })
 
-  const customerSlug = useStore(form.store, (s) => s.values.customerSlug)
+  const workspaceSlug = useStore(form.store, (s) => s.values.workspaceSlug)
   const triggerKind = useStore(form.store, (s) => s.values.triggerKind)
   const cronExpression = useStore(form.store, (s) => s.values.cronExpression)
   const intervalSeconds = useStore(form.store, (s) => s.values.intervalSeconds)
@@ -292,20 +294,20 @@ export function JobModal({
   const formError = useStore(form.store, (s) => s.errorMap.onSubmit)
 
   const targetsQuery = useQuery({
-    ...listTargetsQueryOptions(customerSlug),
-    enabled: customerSlug.length > 0,
-    ...(customerSlug === initialCustomer?.slug && initialTargets
+    ...listTargetsQueryOptions(workspaceSlug),
+    enabled: workspaceSlug.length > 0,
+    ...(workspaceSlug === initialWorkspace?.slug && initialTargets
       ? { initialData: initialTargets }
       : {}),
   })
   const targets = targetsQuery.data ?? []
 
   const secretsQuery = useQuery({
-    ...customerSecretsQueryOptions(customerSlug),
-    enabled: customerSlug.length > 0,
+    ...workspaceSecretsQueryOptions(workspaceSlug),
+    enabled: workspaceSlug.length > 0,
   })
   const templatesQuery = useQuery({
-    ...listJobTemplatesQueryOptions(customerSlug || undefined),
+    ...listJobTemplatesQueryOptions(workspaceSlug || undefined),
     enabled: variant === 'create',
   })
   const secretNames = useMemo(
@@ -314,13 +316,13 @@ export function JobModal({
   )
 
   const targetRecents = usePickerRecents<Target>(
-    PICKER_KEYS.recentTargets(customerSlug),
+    PICKER_KEYS.recentTargets(workspaceSlug),
     targets,
     (t) => t.slug,
     PICKER_RECENT_LIMITS.targets,
   )
   const lastTarget = useLastUsed<Target>(
-    PICKER_KEYS.lastTarget(customerSlug),
+    PICKER_KEYS.lastTarget(workspaceSlug),
     targets,
     (t) => t.slug,
   )
@@ -342,17 +344,18 @@ export function JobModal({
     }
   }, [targetDefault, targets, form, variant])
 
-  const selectedCustomer = customers.find((c) => c.slug === customerSlug) ?? initialCustomer ?? null
+  const selectedWorkspace =
+    workspaces.find((c) => c.slug === workspaceSlug) ?? initialWorkspace ?? null
   const selectedTarget = targets.find((t) => t.slug === form.state.values.targetSlug) ?? null
 
   const applyTemplate = useCallback(
-    ({ template, customerSlug, fallbackTimezone }: TemplateApplyOptions) => {
-      const input = instantiateFromTemplate(template, customerSlug)
+    ({ template, workspaceSlug, fallbackTimezone }: TemplateApplyOptions) => {
+      const input = instantiateFromTemplate(template, workspaceSlug)
       const trigger = input.trigger
 
       form.setFieldValue('name', input.name)
       form.setFieldValue('slug', slugify(input.name))
-      form.setFieldValue('customerSlug', input.customerSlug)
+      form.setFieldValue('workspaceSlug', input.workspaceSlug)
       form.setFieldValue('targetSlug', input.targetSlug)
       form.setFieldValue('triggerKind', trigger.triggerKind)
       form.setFieldValue(
@@ -374,7 +377,7 @@ export function JobModal({
       form.setFieldValue('overallDeadlineMs', input.overallDeadlineMs)
       dispatchUi({
         type: 'template-applied',
-        targetPlaceholder: template.scope === 'workspace' ? template.targetRef : null,
+        targetPlaceholder: template.builtIn ? template.targetRef : null,
       })
     },
     [form],
@@ -384,35 +387,33 @@ export function JobModal({
     if (!initialTemplateId || variant !== 'create') return
     const template = templatesQuery.data?.find((t) => t.id === initialTemplateId)
     if (!template) return
-    const templateCustomerSlug = customerSlug || selectedCustomer?.slug
-    if (!templateCustomerSlug) return
+    const templateWorkspaceSlug = workspaceSlug || selectedWorkspace?.slug
+    if (!templateWorkspaceSlug) return
     applyTemplate({
       template,
-      customerSlug: templateCustomerSlug,
-      fallbackTimezone: selectedCustomer?.timezone ?? 'UTC',
+      workspaceSlug: templateWorkspaceSlug,
+      fallbackTimezone: selectedWorkspace?.timezone ?? 'UTC',
     })
   }, [
     initialTemplateId,
     templatesQuery.data,
     variant,
-    customerSlug,
-    selectedCustomer,
+    workspaceSlug,
+    selectedWorkspace,
     applyTemplate,
   ])
 
-  const customerCreateAffordance = isAdmin
+  const workspaceCreateAffordance = isAdmin
     ? {
         enabled: true,
-        onCreate: (query: string) => dispatchUi({ type: 'customer-create-opened', seed: query }),
+        onCreate: (query: string) => dispatchUi({ type: 'workspace-create-opened', seed: query }),
       }
     : { enabled: false, disabledReason: ADMIN_ONLY_REASON, onCreate: () => {} }
 
-  const targetCreateAffordance = isAdmin
-    ? {
-        enabled: true,
-        onCreate: () => dispatchUi({ type: 'target-create-opened' }),
-      }
-    : { enabled: false, disabledReason: ADMIN_ONLY_REASON, onCreate: () => {} }
+  const targetCreateAffordance = {
+    enabled: true,
+    onCreate: () => dispatchUi({ type: 'target-create-opened' }),
+  }
 
   const jobForm = form as unknown as JobFormApi
 
@@ -450,8 +451,8 @@ export function JobModal({
           variant={variant}
           view={view}
           templates={templatesQuery.data ?? []}
-          customerSlug={customerSlug}
-          selectedCustomer={selectedCustomer}
+          workspaceSlug={workspaceSlug}
+          selectedWorkspace={selectedWorkspace}
           dispatchUi={dispatchUi}
           applyTemplate={applyTemplate}
         />
@@ -460,12 +461,11 @@ export function JobModal({
             form={jobForm}
             variant={variant}
             initialJob={initialJob}
-            isAdmin={isAdmin}
-            customers={customers}
-            customerRecents={customerRecents.recents}
-            customerSlug={customerSlug}
-            selectedCustomer={selectedCustomer}
-            customerCreateAffordance={customerCreateAffordance}
+            workspaces={workspaces}
+            workspaceRecents={workspaceRecents.recents}
+            workspaceSlug={workspaceSlug}
+            selectedWorkspace={selectedWorkspace}
+            workspaceCreateAffordance={workspaceCreateAffordance}
             targets={targets}
             targetRecents={targetRecents.recents}
             selectedTarget={selectedTarget}
@@ -483,14 +483,14 @@ export function JobModal({
         {formError ? <p className="text-sm text-destructive">{String(formError)}</p> : null}
       </form>
 
-      {nestedTargetOpen && customerSlug ? (
+      {nestedTargetOpen && workspaceSlug ? (
         <TargetModal
           variant="create"
-          customerSlug={customerSlug}
+          workspaceSlug={workspaceSlug}
           onClose={() => dispatchUi({ type: 'target-create-closed' })}
           onCreated={async (target) => {
             await queryClient.invalidateQueries({
-              queryKey: ['customers', customerSlug, 'targets'],
+              queryKey: ['workspaces', workspaceSlug, 'targets'],
             })
             form.setFieldValue('targetSlug', target.slug)
             dispatchUi({ type: 'target-create-closed' })
@@ -498,17 +498,17 @@ export function JobModal({
         />
       ) : null}
 
-      {nestedCustomerOpen ? (
-        <CustomerModal
+      {nestedWorkspaceOpen ? (
+        <WorkspaceModal
           variant="create"
-          onClose={() => dispatchUi({ type: 'customer-create-closed' })}
-          {...(nestedCustomerSeed ? { initialName: nestedCustomerSeed } : {})}
+          onClose={() => dispatchUi({ type: 'workspace-create-closed' })}
+          {...(nestedWorkspaceSeed ? { initialName: nestedWorkspaceSeed } : {})}
           onCreated={async (created) => {
-            await queryClient.invalidateQueries({ queryKey: ['customers'] })
-            form.setFieldValue('customerSlug', created.slug)
+            await queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+            form.setFieldValue('workspaceSlug', created.slug)
             form.setFieldValue('triggerTimezone', created.timezone)
             form.setFieldValue('targetSlug', '')
-            dispatchUi({ type: 'customer-create-closed' })
+            dispatchUi({ type: 'workspace-create-closed' })
           }}
         />
       ) : null}

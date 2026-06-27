@@ -16,7 +16,7 @@ Ordered foundation → data → auth → AI → product surface → meta.
 | [003](003-d1-default-data-layer.md) | Accepted | Cloudflare D1 default; Neon Postgres via recipe |
 | [004](004-drizzle-orm.md) | Accepted | Drizzle as the ORM |
 | [005](005-auth-provider-abstraction.md) | Accepted | Auth provider abstraction (`getCurrentUser`) |
-| [006](006-better-auth-with-entra-default.md) | Superseded for boop | Better Auth + Entra OIDC default (template-family); boop uses Cloudflare Access — see ADR-026 |
+| [006](006-better-auth-with-entra-default.md) | Superseded for boop | Better Auth + Entra OIDC default (template-family); boop uses Cloudflare Access, see ADR-026 |
 | [007](007-foundry-via-ai-gateway.md) | Accepted | Microsoft Foundry via Cloudflare AI Gateway |
 | [008](008-ui-visual-layer.md) | Accepted | UI / visual layer (shadcn-base-vega centered; charts, toasts, icons, motion, theme, dashboard) |
 | [009](009-opinionated-stack-and-pattern-enforcement.md) | Accepted | Opinionated stack with mechanical pattern enforcement |
@@ -28,14 +28,15 @@ Ordered foundation → data → auth → AI → product surface → meta.
 | [015](015-ai-authoring-stack.md) | Proposed | AI authoring stack (Vercel AI SDK, Cloudflare Agents, Code Mode, MCP server) |
 | [016](016-operator-authz.md) | Proposed | Operator authorization (Access JWT, Admin/Operator roles, double-bound AI authz) |
 | [017](017-cron-and-time.md) | Proposed | Cron parser (`croner`), date/time approach (native `Intl.*`), timezone on the data model |
-| [018](018-navigation-ia.md) | Proposed | Navigation IA (Customer-nested URLs, Jobs-first navigation surfaces) |
+| [018](018-navigation-ia.md) | Superseded for boop | Navigation IA (Customer-nested URLs, Jobs-first navigation surfaces); URL grammar superseded by ADR-027, Jobs-first principle carried forward |
 | [019](019-soft-delete-policy.md) | Proposed | Soft-delete policy (archive blocks on active dependents) |
 | [020](020-current-by-default-third-party-pins.md) | Proposed | Current-by-default for third-party version pins (Renovate + audit + agent-side rule) |
 | [022](022-design-language-pass-2.md) | Proposed | Design language pass 2 (dark-first, three-anchor theme, cool-blue UI accent, warm orange brand retreats to chart palette) |
 | [023](023-modal-with-pills-crud-convention.md) | Proposed | Modal-with-pills as the create + edit convention (Base UI Dialog, route masking, nested dialogs, `useBlocker` discard) |
 | [024](024-auth-surfaces-api-tokens-and-oauth-for-mcp.md) | Proposed | Auth surfaces (API tokens for CLI/SDK, OAuth 2.1 recipe-handled for MCP, Cloudflare Access for browser) |
-| [025](025-workspace-scope-on-channels-and-alert-rules.md) | Proposed | Workspace scope on Channels + AlertRules; additive override hierarchy |
+| [025](025-workspace-scope-on-channels-and-alert-rules.md) | Superseded | Workspace scope on Channels + AlertRules; additive override hierarchy (the customer tier is removed by ADR-027) |
 | [026](026-cloudflare-access-with-entra-oidc.md) | Accepted | Cloudflare Access (fronted by Entra OIDC) is boop's auth implementation (supersedes ADR-006's choice for boop) |
+| [027](027-domain-simplification-workspace-consolidation.md) | Proposed | Domain simplification (Workspace replaces Customer as the single org tier, one Workspace in v1, flat URLs, no switcher, multi deferred; inline Targets; unified Schedule); supersedes ADR-025 and the URL grammar of ADR-018 |
 
 ## How to add an ADR
 

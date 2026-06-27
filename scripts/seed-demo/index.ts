@@ -44,7 +44,7 @@ function printHelp(): void {
       '',
       '  --profile=demo     14 days history (default)',
       '  --profile=stress   90 days history. Heavy on D1; --confirm required to reset.',
-      '  --profile=minimal  3 days history, single Customer, 5 Jobs. CI-friendly.',
+      '  --profile=minimal  3 days history, single Workspace, 5 Jobs. CI-friendly.',
       '  --reset            Delete every seed_tag = demo-v1 row before inserting.',
       '  --confirm          Required with --reset --profile=stress.',
     ].join('\n'),
@@ -74,7 +74,7 @@ async function main(): Promise<void> {
       console.log('seed:demo: cleanup phase…')
       const counts = await cleanupDemoData(handle.db)
       console.log(
-        `seed:demo: cleanup deleted customers=${counts.customers} users=${counts.users} targets=${counts.targets} jobs=${counts.jobs} runs=${counts.runs} attempts=${counts.attempts}`,
+        `seed:demo: cleanup deleted workspaces=${counts.workspaces} users=${counts.users} targets=${counts.targets} jobs=${counts.jobs} runs=${counts.runs} attempts=${counts.attempts}`,
       )
     }
 
@@ -88,7 +88,7 @@ async function main(): Promise<void> {
     })
     const durationMs = Date.now() - startedAt
     console.log(
-      `seed:demo: done in ${(durationMs / 1000).toFixed(1)}s — customers=${counts.customers} operators=${counts.operators} targets=${counts.targets} jobs=${counts.jobs} channels=${counts.channels} alertRules=${counts.alertRules} runs=${counts.runs} attempts=${counts.attempts}`,
+      `seed:demo: done in ${(durationMs / 1000).toFixed(1)}s — workspaces=${counts.workspaces} operators=${counts.operators} targets=${counts.targets} jobs=${counts.jobs} channels=${counts.channels} alertRules=${counts.alertRules} runs=${counts.runs} attempts=${counts.attempts}`,
     )
   } finally {
     handle.sqlite.close()

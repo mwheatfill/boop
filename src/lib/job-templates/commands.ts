@@ -1,9 +1,9 @@
-import { and, eq } from 'drizzle-orm'
-import { normalizeSlug, resolveCustomerId } from '@/lib/customers/resolve'
+import { and, eq, isNull } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
 import { jobTemplates } from '@/lib/db/schema'
 import { FieldValidationError, isUniqueConstraintViolation } from '@/lib/errors'
+import { normalizeSlug, resolveWorkspaceId } from '@/lib/workspaces/resolve'
 import type {
   JobTemplate,
   JobTemplateCreateInput,
@@ -14,21 +14,10 @@ import { getJobDetail } from '../jobs/queries'
 import { getTemplateById, getTemplateBySlug } from './queries'
 import { STARTER_RECIPES } from './starter-recipes'
 
-function uniqueScopeMessage(scope: 'workspace' | 'customer', slug: string): string {
-  return scope === 'workspace'
-    ? `Slug '${slug}' is already in use by another workspace template`
-    : `Slug '${slug}' is already in use by another template for this Customer`
-}
-
-async function customerIdForScope(
-  db: Database,
-  input: Pick<JobTemplateCreateInput, 'scope' | 'customerSlug'>,
-): Promise<string | null> {
-  if (input.scope === 'workspace') return null
-  if (!input.customerSlug) {
-    throw new FieldValidationError({ customerSlug: ['Customer scope requires a Customer'] })
-  }
-  return resolveCustomerId(db, input.customerSlug)
+function uniqueTemplateMessage(builtIn: boolean, slug: string): string {
+  return builtIn
+    ? `Slug '${slug}' is already in use by another starter recipe`
+    : `Slug '${slug}' is already in use by another template for this Workspace`
 }
 
 function starterRecipeValues(recipe: (typeof STARTER_RECIPES)[number]) {
@@ -52,7 +41,7 @@ function triggerConfigForSavedJob(job: Awaited<ReturnType<typeof getJobDetail>>)
   if (job.triggerKind === 'cron') {
     return {
       cronExpression: job.cronExpression ?? '0 9 * * *',
-      triggerTimezone: job.triggerTimezone ?? job.customerTimezone,
+      triggerTimezone: job.triggerTimezone ?? job.workspaceTimezone,
     }
   }
   if (job.triggerKind === 'interval') {
@@ -68,14 +57,20 @@ export async function createJobTemplate(
 ): Promise<JobTemplate> {
   const slug = normalizeSlug(input.slug)
   const id = newId('jtpl')
-  const customerId = await customerIdForScope(db, input)
+  const builtIn = options.builtIn ?? false
+  let workspaceId: string | null = null
+  if (!builtIn) {
+    if (!input.workspaceSlug) {
+      throw new FieldValidationError({ workspaceSlug: ['A Workspace is required'] })
+    }
+    workspaceId = await resolveWorkspaceId(db, input.workspaceSlug)
+  }
   try {
     await db.insert(jobTemplates).values({
       id,
       name: input.name.trim(),
       slug,
-      scope: input.scope,
-      customerId,
+      workspaceId,
       tag: input.tag,
       icon: input.icon ?? null,
       description: input.description ?? null,
@@ -87,15 +82,15 @@ export async function createJobTemplate(
       variables: input.variables,
       maxAttempts: input.maxAttempts,
       overallDeadlineMs: input.overallDeadlineMs,
-      builtIn: options.builtIn ?? false,
+      builtIn,
     })
   } catch (err) {
     if (isUniqueConstraintViolation(err, 'job_templates.slug')) {
-      throw new FieldValidationError({ slug: [uniqueScopeMessage(input.scope, slug)] })
+      throw new FieldValidationError({ slug: [uniqueTemplateMessage(builtIn, slug)] })
     }
     throw err
   }
-  return getTemplateBySlug(db, input.scope, slug, input.customerSlug)
+  return getTemplateBySlug(db, slug, builtIn ? undefined : input.workspaceSlug)
 }
 
 export async function updateJobTemplate(
@@ -154,18 +149,17 @@ export async function saveJobAsTemplate(
   db: Database,
   input: JobTemplateSaveFromJobInput,
 ): Promise<JobTemplate> {
-  const job = await getJobDetail(db, input.customerSlug, input.jobSlug)
+  const job = await getJobDetail(db, input.workspaceSlug, input.jobSlug)
   return createJobTemplate(db, {
     name: input.name,
     slug: input.slug,
-    scope: input.scope,
-    customerSlug: input.scope === 'customer' ? input.customerSlug : undefined,
+    workspaceSlug: input.workspaceSlug,
     tag: input.tag,
     description: input.description,
     icon: 'copy-plus',
     triggerKind: job.triggerKind,
     triggerConfig: triggerConfigForSavedJob(job),
-    targetRef: input.scope === 'customer' ? job.targetSlug : 'target_placeholder',
+    targetRef: job.targetSlug,
     bodyTemplate: input.capture.bodyTemplate ? job.bodyTemplate : '',
     headersTemplate: input.capture.headersTemplate ? job.headersTemplate : '{}',
     variables: input.capture.variables ? job.variables : {},
@@ -184,7 +178,7 @@ export async function seedStarterRecipes(db: Database): Promise<number> {
         .from(jobTemplates)
         .where(
           and(
-            eq(jobTemplates.scope, 'workspace'),
+            isNull(jobTemplates.workspaceId),
             eq(jobTemplates.slug, recipe.slug),
             eq(jobTemplates.builtIn, true),
           ),
@@ -207,7 +201,6 @@ export async function seedStarterRecipes(db: Database): Promise<number> {
         db,
         {
           ...recipe,
-          scope: 'workspace',
           variables: values.variables,
           maxAttempts: values.maxAttempts,
           overallDeadlineMs: values.overallDeadlineMs,

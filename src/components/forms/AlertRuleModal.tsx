@@ -4,19 +4,13 @@ import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ChannelModal } from '@/components/forms/ChannelModal'
-import { ChannelScopePill } from '@/components/forms/ChannelScopePill'
 import { EntityModal } from '@/components/forms/EntityModal'
 import { MultiSearchableCombobox } from '@/components/forms/MultiSearchableCombobox'
 import { SingleSelectPill } from '@/components/forms/SingleSelectPill'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
 import { Input } from '@/components/ui/input'
-import {
-  createAlertRuleFn,
-  createWorkspaceAlertRuleFn,
-  updateAlertRuleFn,
-  updateWorkspaceAlertRuleFn,
-} from '@/lib/alert-rules/server-fns'
-import { listChannelsForPickerFn, listWorkspaceChannelsFn } from '@/lib/channels/server-fns'
+import { createAlertRuleFn, updateAlertRuleFn } from '@/lib/alert-rules/server-fns'
+import { listChannelsForPickerFn } from '@/lib/channels/server-fns'
 import { PICKER_KEYS, PICKER_RECENT_LIMITS } from '@/lib/forms/picker-keys'
 import { usePickerRecents } from '@/lib/forms/use-picker-recents'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
@@ -32,9 +26,7 @@ import {
 } from '@/shared/schemas/alert-rule'
 import type { Channel } from '@/shared/schemas/channel'
 
-export type AlertRuleModalOwner =
-  | { scope: 'customer'; customerSlug: string }
-  | { scope: 'workspace' }
+export type AlertRuleModalOwner = { workspaceSlug: string }
 
 interface KindOption {
   kind: AlertRuleKind
@@ -154,22 +146,14 @@ export function AlertRuleModal({
   const navigate = useNavigate()
   const slug = useSlugAutoFill(variant === 'edit')
   const [nestedChannelOpen, setNestedChannelOpen] = useState(false)
-  const isWorkspace = owner.scope === 'workspace'
 
   const pickerQuery = useQuery<Channel[]>({
-    queryKey: isWorkspace
-      ? ['workspace', 'channels', 'picker']
-      : ['customers', owner.scope === 'customer' ? owner.customerSlug : '', 'channels', 'picker'],
-    queryFn: isWorkspace
-      ? () => listWorkspaceChannelsFn({ data: { includeArchived: false } })
-      : () =>
-          listChannelsForPickerFn({
-            data: { customerSlug: owner.scope === 'customer' ? owner.customerSlug : '' },
-          }),
+    queryKey: ['workspaces', owner.workspaceSlug, 'channels', 'picker'],
+    queryFn: () => listChannelsForPickerFn({ data: { workspaceSlug: owner.workspaceSlug } }),
   })
   const activeChannels = (pickerQuery.data ?? []).filter((c) => c.status === 'active')
 
-  const recentKey = PICKER_KEYS.recentChannels(isWorkspace ? 'workspace' : owner.customerSlug)
+  const recentKey = PICKER_KEYS.recentChannels(owner.workspaceSlug)
   const channelRecents = usePickerRecents<Channel>(
     recentKey,
     activeChannels,
@@ -189,61 +173,31 @@ export function AlertRuleModal({
           config: buildConfig(value),
           channelIds: value.channelIds,
         }
-        let result: MutationResult<AlertRule>
-        if (isWorkspace) {
-          result =
-            variant === 'create'
-              ? await createWorkspaceAlertRuleFn({
-                  data: { slug: value.slug, ...base } as never,
-                })
-              : await updateWorkspaceAlertRuleFn({
-                  data: { ruleSlug: initialRule?.slug ?? '', ...base } as never,
-                })
-        } else {
-          const customerSlug = owner.customerSlug
-          result =
-            variant === 'create'
-              ? await createAlertRuleFn({
-                  data: { customerSlug, slug: value.slug, ...base } as never,
-                })
-              : await updateAlertRuleFn({
-                  data: {
-                    customerSlug,
-                    ruleSlug: initialRule?.slug ?? '',
-                    ...base,
-                  } as never,
-                })
-        }
+        const workspaceSlug = owner.workspaceSlug
+        const result: MutationResult<AlertRule> =
+          variant === 'create'
+            ? await createAlertRuleFn({
+                data: { workspaceSlug, slug: value.slug, ...base } as never,
+              })
+            : await updateAlertRuleFn({
+                data: { workspaceSlug, ruleSlug: initialRule?.slug ?? '', ...base } as never,
+              })
         if (!result.ok) {
           return {
             ...(result.message ? { form: result.message } : {}),
             fields: fieldErrorsToTanstack(result.fieldErrors),
           }
         }
-        if (isWorkspace) {
-          await queryClient.invalidateQueries({ queryKey: ['workspace', 'alert-rules'] })
-        } else {
-          await queryClient.invalidateQueries({
-            queryKey: ['customers', owner.customerSlug, 'alert-rules'],
-          })
-        }
+        await queryClient.invalidateQueries({
+          queryKey: ['workspaces', owner.workspaceSlug, 'alert-rules'],
+        })
         const channelById = new Map(activeChannels.map((channel) => [channel.id, channel]))
         for (const id of value.channelIds) {
           const channel = channelById.get(id)
           if (channel) channelRecents.recordUse(channel)
         }
         toast.success(variant === 'create' ? `Alert rule ${result.data.name} created` : 'Saved')
-        if (isWorkspace) {
-          await navigate({
-            to: '/alert-rules/$ruleSlug',
-            params: { ruleSlug: result.data.slug },
-          })
-        } else {
-          await navigate({
-            to: '/customers/$customerSlug',
-            params: { customerSlug: owner.customerSlug },
-          })
-        }
+        await navigate({ to: '/' })
         return null
       },
     },
@@ -350,13 +304,8 @@ export function AlertRuleModal({
             }
             getId={(c) => c.id}
             getLabel={(c) => c.name}
-            getSecondary={(c) => (
-              <span className="inline-flex items-center gap-1.5">
-                <ChannelScopePill scope={c.scope} />
-                <span>{c.kind}</span>
-              </span>
-            )}
-            searchKeywords={(c) => [c.slug, c.kind, c.scope]}
+            getSecondary={(c) => <span>{c.kind}</span>}
+            searchKeywords={(c) => [c.slug, c.kind]}
             createAffordance={channelCreateAffordance}
             emptyMessage="No active Channels yet."
           />
@@ -460,9 +409,7 @@ export function AlertRuleModal({
           onClose={() => setNestedChannelOpen(false)}
           onCreated={async (channel) => {
             await queryClient.invalidateQueries({
-              queryKey: isWorkspace
-                ? ['workspace', 'channels']
-                : ['customers', owner.customerSlug, 'channels'],
+              queryKey: ['workspaces', owner.workspaceSlug, 'channels'],
             })
             form.setFieldValue('channelIds', [...form.state.values.channelIds, channel.id])
             setNestedChannelOpen(false)

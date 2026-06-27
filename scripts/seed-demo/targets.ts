@@ -7,7 +7,7 @@ type AuthKind = 'none' | 'bearer' | 'basic' | 'header'
 type HttpMethod = 'GET' | 'POST' | 'PUT'
 
 export type DemoTargetSpec = {
-  customerSlug: string
+  workspaceSlug: string
   slug: string
   name: string
   url: string
@@ -19,7 +19,7 @@ export type DemoTargetSpec = {
 export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
   // Desert Vista Credit Union (heaviest user) — 4 targets
   {
-    customerSlug: 'desert-vista-cu',
+    workspaceSlug: 'desert-vista-cu',
     slug: 'core-banking',
     name: 'Core Banking API',
     url: 'https://api.desertvistacu.internal/core-banking',
@@ -28,7 +28,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'tunnel',
   },
   {
-    customerSlug: 'desert-vista-cu',
+    workspaceSlug: 'desert-vista-cu',
     slug: 'fedline',
     name: 'FedLine Gateway',
     url: 'https://fedline-gateway.desertvistacu.internal/v2',
@@ -37,7 +37,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'tunnel',
   },
   {
-    customerSlug: 'desert-vista-cu',
+    workspaceSlug: 'desert-vista-cu',
     slug: 'card-processor',
     name: 'Card Processor Webhook',
     url: 'https://hooks.cardproc.example/desert-vista',
@@ -46,7 +46,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'public',
   },
   {
-    customerSlug: 'desert-vista-cu',
+    workspaceSlug: 'desert-vista-cu',
     slug: 'health-probe',
     name: 'Health Probe',
     url: 'https://api.desertvistacu.internal/health',
@@ -57,7 +57,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
 
   // Cactus Title — 3 targets
   {
-    customerSlug: 'cactus-title',
+    workspaceSlug: 'cactus-title',
     slug: 'docusign',
     name: 'DocuSign Connect',
     url: 'https://account-d.docusign.com/restapi/v2.1/accounts/cactus-title',
@@ -66,7 +66,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'public',
   },
   {
-    customerSlug: 'cactus-title',
+    workspaceSlug: 'cactus-title',
     slug: 'title-system',
     name: 'Title System Sync',
     url: 'https://titles.cactustitle.example/api/sync',
@@ -75,7 +75,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'public',
   },
   {
-    customerSlug: 'cactus-title',
+    workspaceSlug: 'cactus-title',
     slug: 'health-probe',
     name: 'Health Probe',
     url: 'https://titles.cactustitle.example/health',
@@ -86,7 +86,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
 
   // Sun Valley Insurance — 3 targets
   {
-    customerSlug: 'sun-valley-insurance',
+    workspaceSlug: 'sun-valley-insurance',
     slug: 'policy-api',
     name: 'Policy Management API',
     url: 'https://policies.sunvalleyins.example/v2',
@@ -95,7 +95,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'public',
   },
   {
-    customerSlug: 'sun-valley-insurance',
+    workspaceSlug: 'sun-valley-insurance',
     slug: 'carrier-sync',
     name: 'Carrier Sync Hub',
     url: 'https://carriers.sunvalleyins.internal/sync',
@@ -104,7 +104,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'tunnel',
   },
   {
-    customerSlug: 'sun-valley-insurance',
+    workspaceSlug: 'sun-valley-insurance',
     slug: 'webhook-claims',
     name: 'Claims Webhook',
     url: 'https://policies.sunvalleyins.example/v2/webhooks/claims',
@@ -115,7 +115,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
 
   // Phoenix Healthcare Partners — 3 targets
   {
-    customerSlug: 'phoenix-healthcare-partners',
+    workspaceSlug: 'phoenix-healthcare-partners',
     slug: 'ehr-bridge',
     name: 'EHR Bridge',
     url: 'https://ehr.phoenixhealthcare.internal/bridge',
@@ -124,7 +124,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'tunnel',
   },
   {
-    customerSlug: 'phoenix-healthcare-partners',
+    workspaceSlug: 'phoenix-healthcare-partners',
     slug: 'patient-portal',
     name: 'Patient Portal API',
     url: 'https://api.phoenixhealthcare.example/portal',
@@ -133,7 +133,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'public',
   },
   {
-    customerSlug: 'phoenix-healthcare-partners',
+    workspaceSlug: 'phoenix-healthcare-partners',
     slug: 'health-probe',
     name: 'Health Probe',
     url: 'https://api.phoenixhealthcare.example/health',
@@ -144,7 +144,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
 
   // Mesa Manufacturing Co. — 2 targets
   {
-    customerSlug: 'mesa-manufacturing',
+    workspaceSlug: 'mesa-manufacturing',
     slug: 'erp-sync',
     name: 'ERP Sync',
     url: 'https://erp.mesamfg.example/api/sync',
@@ -153,7 +153,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'public',
   },
   {
-    customerSlug: 'mesa-manufacturing',
+    workspaceSlug: 'mesa-manufacturing',
     slug: 'shop-floor',
     name: 'Shop Floor Workflow',
     url: 'https://erp.mesamfg.example/api/workflow',
@@ -164,7 +164,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
 
   // Salt River Logistics — 2 targets
   {
-    customerSlug: 'salt-river-logistics',
+    workspaceSlug: 'salt-river-logistics',
     slug: 'tms',
     name: 'TMS Gateway',
     url: 'https://tms.saltriverlogistics.example/api/v1',
@@ -173,7 +173,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'public',
   },
   {
-    customerSlug: 'salt-river-logistics',
+    workspaceSlug: 'salt-river-logistics',
     slug: 'tracking-feed',
     name: 'Tracking Feed',
     url: 'https://tms.saltriverlogistics.example/feed',
@@ -184,7 +184,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
 
   // Tempe Tech Group — 2 targets
   {
-    customerSlug: 'tempe-tech-group',
+    workspaceSlug: 'tempe-tech-group',
     slug: 'billing-api',
     name: 'Billing API',
     url: 'https://api.tempetech.example/billing',
@@ -193,7 +193,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'public',
   },
   {
-    customerSlug: 'tempe-tech-group',
+    workspaceSlug: 'tempe-tech-group',
     slug: 'reports',
     name: 'Reports Endpoint',
     url: 'https://api.tempetech.example/reports',
@@ -204,7 +204,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
 
   // Skyline Realty Trust — 2 targets
   {
-    customerSlug: 'skyline-realty-trust',
+    workspaceSlug: 'skyline-realty-trust',
     slug: 'listings-feed',
     name: 'MLS Listings Feed',
     url: 'https://mls.skyline-realty.example/feed/v3',
@@ -213,7 +213,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'public',
   },
   {
-    customerSlug: 'skyline-realty-trust',
+    workspaceSlug: 'skyline-realty-trust',
     slug: 'reports',
     name: 'Sales Reports',
     url: 'https://reports.skyline-realty.example/api/sales',
@@ -224,7 +224,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
 
   // SwitchThink (internal) — 4 targets
   {
-    customerSlug: 'switchthink',
+    workspaceSlug: 'switchthink',
     slug: 'sla-monitor',
     name: 'SLA Monitor',
     url: 'https://api.switchthink.com/internal/sla',
@@ -233,7 +233,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'public',
   },
   {
-    customerSlug: 'switchthink',
+    workspaceSlug: 'switchthink',
     slug: 'autotask-sync',
     name: 'Autotask Sync',
     url: 'https://webservices.autotask.net/atservices/1.6/atws.asmx',
@@ -242,7 +242,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'public',
   },
   {
-    customerSlug: 'switchthink',
+    workspaceSlug: 'switchthink',
     slug: 'ops-cleanup',
     name: 'Ops Cleanup',
     url: 'https://api.switchthink.internal/ops/cleanup',
@@ -251,7 +251,7 @@ export const DEMO_TARGETS: readonly DemoTargetSpec[] = [
     reachability: 'tunnel',
   },
   {
-    customerSlug: 'switchthink',
+    workspaceSlug: 'switchthink',
     slug: 'health-probe',
     name: 'Health Probe',
     url: 'https://api.switchthink.com/health',
@@ -265,12 +265,12 @@ type TargetInsert = InferInsertModel<typeof targets>
 
 export function targetRow(
   spec: DemoTargetSpec,
-  customerId: string,
-  customerCreatedAt: Date,
+  workspaceId: string,
+  workspaceCreatedAt: Date,
 ): TargetInsert {
   return {
-    id: demoId('tgt', spec.customerSlug, spec.slug),
-    customerId,
+    id: demoId('tgt', spec.workspaceSlug, spec.slug),
+    workspaceId,
     name: spec.name,
     slug: spec.slug,
     url: spec.url,
@@ -279,7 +279,7 @@ export function targetRow(
     authConfig: spec.authKind === 'none' ? null : '{}',
     reachability: spec.reachability,
     status: 'active',
-    createdAt: customerCreatedAt,
-    updatedAt: customerCreatedAt,
+    createdAt: workspaceCreatedAt,
+    updatedAt: workspaceCreatedAt,
   }
 }

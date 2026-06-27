@@ -11,9 +11,9 @@ export type AttemptInsert = InferInsertModel<typeof attempts>
 type ResolvedJob = {
   spec: DemoJobSpec
   jobId: string
-  customerId: string
-  customerSlug: string
-  customerTimezone: string
+  workspaceId: string
+  workspaceSlug: string
+  workspaceTimezone: string
 }
 
 const PAUSED_STOPPED_DAYS_AGO = 7
@@ -23,7 +23,7 @@ export function generateRunsForJob(
   windowStartAt: Date,
   windowEndAt: Date,
 ): { runs: RunInsert[]; attempts: AttemptInsert[] } {
-  const rng = createPrng(`boop:demo:runs:${job.spec.customerSlug}:${job.spec.slug}`)
+  const rng = createPrng(`boop:demo:runs:${job.spec.workspaceSlug}:${job.spec.slug}`)
   const boundaries = boundariesForPattern(job.spec.pattern, windowEndAt, rng.fork('boundaries'))
   const fires = computeFireTimes(job, windowStartAt, windowEndAt)
   const runs: RunInsert[] = []
@@ -43,7 +43,7 @@ export function generateRunsForJob(
 
     const startedAt = new Date(scheduledAt.getTime() + rng.int(50, 400))
     const attemptCount = outcome === 'success' ? (rng.bool(0.02) ? 2 : 1) : rng.int(1, 3)
-    const runId = demoId('run', job.spec.customerSlug, job.spec.slug, String(runOrdinal++))
+    const runId = demoId('run', job.spec.workspaceSlug, job.spec.slug, String(runOrdinal++))
 
     let attemptStart = startedAt
     let lastAttemptEnd = attemptStart
@@ -77,7 +77,7 @@ export function generateRunsForJob(
     runs.push({
       id: runId,
       jobId: job.jobId,
-      customerId: job.customerId,
+      workspaceId: job.workspaceId,
       scheduledAt,
       startedAt,
       completedAt: lastAttemptEnd,
@@ -135,7 +135,7 @@ function computeFireTimes(job: ResolvedJob, windowStartAt: Date, windowEndAt: Da
   }
 
   if (!job.spec.cronExpression) return fires
-  const timezone = job.spec.triggerTimezone ?? job.customerTimezone
+  const timezone = job.spec.triggerTimezone ?? job.workspaceTimezone
   let cursor: Date | null = new Date(windowStartAt.getTime() - 1000)
   let cron: Cron
   try {
@@ -153,7 +153,7 @@ function computeFireTimes(job: ResolvedJob, windowStartAt: Date, windowEndAt: Da
 }
 
 function scatterWebhookFires(job: ResolvedJob, windowStartAt: Date, windowEndAt: Date): Date[] {
-  const rng = createPrng(`boop:demo:webhookfires:${job.spec.customerSlug}:${job.spec.slug}`)
+  const rng = createPrng(`boop:demo:webhookfires:${job.spec.workspaceSlug}:${job.spec.slug}`)
   const fires: Date[] = []
   const days = (windowEndAt.getTime() - windowStartAt.getTime()) / 86400_000
   const firesPerDay = 20 + rng.int(0, 30)

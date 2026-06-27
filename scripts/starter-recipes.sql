@@ -2,8 +2,7 @@ INSERT OR IGNORE INTO job_templates (
   id,
   name,
   slug,
-  scope,
-  customer_id,
+  workspace_id,
   tag,
   icon,
   description,
@@ -18,11 +17,11 @@ INSERT OR IGNORE INTO job_templates (
   built_in,
   status
 ) VALUES
-('jtpl_starter_daily_database_backup', 'Daily database backup', 'daily-database-backup', 'workspace', NULL, 'backups', 'database', 'Triggers a backup endpoint every day at 2 AM.', 'cron', '{"cronExpression":"0 2 * * *","triggerTimezone":"America/Phoenix"}', 'backup_endpoint', '{ "kind": "backup", "at": "{{ now | iso_date }}" }', '{}', '{}', 3, 60000, 1, 'active'),
-('jtpl_starter_hourly_health_check', 'Hourly health check', 'hourly-health-check', 'workspace', NULL, 'health-checks', 'activity', 'Pings a health endpoint every hour and expects 2xx.', 'cron', '{"cronExpression":"0 * * * *","triggerTimezone":"America/Phoenix"}', 'health_endpoint', '', '{}', '{}', 3, 60000, 1, 'active'),
-('jtpl_starter_weekly_cleanup', 'Weekly cleanup', 'weekly-cleanup', 'workspace', NULL, 'maintenance', 'trash-2', 'Triggers a cleanup endpoint every Sunday at 3 AM.', 'cron', '{"cronExpression":"0 3 * * SUN","triggerTimezone":"America/Phoenix"}', 'cleanup_endpoint', '{ "kind": "cleanup" }', '{}', '{}', 3, 60000, 1, 'active'),
-('jtpl_starter_end_of_day_report', 'End-of-day report', 'end-of-day-report', 'workspace', NULL, 'reports', 'file-text', 'Generates and delivers an EOD report weekdays at 5 PM.', 'cron', '{"cronExpression":"0 17 * * MON-FRI","triggerTimezone":"America/Phoenix"}', 'reports_endpoint', '{ "kind": "eod_report", "date": "{{ now | iso_date }}" }', '{}', '{}', 3, 60000, 1, 'active'),
-('jtpl_starter_first_of_month_invoice', 'First-of-month invoice', 'first-of-month-invoice', 'workspace', NULL, 'reports', 'receipt', 'Generates monthly invoices on the first day of each month at 9 AM.', 'cron', '{"cronExpression":"0 9 1 * *","triggerTimezone":"America/Phoenix"}', 'billing_endpoint', '{ "kind": "invoice_run", "at": "{{ now | iso_date }}" }', '{}', '{}', 3, 60000, 1, 'active'),
-('jtpl_starter_continuous_integration_check', 'Continuous integration check', 'continuous-integration-check', 'workspace', NULL, 'integrations', 'git-branch', 'Polls a build status endpoint every 15 minutes.', 'cron', '{"cronExpression":"*/15 * * * *","triggerTimezone":"America/Phoenix"}', 'ci_endpoint', '', '{}', '{}', 3, 60000, 1, 'active'),
-('jtpl_starter_webhook_receiver', 'Webhook receiver', 'webhook-receiver', 'workspace', NULL, 'integrations', 'webhook', 'Receives external POSTs and forwards the payload to a Target.', 'webhook', '{}', 'webhook_target', '{{ webhook_body }}', '{}', '{}', 3, 60000, 1, 'active'),
-('jtpl_starter_slow_polling', 'Slow polling', 'slow-polling', 'workspace', NULL, 'health-checks', 'timer', 'Polls a slower endpoint every 5 minutes with an extended deadline.', 'interval', '{"intervalSeconds":300}', 'slow_endpoint', '', '{}', '{}', 3, 300000, 1, 'active');
+('jtpl_starter_daily_database_backup', 'Daily database backup', 'daily-database-backup', NULL, 'backups', 'database', 'Triggers a backup endpoint every day at 2 AM.', 'cron', '{"cronExpression":"0 2 * * *","triggerTimezone":"America/Phoenix"}', 'backup_endpoint', '{ "kind": "backup", "at": "{{ now | iso_date }}" }', '{}', '{}', 3, 60000, 1, 'active'),
+('jtpl_starter_hourly_health_check', 'Hourly health check', 'hourly-health-check', NULL, 'health-checks', 'activity', 'Pings a health endpoint every hour and expects 2xx.', 'cron', '{"cronExpression":"0 * * * *","triggerTimezone":"America/Phoenix"}', 'health_endpoint', '', '{}', '{}', 3, 60000, 1, 'active'),
+('jtpl_starter_weekly_cleanup', 'Weekly cleanup', 'weekly-cleanup', NULL, 'maintenance', 'trash-2', 'Triggers a cleanup endpoint every Sunday at 3 AM.', 'cron', '{"cronExpression":"0 3 * * SUN","triggerTimezone":"America/Phoenix"}', 'cleanup_endpoint', '{ "kind": "cleanup" }', '{}', '{}', 3, 60000, 1, 'active'),
+('jtpl_starter_end_of_day_report', 'End-of-day report', 'end-of-day-report', NULL, 'reports', 'file-text', 'Generates and delivers an EOD report weekdays at 5 PM.', 'cron', '{"cronExpression":"0 17 * * MON-FRI","triggerTimezone":"America/Phoenix"}', 'reports_endpoint', '{ "kind": "eod_report", "date": "{{ now | iso_date }}" }', '{}', '{}', 3, 60000, 1, 'active'),
+('jtpl_starter_first_of_month_invoice', 'First-of-month invoice', 'first-of-month-invoice', NULL, 'reports', 'receipt', 'Generates monthly invoices on the first day of each month at 9 AM.', 'cron', '{"cronExpression":"0 9 1 * *","triggerTimezone":"America/Phoenix"}', 'billing_endpoint', '{ "kind": "invoice_run", "at": "{{ now | iso_date }}" }', '{}', '{}', 3, 60000, 1, 'active'),
+('jtpl_starter_continuous_integration_check', 'Continuous integration check', 'continuous-integration-check', NULL, 'integrations', 'git-branch', 'Polls a build status endpoint every 15 minutes.', 'cron', '{"cronExpression":"*/15 * * * *","triggerTimezone":"America/Phoenix"}', 'ci_endpoint', '', '{}', '{}', 3, 60000, 1, 'active'),
+('jtpl_starter_webhook_receiver', 'Webhook receiver', 'webhook-receiver', NULL, 'integrations', 'webhook', 'Receives external POSTs and forwards the payload to a Target.', 'webhook', '{}', 'webhook_target', '{{ webhook_body }}', '{}', '{}', 3, 60000, 1, 'active'),
+('jtpl_starter_slow_polling', 'Slow polling', 'slow-polling', NULL, 'health-checks', 'timer', 'Polls a slower endpoint every 5 minutes with an extended deadline.', 'interval', '{"intervalSeconds":300}', 'slow_endpoint', '', '{}', '{}', 3, 300000, 1, 'active');

@@ -1,7 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { newId } from '@/lib/db/ids'
-import { customers, jobs, runs, users } from '@/lib/db/schema'
+import { jobs, runs, users, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { cleanupDemoData } from './cleanup'
 import { SEED_TAG } from './constants'
@@ -14,27 +14,27 @@ describe('seedDemoData — minimal profile', () => {
     const db = createTestDb()
     const counts = await seedDemoData(db, { profile: 'minimal', now: FIXED_NOW })
 
-    expect(counts.customers).toBe(1)
+    expect(counts.workspaces).toBe(1)
     expect(counts.operators).toBe(6)
     expect(counts.jobs).toBe(5)
     expect(counts.runs).toBeGreaterThan(0)
     expect(counts.attempts).toBeGreaterThanOrEqual(counts.runs)
 
-    const customerRows = await db.select().from(customers)
-    expect(customerRows).toHaveLength(1)
-    expect(customerRows[0]?.slug).toBe('desert-vista-cu')
-    expect(customerRows[0]?.seedTag).toBe(SEED_TAG)
+    const workspaceRows = await db.select().from(workspaces)
+    expect(workspaceRows).toHaveLength(1)
+    expect(workspaceRows[0]?.slug).toBe('desert-vista-cu')
+    expect(workspaceRows[0]?.seedTag).toBe(SEED_TAG)
   })
 
   it('is idempotent: a second run produces the same counts and ids', async () => {
     const db = createTestDb()
     const first = await seedDemoData(db, { profile: 'minimal', now: FIXED_NOW })
-    const firstIds = await db.select({ id: customers.id }).from(customers)
+    const firstIds = await db.select({ id: workspaces.id }).from(workspaces)
 
     const second = await seedDemoData(db, { profile: 'minimal', now: FIXED_NOW })
-    const secondIds = await db.select({ id: customers.id }).from(customers)
+    const secondIds = await db.select({ id: workspaces.id }).from(workspaces)
 
-    expect(second.customers).toBe(first.customers)
+    expect(second.workspaces).toBe(first.workspaces)
     expect(second.operators).toBe(first.operators)
     expect(secondIds.map((r) => r.id).sort()).toEqual(firstIds.map((r) => r.id).sort())
   })
@@ -48,30 +48,30 @@ describe('cleanupDemoData', () => {
     await seedDemoData(db, { profile: 'minimal', now: FIXED_NOW })
   })
 
-  it('removes every demo customer + owned resources', async () => {
+  it('removes every demo workspace + owned resources', async () => {
     const counts = await cleanupDemoData(db)
-    expect(counts.customers).toBe(1)
+    expect(counts.workspaces).toBe(1)
     expect(counts.jobs).toBe(5)
     expect(counts.users).toBe(6)
     expect(counts.runs).toBeGreaterThan(0)
 
-    const [remainingCustomers, remainingJobs, remainingRuns] = await Promise.all([
-      db.select({ count: sql<number>`count(*)` }).from(customers),
+    const [remainingWorkspaces, remainingJobs, remainingRuns] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(workspaces),
       db.select({ count: sql<number>`count(*)` }).from(jobs),
       db.select({ count: sql<number>`count(*)` }).from(runs),
     ])
-    expect(remainingCustomers[0]?.count).toBe(0)
+    expect(remainingWorkspaces[0]?.count).toBe(0)
     expect(remainingJobs[0]?.count).toBe(0)
     expect(remainingRuns[0]?.count).toBe(0)
   })
 
   it('leaves operator-created rows untouched', async () => {
-    const realCustomerId = newId('cust')
+    const realWorkspaceId = newId('cust')
     const realUserId = newId('usr')
-    await db.insert(customers).values({
-      id: realCustomerId,
-      name: 'Real Operator Customer',
-      slug: 'real-operator-customer',
+    await db.insert(workspaces).values({
+      id: realWorkspaceId,
+      name: 'Real Operator Workspace',
+      slug: 'real-operator-workspace',
       timezone: 'UTC',
       autotaskCompanyId: null,
       status: 'active',
@@ -89,7 +89,7 @@ describe('cleanupDemoData', () => {
     await cleanupDemoData(db)
 
     const [surviving, survivingUsers] = await Promise.all([
-      db.select().from(customers).where(eq(customers.id, realCustomerId)),
+      db.select().from(workspaces).where(eq(workspaces.id, realWorkspaceId)),
       db.select().from(users).where(eq(users.id, realUserId)),
     ])
     expect(surviving).toHaveLength(1)

@@ -1,17 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { alertRules, customers, jobs, runs, targets } from '@/lib/db/schema'
+import { alertRules, jobs, runs, targets, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { evaluateRulesForRun } from './evaluator'
 
 async function seedJob(db: Database) {
-  const customerId = newId('cust')
-  await db.insert(customers).values({ id: customerId, name: 'Acme', slug: 'acme', timezone: 'UTC' })
+  const workspaceId = newId('cust')
+  await db
+    .insert(workspaces)
+    .values({ id: workspaceId, name: 'Acme', slug: 'acme', timezone: 'UTC' })
   const targetId = newId('tgt')
   await db.insert(targets).values({
     id: targetId,
-    customerId,
+    workspaceId,
     name: 'API',
     slug: 'api',
     url: 'https://example.com',
@@ -20,7 +22,7 @@ async function seedJob(db: Database) {
   const jobId = newId('job')
   await db.insert(jobs).values({
     id: jobId,
-    customerId,
+    workspaceId,
     targetId,
     name: 'Daily',
     slug: 'daily',
@@ -28,13 +30,13 @@ async function seedJob(db: Database) {
     cronExpression: '* * * * *',
     triggerTimezone: 'UTC',
   })
-  return { customerId, jobId }
+  return { workspaceId, jobId }
 }
 
 async function seedRun(
   db: Database,
   jobId: string,
-  customerId: string,
+  workspaceId: string,
   outcome: 'success' | 'failure' | 'timeout' | null,
   startedMs: number,
   durationMs = 1000,
@@ -43,7 +45,7 @@ async function seedRun(
   await db.insert(runs).values({
     id: runId,
     jobId,
-    customerId,
+    workspaceId,
     scheduledAt: new Date(startedMs),
     startedAt: new Date(startedMs),
     completedAt: new Date(startedMs + durationMs),
@@ -55,7 +57,7 @@ async function seedRun(
 
 async function seedRule(
   db: Database,
-  customerId: string,
+  workspaceId: string,
   kind: 'first_failure' | 'consecutive_failures' | 'recovery' | 'slow_run',
   config: object,
   channelIds: string[],
@@ -64,8 +66,8 @@ async function seedRule(
   const id = newId('rul')
   await db.insert(alertRules).values({
     id,
-    scope: 'customer',
-    customerId,
+    scope: 'workspace',
+    workspaceId,
     kind,
     name: `${kind} rule`,
     slug: `${kind}-${id.slice(-4)}`,
@@ -76,30 +78,8 @@ async function seedRule(
   return id
 }
 
-async function seedWorkspaceRule(
-  db: Database,
-  kind: 'first_failure' | 'consecutive_failures' | 'recovery' | 'slow_run',
-  config: object,
-  channelIds: string[],
-): Promise<string> {
-  const id = newId('rul')
-  await db.insert(alertRules).values({
-    id,
-    scope: 'workspace',
-    customerId: null,
-    kind,
-    name: `ws ${kind} rule`,
-    slug: `ws-${kind}-${id.slice(-4)}`,
-    config: JSON.stringify(config),
-    channelIds: JSON.stringify(channelIds),
-    status: 'active',
-  })
-  return id
-}
-
 async function seedJobRule(
   db: Database,
-  customerId: string,
   jobId: string,
   kind: 'first_failure' | 'consecutive_failures' | 'recovery' | 'slow_run',
   config: object,
@@ -109,7 +89,6 @@ async function seedJobRule(
   await db.insert(alertRules).values({
     id,
     scope: 'job',
-    customerId,
     jobId,
     kind,
     name: `job ${kind} rule`,
@@ -124,101 +103,89 @@ async function seedJobRule(
 describe('evaluateRulesForRun', () => {
   it('returns empty when no rules exist', async () => {
     const db = createTestDb()
-    const { customerId, jobId } = await seedJob(db)
-    const runId = await seedRun(db, jobId, customerId, 'failure', 1000)
-    expect(await evaluateRulesForRun({ db, customerId, jobId, runId })).toEqual([])
+    const { workspaceId, jobId } = await seedJob(db)
+    const runId = await seedRun(db, jobId, workspaceId, 'failure', 1000)
+    expect(await evaluateRulesForRun({ db, workspaceId, jobId, runId })).toEqual([])
   })
 
   it('fires first_failure on failure after success, fanning out to all channels', async () => {
     const db = createTestDb()
-    const { customerId, jobId } = await seedJob(db)
-    await seedRun(db, jobId, customerId, 'success', 1000)
-    const runId = await seedRun(db, jobId, customerId, 'failure', 2000)
-    const ruleId = await seedRule(db, customerId, 'first_failure', {}, ['chn_a', 'chn_b'])
-    const firing = await evaluateRulesForRun({ db, customerId, jobId, runId })
+    const { workspaceId, jobId } = await seedJob(db)
+    await seedRun(db, jobId, workspaceId, 'success', 1000)
+    const runId = await seedRun(db, jobId, workspaceId, 'failure', 2000)
+    const ruleId = await seedRule(db, workspaceId, 'first_failure', {}, ['chn_a', 'chn_b'])
+    const firing = await evaluateRulesForRun({ db, workspaceId, jobId, runId })
     expect(firing).toHaveLength(1)
     expect(firing[0]).toMatchObject({ ruleId, channelIds: ['chn_a', 'chn_b'] })
   })
 
   it('runs multiple rules in parallel', async () => {
     const db = createTestDb()
-    const { customerId, jobId } = await seedJob(db)
-    await seedRun(db, jobId, customerId, 'failure', 1000, 5000)
-    await seedRun(db, jobId, customerId, 'failure', 10_000, 5000)
-    const runId = await seedRun(db, jobId, customerId, 'failure', 20_000, 5000)
-    await seedRule(db, customerId, 'consecutive_failures', { count: 3 }, ['chn_a'])
-    await seedRule(db, customerId, 'slow_run', { threshold_ms: 1000 }, ['chn_b'])
-    expect(await evaluateRulesForRun({ db, customerId, jobId, runId })).toHaveLength(2)
+    const { workspaceId, jobId } = await seedJob(db)
+    await seedRun(db, jobId, workspaceId, 'failure', 1000, 5000)
+    await seedRun(db, jobId, workspaceId, 'failure', 10_000, 5000)
+    const runId = await seedRun(db, jobId, workspaceId, 'failure', 20_000, 5000)
+    await seedRule(db, workspaceId, 'consecutive_failures', { count: 3 }, ['chn_a'])
+    await seedRule(db, workspaceId, 'slow_run', { threshold_ms: 1000 }, ['chn_b'])
+    expect(await evaluateRulesForRun({ db, workspaceId, jobId, runId })).toHaveLength(2)
   })
 
   it('excludes archived rules', async () => {
     const db = createTestDb()
-    const { customerId, jobId } = await seedJob(db)
-    await seedRun(db, jobId, customerId, 'success', 1000)
-    const runId = await seedRun(db, jobId, customerId, 'failure', 2000)
-    await seedRule(db, customerId, 'first_failure', {}, ['chn_a'], 'archived')
-    expect(await evaluateRulesForRun({ db, customerId, jobId, runId })).toEqual([])
+    const { workspaceId, jobId } = await seedJob(db)
+    await seedRun(db, jobId, workspaceId, 'success', 1000)
+    const runId = await seedRun(db, jobId, workspaceId, 'failure', 2000)
+    await seedRule(db, workspaceId, 'first_failure', {}, ['chn_a'], 'archived')
+    expect(await evaluateRulesForRun({ db, workspaceId, jobId, runId })).toEqual([])
   })
 
   it('skipped runs in history are filtered by the predicate', async () => {
     const db = createTestDb()
-    const { customerId, jobId } = await seedJob(db)
-    await seedRun(db, jobId, customerId, 'success', 1000)
-    await seedRun(db, jobId, customerId, null, 1500)
-    const runId = await seedRun(db, jobId, customerId, 'failure', 2000)
-    await seedRule(db, customerId, 'first_failure', {}, ['chn_a'])
-    expect(await evaluateRulesForRun({ db, customerId, jobId, runId })).toHaveLength(1)
+    const { workspaceId, jobId } = await seedJob(db)
+    await seedRun(db, jobId, workspaceId, 'success', 1000)
+    await seedRun(db, jobId, workspaceId, null, 1500)
+    const runId = await seedRun(db, jobId, workspaceId, 'failure', 2000)
+    await seedRule(db, workspaceId, 'first_failure', {}, ['chn_a'])
+    expect(await evaluateRulesForRun({ db, workspaceId, jobId, runId })).toHaveLength(1)
   })
 
   it('sizes history fetch by the largest consecutive_failures count', async () => {
     const db = createTestDb()
-    const { customerId, jobId } = await seedJob(db)
-    for (let i = 0; i < 5; i++) await seedRun(db, jobId, customerId, 'failure', 1000 + i * 1000)
-    const runId = await seedRun(db, jobId, customerId, 'failure', 7000)
-    await seedRule(db, customerId, 'consecutive_failures', { count: 5 }, ['chn_a'])
-    expect(await evaluateRulesForRun({ db, customerId, jobId, runId })).toHaveLength(1)
+    const { workspaceId, jobId } = await seedJob(db)
+    for (let i = 0; i < 5; i++) await seedRun(db, jobId, workspaceId, 'failure', 1000 + i * 1000)
+    const runId = await seedRun(db, jobId, workspaceId, 'failure', 7000)
+    await seedRule(db, workspaceId, 'consecutive_failures', { count: 5 }, ['chn_a'])
+    expect(await evaluateRulesForRun({ db, workspaceId, jobId, runId })).toHaveLength(1)
   })
 
-  it('fires a workspace rule for any Customer', async () => {
+  it('unions workspace + job rules; each rule fires independently', async () => {
     const db = createTestDb()
-    const { customerId, jobId } = await seedJob(db)
-    await seedRun(db, jobId, customerId, 'success', 1000)
-    const runId = await seedRun(db, jobId, customerId, 'failure', 2000)
-    const ruleId = await seedWorkspaceRule(db, 'first_failure', {}, ['chn_ws'])
-    const firing = await evaluateRulesForRun({ db, customerId, jobId, runId })
-    expect(firing).toHaveLength(1)
-    expect(firing[0]).toMatchObject({ ruleId, channelIds: ['chn_ws'] })
+    const { workspaceId, jobId } = await seedJob(db)
+    await seedRun(db, jobId, workspaceId, 'success', 1000)
+    const runId = await seedRun(db, jobId, workspaceId, 'failure', 2000)
+    const wsId = await seedRule(db, workspaceId, 'first_failure', {}, ['chn_ws'])
+    const jobScopeId = await seedJobRule(db, jobId, 'first_failure', {}, ['chn_job'])
+    const firing = await evaluateRulesForRun({ db, workspaceId, jobId, runId })
+    expect(firing.map((f) => f.ruleId).sort()).toEqual([wsId, jobScopeId].sort())
   })
 
-  it('unions workspace + customer + job rules; each rule fires independently', async () => {
-    const db = createTestDb()
-    const { customerId, jobId } = await seedJob(db)
-    await seedRun(db, jobId, customerId, 'success', 1000)
-    const runId = await seedRun(db, jobId, customerId, 'failure', 2000)
-    const wsId = await seedWorkspaceRule(db, 'first_failure', {}, ['chn_ws'])
-    const custId = await seedRule(db, customerId, 'first_failure', {}, ['chn_cust'])
-    const jobScopeId = await seedJobRule(db, customerId, jobId, 'first_failure', {}, ['chn_job'])
-    const firing = await evaluateRulesForRun({ db, customerId, jobId, runId })
-    expect(firing.map((f) => f.ruleId).sort()).toEqual([custId, jobScopeId, wsId].sort())
-  })
-
-  it('skips Customer rules for a different Customer', async () => {
+  it('skips Workspace rules for a different Workspace', async () => {
     const db = createTestDb()
     const acme = await seedJob(db)
-    const otherCustomerId = newId('cust')
-    await db.insert(customers).values({
-      id: otherCustomerId,
+    const otherWorkspaceId = newId('cust')
+    await db.insert(workspaces).values({
+      id: otherWorkspaceId,
       name: 'Other',
       slug: 'other',
       timezone: 'UTC',
     })
-    await seedRule(db, otherCustomerId, 'first_failure', {}, ['chn_other'])
-    await seedRun(db, acme.jobId, acme.customerId, 'success', 1000)
-    const runId = await seedRun(db, acme.jobId, acme.customerId, 'failure', 2000)
+    await seedRule(db, otherWorkspaceId, 'first_failure', {}, ['chn_other'])
+    await seedRun(db, acme.jobId, acme.workspaceId, 'success', 1000)
+    const runId = await seedRun(db, acme.jobId, acme.workspaceId, 'failure', 2000)
     expect(
       await evaluateRulesForRun({
         db,
-        customerId: acme.customerId,
+        workspaceId: acme.workspaceId,
         jobId: acme.jobId,
         runId,
       }),

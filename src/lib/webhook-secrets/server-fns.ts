@@ -3,7 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, eq } from 'drizzle-orm'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
-import { customers, jobs } from '@/lib/db/schema'
+import { jobs, workspaces } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
 import { z } from '@/shared/schemas/openapi'
 import { RotateInputSchema } from '@/shared/schemas/webhook-secret'
@@ -15,22 +15,22 @@ import {
 import { listSecretsForJob } from './queries'
 
 const jobSlugPair = z.object({
-  customerSlug: z.string().min(1),
+  workspaceSlug: z.string().min(1),
   jobSlug: z.string().min(1),
 })
 
 async function resolveJobId(
   db: ReturnType<typeof createDb>,
-  customerSlug: string,
+  workspaceSlug: string,
   jobSlug: string,
 ): Promise<string> {
   const [row] = await db
     .select({ id: jobs.id })
     .from(jobs)
-    .innerJoin(customers, eq(customers.id, jobs.customerId))
-    .where(and(eq(customers.slug, customerSlug), eq(jobs.slug, jobSlug)))
+    .innerJoin(workspaces, eq(workspaces.id, jobs.workspaceId))
+    .where(and(eq(workspaces.slug, workspaceSlug), eq(jobs.slug, jobSlug)))
     .limit(1)
-  if (!row) throw new NotFoundError('Job', `${customerSlug}/${jobSlug}`)
+  if (!row) throw new NotFoundError('Job', `${workspaceSlug}/${jobSlug}`)
   return row.id
 }
 
@@ -48,7 +48,7 @@ export const listWebhookSecretsFn = createServerFn({ method: 'GET' })
   .inputValidator((data) => jobSlugPair.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
-    const jobId = await resolveJobId(db, data.customerSlug, data.jobSlug)
+    const jobId = await resolveJobId(db, data.workspaceSlug, data.jobSlug)
     const rows = await listSecretsForJob(db, jobId)
     return { secrets: rows.map(toSummary) }
   })
@@ -58,7 +58,7 @@ export const generateWebhookSecretFn = createServerFn({ method: 'POST' })
   .inputValidator((data) => jobSlugPair.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
-    const jobId = await resolveJobId(db, data.customerSlug, data.jobSlug)
+    const jobId = await resolveJobId(db, data.workspaceSlug, data.jobSlug)
     const created = await generateSecretCmd({ db }, jobId)
     return {
       id: created.id,
@@ -69,12 +69,12 @@ export const generateWebhookSecretFn = createServerFn({ method: 'POST' })
 
 export const rotateWebhookSecretFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data: { customerSlug: string; jobSlug: string; overlapHours?: number }) =>
+  .inputValidator((data: { workspaceSlug: string; jobSlug: string; overlapHours?: number }) =>
     jobSlugPair.extend(RotateInputSchema.shape).parse(data),
   )
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
-    const jobId = await resolveJobId(db, data.customerSlug, data.jobSlug)
+    const jobId = await resolveJobId(db, data.workspaceSlug, data.jobSlug)
     const created = await rotateSecretCmd({ db }, jobId, { overlapHours: data.overlapHours })
     return {
       id: created.id,
@@ -88,6 +88,6 @@ export const revokeWebhookSecretsFn = createServerFn({ method: 'POST' })
   .inputValidator((data) => jobSlugPair.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
-    const jobId = await resolveJobId(db, data.customerSlug, data.jobSlug)
+    const jobId = await resolveJobId(db, data.workspaceSlug, data.jobSlug)
     return revokeAllSecretsCmd({ db }, jobId)
   })

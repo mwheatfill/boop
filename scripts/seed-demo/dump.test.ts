@@ -4,7 +4,7 @@ import { FK_INSERT_ORDER, splitDumpByTable, stripTrackingInserts } from './dump'
 const sample = [
   'PRAGMA defer_foreign_keys=true;',
   "INSERT INTO \"alert_rules\" VALUES('rul_a','cust_a',null,...);",
-  "INSERT INTO \"customers\" VALUES('cust_a','Acme',...);",
+  "INSERT INTO \"workspaces\" VALUES('cust_a','Acme',...);",
   "INSERT INTO \"d1_migrations\" VALUES(1,'0000_x.sql','now');",
   'INSERT INTO "sqlite_sequence" VALUES(\'d1_migrations\',8);',
   "INSERT INTO \"runs\" VALUES('run_a','job_a','cust_a',...);",
@@ -15,7 +15,7 @@ describe('stripTrackingInserts', () => {
     const stripped = stripTrackingInserts(sample)
     expect(stripped).not.toMatch(/d1_migrations/)
     expect(stripped).not.toMatch(/sqlite_sequence/)
-    expect(stripped).toMatch(/INSERT INTO "customers"/)
+    expect(stripped).toMatch(/INSERT INTO "workspaces"/)
     expect(stripped).toMatch(/INSERT INTO "runs"/)
   })
 })
@@ -28,7 +28,7 @@ describe('splitDumpByTable', () => {
 
   it('routes each INSERT to the matching table bucket', () => {
     const buckets = splitDumpByTable(sample)
-    expect(buckets.get('customers')).toHaveLength(1)
+    expect(buckets.get('workspaces')).toHaveLength(1)
     expect(buckets.get('alert_rules')).toHaveLength(1)
     expect(buckets.get('runs')).toHaveLength(1)
     expect(buckets.get('attempts')).toHaveLength(0)

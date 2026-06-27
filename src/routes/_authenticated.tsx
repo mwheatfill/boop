@@ -8,16 +8,21 @@ import { GlobalShortcuts } from '@/components/keyboard/GlobalShortcuts'
 import { KeyboardProvider } from '@/components/keyboard/KeyboardProvider'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useLocalStorage } from '@/lib/use-local-storage'
+import { defaultWorkspaceQueryOptions } from '@/lib/workspaces/query-options'
 
 export const Route = createFileRoute('/_authenticated')({
-  beforeLoad: ({ context, location }) => {
+  beforeLoad: async ({ context, location }) => {
     if (!context.currentUser) {
       throw redirect({
         to: '/login',
         search: { redirect: location.href },
       })
     }
-    return { currentUser: context.currentUser }
+    // Single-workspace (ADR-027): resolve the one Workspace once and expose its
+    // slug to every child route. When multi-workspace returns, routes take a
+    // $workspaceSlug param again and this collapses back out.
+    const workspace = await context.queryClient.ensureQueryData(defaultWorkspaceQueryOptions)
+    return { currentUser: context.currentUser, workspaceSlug: workspace.slug }
   },
   component: AuthenticatedLayout,
 })

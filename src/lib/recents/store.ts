@@ -5,10 +5,10 @@ export const RECENTS_LIMIT = 5
 
 export interface RecentEntry {
   id: string
-  entity: 'customer' | 'job'
+  entity: 'workspace' | 'job'
   label: string
   slug: string
-  customerSlug?: string
+  workspaceSlug?: string
   visitedAt: number
 }
 
@@ -20,7 +20,7 @@ export function parseRecents(raw: unknown): RecentEntry[] | null {
         r &&
         typeof r === 'object' &&
         typeof r.id === 'string' &&
-        (r.entity === 'customer' || r.entity === 'job') &&
+        (r.entity === 'workspace' || r.entity === 'job') &&
         typeof r.label === 'string' &&
         typeof r.slug === 'string' &&
         typeof r.visitedAt === 'number',

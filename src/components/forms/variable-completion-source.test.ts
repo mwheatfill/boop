@@ -16,7 +16,7 @@ describe('makeVariableCompletionSource', () => {
     expect(result).not.toBeNull()
     const labels = result?.options.map((o) => o.label) ?? []
     expect(labels).toContain('run_id')
-    expect(labels).toContain('customer_name')
+    expect(labels).toContain('workspace_name')
     expect(labels).toContain('now')
   })
 
@@ -34,7 +34,7 @@ describe('makeVariableCompletionSource', () => {
   it('includes operator-defined variables alongside built-ins', () => {
     const src = makeVariableCompletionSource({
       variables: [
-        { name: 'tenant_id', value: 'acme-123', source: 'customer' },
+        { name: 'tenant_id', value: 'acme-123', source: 'workspace' },
         { name: 'region', value: 'us-east', source: 'job' },
       ],
     })
@@ -67,13 +67,13 @@ describe('makeVariableCompletionSource', () => {
   it('truncates long variable values in the detail label', () => {
     const longValue = 'x'.repeat(80)
     const src = makeVariableCompletionSource({
-      variables: [{ name: 'big', value: longValue, source: 'customer' }],
+      variables: [{ name: 'big', value: longValue, source: 'workspace' }],
     })
     const ctx = contextAt('{{ ', 3)
     const result = src(ctx)
     const big = result?.options.find((o) => o.label === 'big')
     expect(big?.detail).toBeDefined()
     expect(big?.detail?.length).toBeLessThan(longValue.length)
-    expect(big?.detail).toMatch(/…|from Customer/)
+    expect(big?.detail).toMatch(/…|from Workspace/)
   })
 })

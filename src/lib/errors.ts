@@ -10,7 +10,7 @@ export class FieldValidationError extends Error {
   }
 }
 
-export type ArchiveBlockedEntityKind = 'customer' | 'target' | 'channel'
+export type ArchiveBlockedEntityKind = 'workspace' | 'target' | 'channel'
 
 function archiveBlockedMessage(entityKind: ArchiveBlockedEntityKind, count: number): string {
   if (entityKind === 'channel') {
@@ -18,7 +18,7 @@ function archiveBlockedMessage(entityKind: ArchiveBlockedEntityKind, count: numb
       ? 'This Channel is referenced by 1 active alert rule. Update that rule before archiving this Channel.'
       : `This Channel is referenced by ${count} active alert rules. Update those rules before archiving this Channel.`
   }
-  const noun = entityKind === 'customer' ? 'Customer' : 'Target'
+  const noun = entityKind === 'workspace' ? 'Workspace' : 'Target'
   return count === 1
     ? `${noun} has 1 active Job. Archive it first.`
     : `${noun} has ${count} active Jobs. Archive them first.`

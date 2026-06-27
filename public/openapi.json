@@ -62,13 +62,13 @@
             }
           },
           "subject_template": {
-            "default": "[boop] {{ customer_name }} - {{ job_name }} {{ outcome }}",
+            "default": "[boop] {{ workspace_name }} - {{ job_name }} {{ outcome }}",
             "type": "string",
             "minLength": 1,
             "maxLength": 500
           },
           "body_template": {
-            "default": "Job {{ job_name }} ({{ customer_name }}) {{ outcome }}.\n\nStarted: {{ started_at }}\nCompleted: {{ completed_at }}\nDuration: {{ duration_ms }}ms\nAttempts: {{ attempt_count }}\n\nRun details: {{ run_url }}",
+            "default": "Job {{ job_name }} ({{ workspace_name }}) {{ outcome }}.\n\nStarted: {{ started_at }}\nCompleted: {{ completed_at }}\nDuration: {{ duration_ms }}ms\nAttempts: {{ attempt_count }}\n\nRun details: {{ run_url }}",
             "type": "string",
             "minLength": 1,
             "maxLength": 8000
@@ -198,7 +198,7 @@
           "kind"
         ]
       },
-      "CustomerSecretName": {
+      "WorkspaceSecretName": {
         "type": "string",
         "pattern": "^[a-z][a-z0-9_]{0,63}$",
         "example": "stripe_api_key"
@@ -212,7 +212,7 @@
           "jobId": {
             "type": "string"
           },
-          "customerId": {
+          "workspaceId": {
             "type": "string"
           },
           "scheduledAt": {
@@ -295,7 +295,7 @@
         "required": [
           "id",
           "jobId",
-          "customerId",
+          "workspaceId",
           "scheduledAt",
           "startedAt",
           "completedAt",
@@ -444,13 +444,13 @@
           "jobName": {
             "type": "string"
           },
-          "customerId": {
+          "workspaceId": {
             "type": "string"
           },
-          "customerSlug": {
+          "workspaceSlug": {
             "type": "string"
           },
-          "customerName": {
+          "workspaceName": {
             "type": "string"
           },
           "startedAt": {
@@ -533,9 +533,9 @@
           "jobId",
           "jobSlug",
           "jobName",
-          "customerId",
-          "customerSlug",
-          "customerName",
+          "workspaceId",
+          "workspaceSlug",
+          "workspaceName",
           "startedAt",
           "completedAt",
           "durationMs",
@@ -714,10 +714,10 @@
       "NeedsAttentionRow": {
         "type": "object",
         "properties": {
-          "customerSlug": {
+          "workspaceSlug": {
             "type": "string"
           },
-          "customerName": {
+          "workspaceName": {
             "type": "string"
           },
           "jobSlug": {
@@ -745,8 +745,8 @@
           }
         },
         "required": [
-          "customerSlug",
-          "customerName",
+          "workspaceSlug",
+          "workspaceName",
           "jobSlug",
           "jobName",
           "status",
@@ -756,10 +756,10 @@
       "UpcomingFireRow": {
         "type": "object",
         "properties": {
-          "customerSlug": {
+          "workspaceSlug": {
             "type": "string"
           },
-          "customerName": {
+          "workspaceName": {
             "type": "string"
           },
           "jobSlug": {
@@ -779,8 +779,8 @@
           }
         },
         "required": [
-          "customerSlug",
-          "customerName",
+          "workspaceSlug",
+          "workspaceName",
           "jobSlug",
           "jobName",
           "triggerSummary",
@@ -794,10 +794,10 @@
           "runId": {
             "type": "string"
           },
-          "customerSlug": {
+          "workspaceSlug": {
             "type": "string"
           },
-          "customerName": {
+          "workspaceName": {
             "type": "string"
           },
           "jobSlug": {
@@ -826,8 +826,8 @@
         },
         "required": [
           "runId",
-          "customerSlug",
-          "customerName",
+          "workspaceSlug",
+          "workspaceName",
           "jobSlug",
           "jobName",
           "outcome",
@@ -894,7 +894,7 @@
         "additionalProperties": {
           "$ref": "#/components/schemas/VariableValue"
         },
-        "description": "Operator-defined variables. Keys match ^[a-z][a-z0-9_]{0,63}$. Up to 64 entries. Customer-level entries are inherited by Jobs; Job-level entries override by name."
+        "description": "Operator-defined variables. Keys match ^[a-z][a-z0-9_]{0,63}$. Up to 64 entries. Workspace-level entries are inherited by Jobs; Job-level entries override by name."
       },
       "ChannelConfigTeamsOutput": {
         "type": "object",
@@ -931,13 +931,13 @@
             }
           },
           "subject_template": {
-            "default": "[boop] {{ customer_name }} - {{ job_name }} {{ outcome }}",
+            "default": "[boop] {{ workspace_name }} - {{ job_name }} {{ outcome }}",
             "type": "string",
             "minLength": 1,
             "maxLength": 500
           },
           "body_template": {
-            "default": "Job {{ job_name }} ({{ customer_name }}) {{ outcome }}.\n\nStarted: {{ started_at }}\nCompleted: {{ completed_at }}\nDuration: {{ duration_ms }}ms\nAttempts: {{ attempt_count }}\n\nRun details: {{ run_url }}",
+            "default": "Job {{ job_name }} ({{ workspace_name }}) {{ outcome }}.\n\nStarted: {{ started_at }}\nCompleted: {{ completed_at }}\nDuration: {{ duration_ms }}ms\nAttempts: {{ attempt_count }}\n\nRun details: {{ run_url }}",
             "type": "string",
             "minLength": 1,
             "maxLength": 8000
@@ -1091,7 +1091,7 @@
           "jobId": {
             "type": "string"
           },
-          "customerId": {
+          "workspaceId": {
             "type": "string"
           },
           "scheduledAt": {
@@ -1174,7 +1174,7 @@
         "required": [
           "id",
           "jobId",
-          "customerId",
+          "workspaceId",
           "scheduledAt",
           "startedAt",
           "completedAt",
@@ -1307,13 +1307,13 @@
           "jobName": {
             "type": "string"
           },
-          "customerId": {
+          "workspaceId": {
             "type": "string"
           },
-          "customerSlug": {
+          "workspaceSlug": {
             "type": "string"
           },
-          "customerName": {
+          "workspaceName": {
             "type": "string"
           },
           "startedAt": {
@@ -1396,9 +1396,9 @@
           "jobId",
           "jobSlug",
           "jobName",
-          "customerId",
-          "customerSlug",
-          "customerName",
+          "workspaceId",
+          "workspaceSlug",
+          "workspaceName",
           "startedAt",
           "completedAt",
           "durationMs",
@@ -1584,10 +1584,10 @@
       "NeedsAttentionRowOutput": {
         "type": "object",
         "properties": {
-          "customerSlug": {
+          "workspaceSlug": {
             "type": "string"
           },
-          "customerName": {
+          "workspaceName": {
             "type": "string"
           },
           "jobSlug": {
@@ -1615,8 +1615,8 @@
           }
         },
         "required": [
-          "customerSlug",
-          "customerName",
+          "workspaceSlug",
+          "workspaceName",
           "jobSlug",
           "jobName",
           "status",
@@ -1627,10 +1627,10 @@
       "UpcomingFireRowOutput": {
         "type": "object",
         "properties": {
-          "customerSlug": {
+          "workspaceSlug": {
             "type": "string"
           },
-          "customerName": {
+          "workspaceName": {
             "type": "string"
           },
           "jobSlug": {
@@ -1650,8 +1650,8 @@
           }
         },
         "required": [
-          "customerSlug",
-          "customerName",
+          "workspaceSlug",
+          "workspaceName",
           "jobSlug",
           "jobName",
           "triggerSummary",
@@ -1666,10 +1666,10 @@
           "runId": {
             "type": "string"
           },
-          "customerSlug": {
+          "workspaceSlug": {
             "type": "string"
           },
-          "customerName": {
+          "workspaceName": {
             "type": "string"
           },
           "jobSlug": {
@@ -1698,8 +1698,8 @@
         },
         "required": [
           "runId",
-          "customerSlug",
-          "customerName",
+          "workspaceSlug",
+          "workspaceName",
           "jobSlug",
           "jobName",
           "outcome",
@@ -1799,7 +1799,7 @@
         "additionalProperties": false,
         "description": "Authenticated user as returned by getCurrentUser(request)."
       },
-      "Customer": {
+      "Workspace": {
         "type": "object",
         "properties": {
           "id": {
@@ -1861,9 +1861,9 @@
           "updatedAt"
         ],
         "additionalProperties": false,
-        "description": "A customer organization that owns Targets, Jobs, and Channels."
+        "description": "A workspace organization that owns Targets, Jobs, and Channels."
       },
-      "CustomerCreateInput": {
+      "WorkspaceCreateInput": {
         "type": "object",
         "properties": {
           "name": {
@@ -1893,7 +1893,7 @@
         ],
         "additionalProperties": false
       },
-      "CustomerUpdateInput": {
+      "WorkspaceUpdateInput": {
         "type": "object",
         "properties": {
           "name": {
@@ -1926,7 +1926,7 @@
             "type": "string",
             "example": "tgt_abc123"
           },
-          "customerId": {
+          "workspaceId": {
             "type": "string",
             "example": "cust_abc123"
           },
@@ -1999,7 +1999,7 @@
         },
         "required": [
           "id",
-          "customerId",
+          "workspaceId",
           "name",
           "slug",
           "url",
@@ -2012,7 +2012,7 @@
           "updatedAt"
         ],
         "additionalProperties": false,
-        "description": "A reusable HTTP destination owned by a Customer."
+        "description": "A reusable HTTP destination owned by a Workspace."
       },
       "TargetCreateInput": {
         "type": "object",
@@ -2149,16 +2149,16 @@
           "id": {
             "type": "string"
           },
-          "customerId": {
+          "workspaceId": {
             "type": "string"
           },
-          "customerSlug": {
+          "workspaceSlug": {
             "type": "string"
           },
-          "customerName": {
+          "workspaceName": {
             "type": "string"
           },
-          "customerTimezone": {
+          "workspaceTimezone": {
             "$ref": "#/components/schemas/Timezone"
           },
           "targetId": {
@@ -2280,10 +2280,10 @@
         },
         "required": [
           "id",
-          "customerId",
-          "customerSlug",
-          "customerName",
-          "customerTimezone",
+          "workspaceId",
+          "workspaceSlug",
+          "workspaceName",
+          "workspaceTimezone",
           "targetId",
           "targetSlug",
           "targetName",
@@ -2305,7 +2305,7 @@
           "updatedAt"
         ],
         "additionalProperties": false,
-        "description": "A scheduled HTTP call owned by a Customer."
+        "description": "A scheduled HTTP call owned by a Workspace."
       },
       "JobSummary": {
         "type": "object",
@@ -2319,10 +2319,10 @@
           "name": {
             "type": "string"
           },
-          "customerSlug": {
+          "workspaceSlug": {
             "type": "string"
           },
-          "customerName": {
+          "workspaceName": {
             "type": "string"
           },
           "triggerKind": {
@@ -2365,7 +2365,7 @@
               }
             ]
           },
-          "customerTimezone": {
+          "workspaceTimezone": {
             "$ref": "#/components/schemas/Timezone"
           },
           "nextFireAt": {
@@ -2432,13 +2432,13 @@
           "id",
           "slug",
           "name",
-          "customerSlug",
-          "customerName",
+          "workspaceSlug",
+          "workspaceName",
           "triggerKind",
           "cronExpression",
           "intervalSeconds",
           "triggerTimezone",
-          "customerTimezone",
+          "workspaceTimezone",
           "nextFireAt",
           "lastFireAt",
           "status",
@@ -2684,14 +2684,7 @@
           "slug": {
             "type": "string"
           },
-          "scope": {
-            "type": "string",
-            "enum": [
-              "workspace",
-              "customer"
-            ]
-          },
-          "customerId": {
+          "workspaceId": {
             "anyOf": [
               {
                 "type": "string"
@@ -2701,7 +2694,7 @@
               }
             ]
           },
-          "customerSlug": {
+          "workspaceSlug": {
             "anyOf": [
               {
                 "type": "string"
@@ -2711,7 +2704,7 @@
               }
             ]
           },
-          "customerName": {
+          "workspaceName": {
             "anyOf": [
               {
                 "type": "string"
@@ -2837,10 +2830,9 @@
           "id",
           "name",
           "slug",
-          "scope",
-          "customerId",
-          "customerSlug",
-          "customerName",
+          "workspaceId",
+          "workspaceSlug",
+          "workspaceName",
           "tag",
           "icon",
           "description",
@@ -2953,14 +2945,7 @@
             "maxLength": 64,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
-          "scope": {
-            "type": "string",
-            "enum": [
-              "workspace",
-              "customer"
-            ]
-          },
-          "customerSlug": {
+          "workspaceSlug": {
             "type": "string",
             "minLength": 1,
             "maxLength": 64,
@@ -2978,8 +2963,7 @@
           "variables",
           "maxAttempts",
           "overallDeadlineMs",
-          "slug",
-          "scope"
+          "slug"
         ],
         "additionalProperties": false
       },
@@ -3087,7 +3071,7 @@
       "JobTemplateSaveFromJobInput": {
         "type": "object",
         "properties": {
-          "customerSlug": {
+          "workspaceSlug": {
             "type": "string",
             "minLength": 1,
             "maxLength": 64,
@@ -3109,13 +3093,6 @@
             "minLength": 1,
             "maxLength": 64,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-          },
-          "scope": {
-            "type": "string",
-            "enum": [
-              "workspace",
-              "customer"
-            ]
           },
           "tag": {
             "default": "custom",
@@ -3175,11 +3152,10 @@
           }
         },
         "required": [
-          "customerSlug",
+          "workspaceSlug",
           "jobSlug",
           "name",
           "slug",
-          "scope",
           "tag",
           "capture"
         ],
@@ -3292,7 +3268,7 @@
             ],
             "additionalProperties": false
           },
-          "customer": {
+          "workspace": {
             "type": "object",
             "properties": {
               "id": {
@@ -3365,7 +3341,7 @@
         "required": [
           "run",
           "job",
-          "customer",
+          "workspace",
           "target",
           "attempts",
           "displayOutcome"
@@ -3502,23 +3478,9 @@
             "type": "string",
             "example": "chn_abc123"
           },
-          "scope": {
+          "workspaceId": {
             "type": "string",
-            "enum": [
-              "workspace",
-              "customer"
-            ]
-          },
-          "customerId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "example": "cust_abc123"
+            "example": "wsp_abc123"
           },
           "kind": {
             "type": "string",
@@ -3608,8 +3570,7 @@
         },
         "required": [
           "id",
-          "scope",
-          "customerId",
+          "workspaceId",
           "kind",
           "name",
           "slug",
@@ -3623,7 +3584,7 @@
           "updatedAt"
         ],
         "additionalProperties": false,
-        "description": "A reusable outbound destination for alerts. Scope is workspace (cross-Customer, customerId null) or customer (owned by one Customer)."
+        "description": "A reusable outbound destination for alerts, belonging to one Workspace."
       },
       "ChannelCreateInput": {
         "type": "object",
@@ -3679,11 +3640,10 @@
             "type": "string",
             "enum": [
               "workspace",
-              "customer",
               "job"
             ]
           },
-          "customerId": {
+          "workspaceId": {
             "anyOf": [
               {
                 "type": "string"
@@ -3692,7 +3652,7 @@
                 "type": "null"
               }
             ],
-            "example": "cust_abc123"
+            "example": "wsp_abc123"
           },
           "jobId": {
             "anyOf": [
@@ -3765,7 +3725,7 @@
         "required": [
           "id",
           "scope",
-          "customerId",
+          "workspaceId",
           "jobId",
           "kind",
           "name",
@@ -3778,7 +3738,7 @@
           "updatedAt"
         ],
         "additionalProperties": false,
-        "description": "A predicate that decides when a terminal Run produces an alert, and where it fans out. Scope is workspace (cross-Customer), customer (Customer-scoped), or job (one Job)."
+        "description": "A predicate that decides when a terminal Run produces an alert, and where it fans out. Scope is workspace (every Job in the Workspace) or job (one Job). Matching rules are additive."
       },
       "AlertRuleCreateInput": {
         "type": "object",
@@ -3850,10 +3810,10 @@
                 "type": "string",
                 "const": "run"
               },
-              "customer_name": {
+              "workspace_name": {
                 "type": "string"
               },
-              "customer_slug": {
+              "workspace_slug": {
                 "type": "string"
               },
               "job_name": {
@@ -3918,8 +3878,8 @@
             },
             "required": [
               "kind",
-              "customer_name",
-              "customer_slug",
+              "workspace_name",
+              "workspace_slug",
               "job_name",
               "job_slug",
               "target_name",
@@ -3946,10 +3906,10 @@
                 "type": "string",
                 "const": "missed"
               },
-              "customer_name": {
+              "workspace_name": {
                 "type": "string"
               },
-              "customer_slug": {
+              "workspace_slug": {
                 "type": "string"
               },
               "job_name": {
@@ -3995,8 +3955,8 @@
             },
             "required": [
               "kind",
-              "customer_name",
-              "customer_slug",
+              "workspace_name",
+              "workspace_slug",
               "job_name",
               "job_slug",
               "job_url",
@@ -4014,14 +3974,14 @@
         "description": "Synthetic context handed to Channel adapters for template rendering.",
         "type": "object"
       },
-      "CustomerSecretSummary": {
+      "WorkspaceSecretSummary": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string"
           },
           "name": {
-            "$ref": "#/components/schemas/CustomerSecretName"
+            "$ref": "#/components/schemas/WorkspaceSecretName"
           },
           "createdAt": {
             "type": "string",
@@ -4061,13 +4021,13 @@
           "revokedAt"
         ],
         "additionalProperties": false,
-        "description": "Metadata for a Customer-scoped secret. The plaintext is returned exactly once from create + rotate; subsequent fetches return only this summary."
+        "description": "Metadata for a Workspace-scoped secret. The plaintext is returned exactly once from create + rotate; subsequent fetches return only this summary."
       },
-      "CustomerSecretCreateInput": {
+      "WorkspaceSecretCreateInput": {
         "type": "object",
         "properties": {
           "name": {
-            "$ref": "#/components/schemas/CustomerSecretName"
+            "$ref": "#/components/schemas/WorkspaceSecretName"
           },
           "plaintext": {
             "type": "string",
@@ -4081,7 +4041,7 @@
         ],
         "additionalProperties": false
       },
-      "CustomerSecretRotateInput": {
+      "WorkspaceSecretRotateInput": {
         "type": "object",
         "properties": {
           "plaintext": {
@@ -4095,14 +4055,14 @@
         ],
         "additionalProperties": false
       },
-      "CustomerSecretRevealedResponse": {
+      "WorkspaceSecretRevealedResponse": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string"
           },
           "name": {
-            "$ref": "#/components/schemas/CustomerSecretName"
+            "$ref": "#/components/schemas/WorkspaceSecretName"
           },
           "plaintext": {
             "type": "string"

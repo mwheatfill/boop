@@ -2,15 +2,15 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useId, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { isValidVariableName, VARIABLE_CONSTRAINTS } from '@/shared/schemas/customer-variables'
+import { isValidVariableName, VARIABLE_CONSTRAINTS } from '@/shared/schemas/workspace-variables'
 
-export type VariableSource = 'customer' | 'override' | 'job'
+export type VariableSource = 'workspace' | 'override' | 'job'
 
 export interface KeyValueRow {
   name: string
   value: string
   source?: VariableSource
-  inherited?: { from: 'customer'; value: string }
+  inherited?: { from: 'workspace'; value: string }
 }
 
 interface KeyValueListEditorProps {
@@ -22,7 +22,7 @@ interface KeyValueListEditorProps {
 }
 
 const SOURCE_TAGS: Record<VariableSource, string> = {
-  customer: 'from Customer',
+  workspace: 'from Workspace',
   override: 'override',
   job: 'Job-only',
 }
@@ -93,7 +93,7 @@ export function KeyValueListEditor({
                   onChange={(e) => update(i, { name: e.currentTarget.value })}
                   onBlur={(e) => validateName(i, e.currentTarget.value)}
                   placeholder="tenant_id"
-                  readOnly={readOnly || row.source === 'customer'}
+                  readOnly={readOnly || row.source === 'workspace'}
                   className="h-7 w-40 font-mono text-xs"
                   aria-invalid={errorRow === i ? 'true' : undefined}
                 />
@@ -111,7 +111,7 @@ export function KeyValueListEditor({
                     {tag}
                   </span>
                 ) : null}
-                {readOnly || row.source === 'customer' ? null : (
+                {readOnly || row.source === 'workspace' ? null : (
                   <Button
                     type="button"
                     variant="ghost"

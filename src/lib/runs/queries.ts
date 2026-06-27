@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, type SQL } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
-import { attempts, customers, jobs, runs, targets } from '@/lib/db/schema'
+import { attempts, jobs, runs, targets, workspaces } from '@/lib/db/schema'
 import type {
   AttemptDetail,
   RunDetailResponse,
@@ -34,12 +34,12 @@ function durationMs(startedAt: Date | null, completedAt: Date | null): number | 
 
 type RunRow = typeof runs.$inferSelect
 type JobRow = typeof jobs.$inferSelect
-type CustomerRow = typeof customers.$inferSelect
+type WorkspaceRow = typeof workspaces.$inferSelect
 
 interface JoinedRow {
   run: RunRow
   job: JobRow
-  customer: CustomerRow
+  workspace: WorkspaceRow
 }
 
 function toRunSummaryRow(row: JoinedRow): RunSummaryRow {
@@ -52,9 +52,9 @@ function toRunSummaryRow(row: JoinedRow): RunSummaryRow {
     jobId: row.run.jobId,
     jobSlug: row.job.slug,
     jobName: row.job.name,
-    customerId: row.run.customerId,
-    customerSlug: row.customer.slug,
-    customerName: row.customer.name,
+    workspaceId: row.run.workspaceId,
+    workspaceSlug: row.workspace.slug,
+    workspaceName: row.workspace.name,
     startedAt: startedAt?.toISOString() ?? null,
     completedAt: completedAt?.toISOString() ?? null,
     durationMs: durationMs(startedAt, completedAt),
@@ -75,10 +75,10 @@ async function selectJoinedRuns(
   limit: number,
 ): Promise<JoinedRow[]> {
   const base = db
-    .select({ run: runs, job: jobs, customer: customers })
+    .select({ run: runs, job: jobs, workspace: workspaces })
     .from(runs)
     .innerJoin(jobs, eq(jobs.id, runs.jobId))
-    .innerJoin(customers, eq(customers.id, runs.customerId))
+    .innerJoin(workspaces, eq(workspaces.id, runs.workspaceId))
   const ordered = where
     ? base.where(where).orderBy(desc(runs.startedAt), desc(runs.id))
     : base.orderBy(desc(runs.startedAt), desc(runs.id))
@@ -150,17 +150,17 @@ function toAttemptDetail(row: typeof attempts.$inferSelect): AttemptDetail {
 
 export async function getRunDetail(
   db: Database,
-  customerSlug: string,
+  workspaceSlug: string,
   jobSlug: string,
   runId: string,
 ): Promise<RunDetailResponse | null> {
   const joined = await db
-    .select({ run: runs, job: jobs, customer: customers, target: targets })
+    .select({ run: runs, job: jobs, workspace: workspaces, target: targets })
     .from(runs)
     .innerJoin(jobs, eq(jobs.id, runs.jobId))
-    .innerJoin(customers, eq(customers.id, runs.customerId))
+    .innerJoin(workspaces, eq(workspaces.id, runs.workspaceId))
     .innerJoin(targets, eq(targets.id, jobs.targetId))
-    .where(and(eq(runs.id, runId), eq(customers.slug, customerSlug), eq(jobs.slug, jobSlug)))
+    .where(and(eq(runs.id, runId), eq(workspaces.slug, workspaceSlug), eq(jobs.slug, jobSlug)))
     .limit(1)
   const row = joined[0]
   if (!row) return null
@@ -178,7 +178,7 @@ export async function getRunDetail(
     run: {
       id: row.run.id,
       jobId: row.run.jobId,
-      customerId: row.run.customerId,
+      workspaceId: row.run.workspaceId,
       scheduledAt: row.run.scheduledAt.toISOString(),
       startedAt: row.run.startedAt?.toISOString() ?? null,
       completedAt: row.run.completedAt?.toISOString() ?? null,
@@ -195,11 +195,11 @@ export async function getRunDetail(
       name: row.job.name,
       status: row.job.status as RunDetailResponse['job']['status'],
     },
-    customer: {
-      id: row.customer.id,
-      slug: row.customer.slug,
-      name: row.customer.name,
-      timezone: row.customer.timezone,
+    workspace: {
+      id: row.workspace.id,
+      slug: row.workspace.slug,
+      name: row.workspace.name,
+      timezone: row.workspace.timezone,
     },
     target: {
       id: row.target.id,

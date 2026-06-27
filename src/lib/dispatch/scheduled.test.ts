@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { customers, jobs, targets } from '@/lib/db/schema'
+import { jobs, targets, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { type DispatchMessage, runScheduled } from './scheduled'
 
@@ -20,17 +20,17 @@ function createCaptureQueue(): {
   return { queue: queue as unknown as Queue<DispatchMessage>, sent }
 }
 
-async function seedCustomer(db: Database, timezone = 'UTC') {
-  const customerId = newId('cust')
-  await db.insert(customers).values({ id: customerId, name: 'Acme', slug: 'acme', timezone })
-  return customerId
+async function seedWorkspace(db: Database, timezone = 'UTC') {
+  const workspaceId = newId('cust')
+  await db.insert(workspaces).values({ id: workspaceId, name: 'Acme', slug: 'acme', timezone })
+  return workspaceId
 }
 
-async function seedTarget(db: Database, customerId: string) {
+async function seedTarget(db: Database, workspaceId: string) {
   const targetId = newId('tgt')
   await db.insert(targets).values({
     id: targetId,
-    customerId,
+    workspaceId,
     name: 'Health',
     slug: 'health',
     url: 'https://example.test/ping',
@@ -50,14 +50,14 @@ interface CronJobOverrides {
 
 async function seedJob(
   db: Database,
-  customerId: string,
+  workspaceId: string,
   targetId: string,
   o: CronJobOverrides = {},
 ) {
   const jobId = newId('job')
   await db.insert(jobs).values({
     id: jobId,
-    customerId,
+    workspaceId,
     targetId,
     name: 'J',
     slug: jobId.slice(-8),
@@ -75,7 +75,7 @@ describe('runScheduled', () => {
   it('first tick on a brand-new cron Job: computes next_fire_at but does not enqueue', async () => {
     const db = createTestDb()
     const { queue, sent } = createCaptureQueue()
-    const cust = await seedCustomer(db)
+    const cust = await seedWorkspace(db)
     const tgt = await seedTarget(db, cust)
     const jobId = await seedJob(db, cust, tgt, { cron: '* * * * *', nextFireAt: null })
 
@@ -91,7 +91,7 @@ describe('runScheduled', () => {
   it('enqueues a cron Job whose next_fire_at has passed', async () => {
     const db = createTestDb()
     const { queue, sent } = createCaptureQueue()
-    const cust = await seedCustomer(db)
+    const cust = await seedWorkspace(db)
     const tgt = await seedTarget(db, cust)
     const past = new Date('2026-05-12T14:29:00.000Z')
     const jobId = await seedJob(db, cust, tgt, { cron: '* * * * *', nextFireAt: past })
@@ -110,7 +110,7 @@ describe('runScheduled', () => {
   it('skips Jobs whose next_fire_at is in the future', async () => {
     const db = createTestDb()
     const { queue, sent } = createCaptureQueue()
-    const cust = await seedCustomer(db)
+    const cust = await seedWorkspace(db)
     const tgt = await seedTarget(db, cust)
     const future = new Date('2026-05-12T14:31:30.000Z')
     await seedJob(db, cust, tgt, { nextFireAt: future })
@@ -125,7 +125,7 @@ describe('runScheduled', () => {
   it('skips paused, archived, and non-cron Jobs', async () => {
     const db = createTestDb()
     const { queue, sent } = createCaptureQueue()
-    const cust = await seedCustomer(db)
+    const cust = await seedWorkspace(db)
     const tgt = await seedTarget(db, cust)
     await seedJob(db, cust, tgt, { status: 'paused' })
     await seedJob(db, cust, tgt, { status: 'archived' })
@@ -138,10 +138,10 @@ describe('runScheduled', () => {
     expect(sent).toHaveLength(0)
   })
 
-  it('honors job.trigger_timezone over customer.timezone when computing next_fire_at', async () => {
+  it('honors job.trigger_timezone over workspace.timezone when computing next_fire_at', async () => {
     const db = createTestDb()
     const { queue, sent } = createCaptureQueue()
-    const cust = await seedCustomer(db, 'UTC')
+    const cust = await seedWorkspace(db, 'UTC')
     const tgt = await seedTarget(db, cust)
     const jobId = await seedJob(db, cust, tgt, {
       cron: '0 9 * * *',
@@ -160,7 +160,7 @@ describe('runScheduled', () => {
   it('sweeps stale fire_in_progress claims older than 5 minutes', async () => {
     const db = createTestDb()
     const { queue } = createCaptureQueue()
-    const cust = await seedCustomer(db)
+    const cust = await seedWorkspace(db)
     const tgt = await seedTarget(db, cust)
     const staleJobId = await seedJob(db, cust, tgt, { status: 'paused' })
     const tick = new Date('2026-05-12T14:30:00.000Z')
@@ -180,7 +180,7 @@ describe('runScheduled', () => {
   it('does not sweep fresh in-progress claims', async () => {
     const db = createTestDb()
     const { queue } = createCaptureQueue()
-    const cust = await seedCustomer(db)
+    const cust = await seedWorkspace(db)
     const tgt = await seedTarget(db, cust)
     const freshJobId = await seedJob(db, cust, tgt, { status: 'paused' })
     const tick = new Date('2026-05-12T14:30:00.000Z')

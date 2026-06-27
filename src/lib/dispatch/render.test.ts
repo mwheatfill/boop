@@ -7,8 +7,8 @@ function ctx(overrides: Partial<Parameters<typeof renderTemplate>[1]> = {}) {
   return {
     runId: 'run_abc',
     attemptNumber: 1,
-    customerName: 'Acme',
-    customerTimezone: 'UTC',
+    workspaceName: 'Acme',
+    workspaceTimezone: 'UTC',
     now: fixedNow,
     ...overrides,
   }
@@ -23,13 +23,16 @@ describe('renderTemplate', () => {
   it('renders {{ now | tz | iso_date }} in the supplied IANA zone', async () => {
     const out = await renderTemplate(
       '{{ now | tz: "America/New_York" | iso_date }}',
-      ctx({ customerTimezone: 'America/New_York' }),
+      ctx({ workspaceTimezone: 'America/New_York' }),
     )
     expect(out).toBe('2026-05-12T10:30:00')
   })
 
   it('exposes context variables to templates', async () => {
-    const out = await renderTemplate('{{ run_id }}/{{ attempt_number }}/{{ customer_name }}', ctx())
+    const out = await renderTemplate(
+      '{{ run_id }}/{{ attempt_number }}/{{ workspace_name }}',
+      ctx(),
+    )
     expect(out).toBe('run_abc/1/Acme')
   })
 

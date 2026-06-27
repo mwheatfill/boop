@@ -2,7 +2,7 @@ import type { JobTemplateCreateInput } from '@/shared/schemas/job-template'
 
 export type StarterRecipeInput = Omit<
   JobTemplateCreateInput,
-  'scope' | 'customerSlug' | 'variables' | 'maxAttempts' | 'overallDeadlineMs'
+  'scope' | 'workspaceSlug' | 'variables' | 'maxAttempts' | 'overallDeadlineMs'
 > &
   Partial<Pick<JobTemplateCreateInput, 'variables' | 'maxAttempts' | 'overallDeadlineMs'>>
 

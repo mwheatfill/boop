@@ -10,7 +10,7 @@ const urlField = z.url('Must be a valid URL').max(2048)
 export const TargetSchema = z
   .object({
     id: z.string().meta({ example: 'tgt_abc123' }),
-    customerId: z.string().meta({ example: 'cust_abc123' }),
+    workspaceId: z.string().meta({ example: 'cust_abc123' }),
     name: z.string().meta({ example: 'Primary API' }),
     slug: z.string().meta({ example: 'primary-api' }),
     url: z.string().meta({ example: 'https://api.acme.com/healthz' }),
@@ -24,7 +24,7 @@ export const TargetSchema = z
   })
   .meta({
     id: 'Target',
-    description: 'A reusable HTTP destination owned by a Customer.',
+    description: 'A reusable HTTP destination owned by a Workspace.',
   })
 
 export type Target = z.infer<typeof TargetSchema>

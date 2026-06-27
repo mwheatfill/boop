@@ -31,7 +31,7 @@ interface TargetFormValues {
 
 interface CreateProps {
   variant: 'create'
-  customerSlug: string
+  workspaceSlug: string
   onClose: () => void
   /** Called instead of navigating when used as a nested dialog inside JobModal. */
   onCreated?: (target: Target) => void | Promise<void>
@@ -39,7 +39,7 @@ interface CreateProps {
 
 interface EditProps {
   variant: 'edit'
-  customerSlug: string
+  workspaceSlug: string
   initialTarget: Target
   onClose: () => void
 }
@@ -88,11 +88,11 @@ export function TargetModal(props: TargetModalProps) {
         const result: MutationResult<Target> =
           props.variant === 'create'
             ? await createTargetFn({
-                data: { customerSlug: props.customerSlug, ...base, slug: value.slug } as never,
+                data: { workspaceSlug: props.workspaceSlug, ...base, slug: value.slug } as never,
               })
             : await updateTargetFn({
                 data: {
-                  customerSlug: props.customerSlug,
+                  workspaceSlug: props.workspaceSlug,
                   targetSlug: props.initialTarget.slug,
                   ...base,
                 } as never,
@@ -106,7 +106,7 @@ export function TargetModal(props: TargetModalProps) {
         }
 
         await queryClient.invalidateQueries({
-          queryKey: ['customers', props.customerSlug, 'targets'],
+          queryKey: ['workspaces', props.workspaceSlug, 'targets'],
         })
 
         if (props.variant === 'create' && props.onCreated) {
@@ -115,10 +115,7 @@ export function TargetModal(props: TargetModalProps) {
         }
 
         toast.success(props.variant === 'create' ? `Target ${result.data.name} created` : 'Saved')
-        await navigate({
-          to: '/customers/$customerSlug',
-          params: { customerSlug: props.customerSlug },
-        })
+        await navigate({ to: '/' })
         return null
       },
     },

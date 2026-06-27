@@ -9,7 +9,7 @@ import type { AdapterResult } from '@/lib/channel-adapters/types'
 import { findChannelById } from '@/lib/channels/queries'
 import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
-import { alertRules, attempts, channels, customers, jobs, runs, targets } from '@/lib/db/schema'
+import { alertRules, attempts, channels, jobs, runs, targets, workspaces } from '@/lib/db/schema'
 import { logError, logInfo } from '@/lib/log'
 import {
   type AlertQueueMessage,
@@ -24,17 +24,17 @@ function retryDelaySeconds(attempts: number): number {
   return 2 ** Math.min(attempts, 6) * RETRY_BASE_SECONDS
 }
 
-async function loadCustomer(db: Database, customerId: string) {
-  return (await db.select().from(customers).where(eq(customers.id, customerId)).limit(1))[0]
+async function loadWorkspace(db: Database, workspaceId: string) {
+  return (await db.select().from(workspaces).where(eq(workspaces.id, workspaceId)).limit(1))[0]
 }
 
 async function loadRunBundle(db: Database, runId: string) {
   const row = (
     await db
-      .select({ run: runs, job: jobs, customer: customers, target: targets })
+      .select({ run: runs, job: jobs, workspace: workspaces, target: targets })
       .from(runs)
       .innerJoin(jobs, eq(jobs.id, runs.jobId))
-      .innerJoin(customers, eq(customers.id, runs.customerId))
+      .innerJoin(workspaces, eq(workspaces.id, runs.workspaceId))
       .innerJoin(targets, eq(targets.id, jobs.targetId))
       .where(eq(runs.id, runId))
       .limit(1)
@@ -47,9 +47,9 @@ async function loadRunBundle(db: Database, runId: string) {
 async function loadJobBundle(db: Database, jobId: string) {
   return (
     await db
-      .select({ job: jobs, customer: customers })
+      .select({ job: jobs, workspace: workspaces })
       .from(jobs)
-      .innerJoin(customers, eq(customers.id, jobs.customerId))
+      .innerJoin(workspaces, eq(workspaces.id, jobs.workspaceId))
       .where(eq(jobs.id, jobId))
       .limit(1)
   )[0]
@@ -134,12 +134,12 @@ async function processTestMessage(
     message.ack()
     return
   }
-  const customer = channel.customerId ? await loadCustomer(db, channel.customerId) : undefined
+  const workspace = await loadWorkspace(db, channel.workspaceId)
   const alertContext = buildSyntheticTestContext(
     channel.name,
     channel.slug,
-    customer?.name ?? (channel.scope === 'workspace' ? 'Workspace' : 'Unknown'),
-    customer?.slug ?? (channel.scope === 'workspace' ? 'workspace' : 'unknown'),
+    workspace?.name ?? 'Workspace',
+    workspace?.slug ?? 'workspace',
     appOrigin,
   )
   const now = new Date()
@@ -149,7 +149,7 @@ async function processTestMessage(
   routeAdapterResult(message, result, {
     channelId: channel.id,
     channelKind: channel.kind,
-    customerSlug: customer?.slug,
+    workspaceSlug: workspace?.slug,
     test: true,
     attemptNumber: message.attempts,
   })
@@ -177,7 +177,7 @@ async function processRunMessage(
     run: bundle.run,
     attempts: bundle.attempts,
     job: bundle.job,
-    customer: bundle.customer,
+    workspace: bundle.workspace,
     target: bundle.target,
     ruleName: body.ruleName,
     ruleKind: body.ruleKind,
@@ -189,7 +189,7 @@ async function processRunMessage(
   routeAdapterResult(message, result, {
     ...fields,
     channelKind: channel.kind,
-    customerSlug: bundle.customer.slug,
+    workspaceSlug: bundle.workspace.slug,
     jobSlug: bundle.job.slug,
   })
 }
@@ -214,7 +214,7 @@ async function processMissedMessage(
   }
   const alertContext = buildMissedAlertContext({
     job: bundle.job,
-    customer: bundle.customer,
+    workspace: bundle.workspace,
     ruleName: body.ruleName,
     appOrigin,
     lastRunAt: body.lastRunAt,
@@ -226,7 +226,7 @@ async function processMissedMessage(
   routeAdapterResult(message, result, {
     ...fields,
     channelKind: channel.kind,
-    customerSlug: bundle.customer.slug,
+    workspaceSlug: bundle.workspace.slug,
     jobSlug: bundle.job.slug,
   })
 }

@@ -1,11 +1,11 @@
 import { and, desc, eq, inArray, type SQL, sql } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
-import { customers, jobs, runs, targets } from '@/lib/db/schema'
+import { jobs, runs, targets, workspaces } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
 import type { Job, JobSummary, TriggerKind } from '@/shared/schemas/job'
 
 interface ListFilters {
-  customerId?: string
+  workspaceId?: string
   status?: 'active' | 'paused' | 'archived'
   includeArchived?: boolean
 }
@@ -13,12 +13,12 @@ interface ListFilters {
 type JobRow = typeof jobs.$inferSelect
 
 interface JoinedJobRow extends JobRow {
-  customer: typeof customers.$inferSelect
+  workspace: typeof workspaces.$inferSelect
   target: typeof targets.$inferSelect
 }
 
-function effectiveTz(job: { triggerTimezone: string | null }, customerTimezone: string): string {
-  return job.triggerTimezone ?? customerTimezone
+function effectiveTz(job: { triggerTimezone: string | null }, workspaceTimezone: string): string {
+  return job.triggerTimezone ?? workspaceTimezone
 }
 
 function toJobSummary(row: JoinedJobRow, lastRun?: typeof runs.$inferSelect): JobSummary {
@@ -26,13 +26,13 @@ function toJobSummary(row: JoinedJobRow, lastRun?: typeof runs.$inferSelect): Jo
     id: row.id,
     slug: row.slug,
     name: row.name,
-    customerSlug: row.customer.slug,
-    customerName: row.customer.name,
+    workspaceSlug: row.workspace.slug,
+    workspaceName: row.workspace.name,
     triggerKind: row.triggerKind as TriggerKind,
     cronExpression: row.cronExpression,
     intervalSeconds: row.intervalSeconds,
     triggerTimezone: row.triggerTimezone,
-    customerTimezone: row.customer.timezone,
+    workspaceTimezone: row.workspace.timezone,
     nextFireAt: row.nextFireAt?.toISOString() ?? null,
     lastFireAt: row.lastFireAt?.toISOString() ?? null,
     status: row.status as JobSummary['status'],
@@ -44,10 +44,10 @@ function toJobSummary(row: JoinedJobRow, lastRun?: typeof runs.$inferSelect): Jo
 function toJob(row: JoinedJobRow): Job {
   return {
     id: row.id,
-    customerId: row.customerId,
-    customerSlug: row.customer.slug,
-    customerName: row.customer.name,
-    customerTimezone: row.customer.timezone,
+    workspaceId: row.workspaceId,
+    workspaceSlug: row.workspace.slug,
+    workspaceName: row.workspace.name,
+    workspaceTimezone: row.workspace.timezone,
     targetId: row.targetId,
     targetSlug: row.target.slug,
     targetName: row.target.name,
@@ -89,17 +89,17 @@ async function loadLatestRunsByJobId(
 
 async function selectJoinedJobs(db: Database, where: SQL | undefined): Promise<JoinedJobRow[]> {
   const base = db
-    .select({ job: jobs, customer: customers, target: targets })
+    .select({ job: jobs, workspace: workspaces, target: targets })
     .from(jobs)
-    .innerJoin(customers, eq(customers.id, jobs.customerId))
+    .innerJoin(workspaces, eq(workspaces.id, jobs.workspaceId))
     .innerJoin(targets, eq(targets.id, jobs.targetId))
   const rows = where ? await base.where(where).orderBy(jobs.name) : await base.orderBy(jobs.name)
-  return rows.map((r) => ({ ...r.job, customer: r.customer, target: r.target }))
+  return rows.map((r) => ({ ...r.job, workspace: r.workspace, target: r.target }))
 }
 
 export async function listAllJobs(db: Database, filters: ListFilters = {}): Promise<JobSummary[]> {
   const conditions: SQL[] = []
-  if (filters.customerId) conditions.push(eq(jobs.customerId, filters.customerId))
+  if (filters.workspaceId) conditions.push(eq(jobs.workspaceId, filters.workspaceId))
   if (filters.status) conditions.push(eq(jobs.status, filters.status))
   else if (!filters.includeArchived) conditions.push(sql`${jobs.status} != 'archived'`)
   const joined = await selectJoinedJobs(db, conditions.length > 0 ? and(...conditions) : undefined)
@@ -110,36 +110,36 @@ export async function listAllJobs(db: Database, filters: ListFilters = {}): Prom
   return joined.map((j) => toJobSummary(j, latest.get(j.id)))
 }
 
-export async function listJobsForCustomer(
+export async function listJobsForWorkspace(
   db: Database,
-  customerSlug: string,
+  workspaceSlug: string,
   { includeArchived = false }: { includeArchived?: boolean } = {},
 ): Promise<JobSummary[]> {
-  const customer = (
-    await db.select().from(customers).where(eq(customers.slug, customerSlug)).limit(1)
+  const workspace = (
+    await db.select().from(workspaces).where(eq(workspaces.slug, workspaceSlug)).limit(1)
   )[0]
-  if (!customer) throw new NotFoundError('Customer', customerSlug)
-  return listAllJobs(db, { customerId: customer.id, includeArchived })
+  if (!workspace) throw new NotFoundError('Workspace', workspaceSlug)
+  return listAllJobs(db, { workspaceId: workspace.id, includeArchived })
 }
 
 export async function getJobDetail(
   db: Database,
-  customerSlug: string,
+  workspaceSlug: string,
   jobSlug: string,
 ): Promise<Job> {
-  const customer = (
-    await db.select().from(customers).where(eq(customers.slug, customerSlug)).limit(1)
+  const workspace = (
+    await db.select().from(workspaces).where(eq(workspaces.slug, workspaceSlug)).limit(1)
   )[0]
-  if (!customer) throw new NotFoundError('Customer', customerSlug)
+  if (!workspace) throw new NotFoundError('Workspace', workspaceSlug)
   const joined = await selectJoinedJobs(
     db,
-    and(eq(jobs.customerId, customer.id), eq(jobs.slug, jobSlug)),
+    and(eq(jobs.workspaceId, workspace.id), eq(jobs.slug, jobSlug)),
   )
   const row = joined[0]
-  if (!row) throw new NotFoundError('Job', `${customerSlug}/${jobSlug}`)
+  if (!row) throw new NotFoundError('Job', `${workspaceSlug}/${jobSlug}`)
   return toJob(row)
 }
 
-export function effectiveTimezone(job: Pick<Job, 'triggerTimezone' | 'customerTimezone'>): string {
-  return effectiveTz(job, job.customerTimezone)
+export function effectiveTimezone(job: Pick<Job, 'triggerTimezone' | 'workspaceTimezone'>): string {
+  return effectiveTz(job, job.workspaceTimezone)
 }

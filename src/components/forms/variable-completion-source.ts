@@ -7,7 +7,7 @@ import {
 export interface VariableCompletion {
   name: string
   value?: string
-  source: 'builtin' | 'customer' | 'job'
+  source: 'builtin' | 'workspace' | 'job'
 }
 
 export interface SecretCompletion {
@@ -22,8 +22,8 @@ export interface VariableCompletionSourceInput {
 const BUILTIN_PREVIEW_VALUES: Record<BuiltinRenderVariableName, string> = {
   run_id: 'run_preview',
   attempt_number: '1',
-  customer_name: 'Acme Corp',
-  customer_timezone: 'UTC',
+  workspace_name: 'Acme Corp',
+  workspace_timezone: 'UTC',
   now: '<Date>',
 }
 
@@ -33,7 +33,7 @@ const BUILTIN_VARIABLES: readonly VariableCompletion[] = BUILTIN_RENDER_VARIABLE
 
 const BOOST_BY_SOURCE: Record<VariableCompletion['source'], number> = {
   builtin: 1,
-  customer: 2,
+  workspace: 2,
   job: 3,
 }
 
@@ -75,8 +75,8 @@ function sourceLabel(source: VariableCompletion['source']): string {
   switch (source) {
     case 'builtin':
       return 'built-in'
-    case 'customer':
-      return 'from Customer'
+    case 'workspace':
+      return 'from Workspace'
     case 'job':
       return 'from Job'
   }

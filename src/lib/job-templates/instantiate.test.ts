@@ -6,10 +6,9 @@ const base: JobTemplate = {
   id: 'jtpl_1',
   name: 'Daily backup',
   slug: 'daily-backup',
-  scope: 'workspace',
-  customerId: null,
-  customerSlug: null,
-  customerName: null,
+  workspaceId: null,
+  workspaceSlug: null,
+  workspaceName: null,
   tag: 'backups',
   icon: 'database',
   description: 'Backup endpoint',
@@ -31,7 +30,7 @@ const base: JobTemplate = {
 describe('instantiateFromTemplate', () => {
   it('leaves workspace template target placeholders unresolved', () => {
     const input = instantiateFromTemplate(base, 'acme')
-    expect(input.customerSlug).toBe('acme')
+    expect(input.workspaceSlug).toBe('acme')
     expect(input.targetSlug).toBe('')
     expect(input.trigger).toEqual({
       triggerKind: 'cron',
@@ -41,9 +40,9 @@ describe('instantiateFromTemplate', () => {
     expect(input.variables).toEqual({ tenant_id: 'acme' })
   })
 
-  it('uses the stored Target slug for Customer-scoped templates', () => {
+  it('uses the stored Target slug for Workspace-owned templates', () => {
     const input = instantiateFromTemplate(
-      { ...base, scope: 'customer', customerId: 'cust_1', targetRef: 'prod-api' },
+      { ...base, builtIn: false, workspaceId: 'wsp_1', targetRef: 'prod-api' },
       'acme',
     )
     expect(input.targetSlug).toBe('prod-api')

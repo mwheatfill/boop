@@ -1,12 +1,12 @@
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
-import { createCustomer } from '@/lib/customers/commands'
 import type { Database } from '@/lib/db/client'
 import { jobs } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import type { DispatchMessage } from '@/lib/dispatch/scheduled'
 import { FieldValidationError, NotFoundError } from '@/lib/errors'
 import { createTarget } from '@/lib/targets/commands'
+import { createWorkspace } from '@/lib/workspaces/commands'
 import {
   archiveJob,
   createJob,
@@ -65,8 +65,8 @@ async function makeDeps(db: Database): Promise<{
   }
 }
 
-async function seedCustomerAndTarget(db: Database) {
-  await createCustomer(db, { name: 'Acme', slug: 'acme', timezone: 'America/New_York' })
+async function seedWorkspaceAndTarget(db: Database) {
+  await createWorkspace(db, { name: 'Acme', slug: 'acme', timezone: 'America/New_York' })
   await createTarget(db, 'acme', {
     name: 'API',
     slug: 'api',
@@ -90,7 +90,7 @@ const baseCreateInput = {
 describe('createJob', () => {
   it('inserts a cron Job and does not seed an alarm', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps, triggerCalls } = await makeDeps(db)
     const job = await createJob(deps, 'acme', {
       ...baseCreateInput,
@@ -108,7 +108,7 @@ describe('createJob', () => {
 
   it('inserts an interval Job and seeds the alarm', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps, triggerCalls } = await makeDeps(db)
     const job = await createJob(deps, 'acme', {
       ...baseCreateInput,
@@ -121,7 +121,7 @@ describe('createJob', () => {
 
   it('inserts a webhook Job and does not seed an alarm', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps, triggerCalls } = await makeDeps(db)
     const job = await createJob(deps, 'acme', {
       ...baseCreateInput,
@@ -134,7 +134,7 @@ describe('createJob', () => {
 
   it('rejects an unknown targetSlug as a field error', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps } = await makeDeps(db)
     let thrown: unknown
     try {
@@ -150,9 +150,9 @@ describe('createJob', () => {
     expect((thrown as FieldValidationError).fieldErrors).toHaveProperty('targetSlug')
   })
 
-  it('rejects duplicate job slugs within the same customer', async () => {
+  it('rejects duplicate job slugs within the same workspace', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps } = await makeDeps(db)
     await createJob(deps, 'acme', { ...baseCreateInput, trigger: { triggerKind: 'webhook' } })
     let thrown: unknown
@@ -169,7 +169,7 @@ describe('createJob', () => {
 describe('updateJob trigger transitions', () => {
   it('cron → interval clears cron columns and seeds alarm', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps, triggerCalls } = await makeDeps(db)
     await createJob(deps, 'acme', {
       ...baseCreateInput,
@@ -198,7 +198,7 @@ describe('updateJob trigger transitions', () => {
 
   it('interval → webhook clears interval column and enters webhook mode', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps, triggerCalls } = await makeDeps(db)
     await createJob(deps, 'acme', {
       ...baseCreateInput,
@@ -221,7 +221,7 @@ describe('updateJob trigger transitions', () => {
 
   it('interval → interval with the same seconds is a no-op for the planner', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps, triggerCalls } = await makeDeps(db)
     const job = await createJob(deps, 'acme', {
       ...baseCreateInput,
@@ -244,7 +244,7 @@ describe('updateJob trigger transitions', () => {
 describe('pauseJob / resumeJob / archiveJob / restoreJob', () => {
   it('pause and resume do not invoke trigger-mode helpers', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps, triggerCalls } = await makeDeps(db)
     await createJob(deps, 'acme', {
       ...baseCreateInput,
@@ -260,7 +260,7 @@ describe('pauseJob / resumeJob / archiveJob / restoreJob', () => {
 
   it('archiveJob marks status archived without re-seeding', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps, triggerCalls } = await makeDeps(db)
     await createJob(deps, 'acme', {
       ...baseCreateInput,
@@ -274,7 +274,7 @@ describe('pauseJob / resumeJob / archiveJob / restoreJob', () => {
 
   it('restoreJob on an interval Job re-arms the DO alarm', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps, triggerCalls } = await makeDeps(db)
     const job = await createJob(deps, 'acme', {
       ...baseCreateInput,
@@ -289,7 +289,7 @@ describe('pauseJob / resumeJob / archiveJob / restoreJob', () => {
 
   it('restoreJob on a cron Job does not re-seed', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps, triggerCalls } = await makeDeps(db)
     await createJob(deps, 'acme', {
       ...baseCreateInput,
@@ -310,7 +310,7 @@ describe('pauseJob / resumeJob / archiveJob / restoreJob', () => {
 describe('runJobNow', () => {
   it('pushes the exact { jobId, scheduledAt } shape onto DISPATCH_QUEUE', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps, sent } = await makeDeps(db)
     const job = await createJob(deps, 'acme', {
       ...baseCreateInput,
@@ -324,7 +324,7 @@ describe('runJobNow', () => {
 
   it('rejects on a paused Job with a field error', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps, sent } = await makeDeps(db)
     await createJob(deps, 'acme', {
       ...baseCreateInput,
@@ -343,14 +343,14 @@ describe('runJobNow', () => {
 
   it('rejects when the Job does not exist', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps } = await makeDeps(db)
     await expect(runJobNow(deps, 'acme', 'missing')).rejects.toBeInstanceOf(NotFoundError)
   })
 
   it('lastFireAt and nextFireAt round-trip nullable for a new webhook Job', async () => {
     const db = createTestDb()
-    await seedCustomerAndTarget(db)
+    await seedWorkspaceAndTarget(db)
     const { deps } = await makeDeps(db)
     const job = await createJob(deps, 'acme', {
       ...baseCreateInput,

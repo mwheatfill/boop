@@ -30,7 +30,7 @@ export const RunSchema = z
   .object({
     id: z.string(),
     jobId: z.string(),
-    customerId: z.string(),
+    workspaceId: z.string(),
     scheduledAt: z.iso.datetime(),
     startedAt: z.iso.datetime().nullable(),
     completedAt: z.iso.datetime().nullable(),
@@ -76,7 +76,7 @@ export const RunDetailResponseSchema = z
       name: z.string(),
       status: z.enum(['active', 'paused', 'archived']),
     }),
-    customer: z.object({
+    workspace: z.object({
       id: z.string(),
       slug: z.string(),
       name: z.string(),
@@ -102,9 +102,9 @@ export const RunSummaryRowSchema = z
     jobId: z.string(),
     jobSlug: z.string(),
     jobName: z.string(),
-    customerId: z.string(),
-    customerSlug: z.string(),
-    customerName: z.string(),
+    workspaceId: z.string(),
+    workspaceSlug: z.string(),
+    workspaceName: z.string(),
     startedAt: z.iso.datetime().nullable(),
     completedAt: z.iso.datetime().nullable(),
     durationMs: z.int().nullable(),

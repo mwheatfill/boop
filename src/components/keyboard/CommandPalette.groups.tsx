@@ -17,8 +17,8 @@ import { CommandGroup, CommandItem, CommandShortcut } from '@/components/ui/comm
 import { pauseJobFn, resumeJobFn, runJobNowFn } from '@/lib/jobs/server-fns'
 import { formatKeyCombo } from '@/lib/keyboard/key-combo'
 import type { RecentEntry } from '@/lib/recents/store'
-import type { Customer } from '@/shared/schemas/customer'
 import type { JobSummary } from '@/shared/schemas/job'
+import type { Workspace } from '@/shared/schemas/workspace'
 
 type PaletteNavigate = ReturnType<typeof useNavigate>
 
@@ -41,12 +41,12 @@ export function RecentCommandGroup({
           keywords={[r.slug, r.label]}
           onSelect={() => {
             close()
-            if (r.entity === 'customer') {
-              void goTo({ to: '/customers/$customerSlug', params: { customerSlug: r.slug } })
-            } else if (r.customerSlug) {
+            if (r.entity === 'workspace') {
+              void goTo({ to: '/' })
+            } else if (r.workspaceSlug) {
               void goTo({
-                to: '/customers/$customerSlug/jobs/$jobSlug',
-                params: { customerSlug: r.customerSlug, jobSlug: r.slug },
+                to: '/jobs/$jobSlug',
+                params: { jobSlug: r.slug },
               })
             }
           }}
@@ -60,26 +60,26 @@ export function RecentCommandGroup({
   )
 }
 
-export function CustomerCommandGroup({
-  customers,
+export function WorkspaceCommandGroup({
+  workspaces,
   goTo,
   close,
 }: {
-  customers: Customer[]
+  workspaces: Workspace[]
   goTo: PaletteNavigate
   close: () => void
 }) {
-  if (customers.length === 0) return null
+  if (workspaces.length === 0) return null
   return (
-    <CommandGroup heading="Customers">
-      {customers.map((c) => (
+    <CommandGroup heading="Workspaces">
+      {workspaces.map((c) => (
         <CommandItem
-          key={`customer-${c.id}`}
-          value={`customer ${c.name} ${c.slug}`}
+          key={`workspace-${c.id}`}
+          value={`workspace ${c.name} ${c.slug}`}
           keywords={[c.slug, c.name]}
           onSelect={() => {
             close()
-            void goTo({ to: '/customers/$customerSlug', params: { customerSlug: c.slug } })
+            void goTo({ to: '/' })
           }}
         >
           <Building2 aria-hidden />
@@ -106,19 +106,19 @@ export function JobCommandGroup({
       {jobs.map((j) => (
         <CommandItem
           key={`job-${j.id}`}
-          value={`job ${j.name} ${j.slug} ${j.customerName}`}
-          keywords={[j.slug, j.customerSlug, j.customerName]}
+          value={`job ${j.name} ${j.slug} ${j.workspaceName}`}
+          keywords={[j.slug, j.workspaceSlug, j.workspaceName]}
           onSelect={() => {
             close()
             void goTo({
-              to: '/customers/$customerSlug/jobs/$jobSlug',
-              params: { customerSlug: j.customerSlug, jobSlug: j.slug },
+              to: '/jobs/$jobSlug',
+              params: { jobSlug: j.slug },
             })
           }}
         >
           <Briefcase aria-hidden />
           <span>{j.name}</span>
-          <span className="ml-2 text-xs text-muted-foreground">{j.customerName}</span>
+          <span className="ml-2 text-xs text-muted-foreground">{j.workspaceName}</span>
         </CommandItem>
       ))}
     </CommandGroup>
@@ -128,14 +128,14 @@ export function JobCommandGroup({
 export function ActionCommandGroup({
   jobs,
   isAdmin,
-  currentCustomerSlug,
+  currentWorkspaceSlug,
   goTo,
   close,
   refreshJobs,
 }: {
   jobs: JobSummary[]
   isAdmin: boolean
-  currentCustomerSlug: string | undefined
+  currentWorkspaceSlug: string | undefined
   goTo: PaletteNavigate
   close: () => void
   refreshJobs: () => Promise<void>
@@ -150,7 +150,7 @@ export function ActionCommandGroup({
           onSelect={async () => {
             close()
             const result = await runJobNowFn({
-              data: { customerSlug: j.customerSlug, jobSlug: j.slug },
+              data: { workspaceSlug: j.workspaceSlug, jobSlug: j.slug },
             })
             if (result.ok) {
               toast.success(`Run queued for ${j.name}`)
@@ -172,7 +172,7 @@ export function ActionCommandGroup({
             close()
             const fn = j.status === 'paused' ? resumeJobFn : pauseJobFn
             const result = await fn({
-              data: { customerSlug: j.customerSlug, jobSlug: j.slug },
+              data: { workspaceSlug: j.workspaceSlug, jobSlug: j.slug },
             })
             if (result.ok) {
               toast.success(j.status === 'paused' ? 'Resumed' : 'Paused')
@@ -216,26 +216,23 @@ export function ActionCommandGroup({
       </CommandItem>
       {isAdmin ? (
         <CommandItem
-          value="new customer"
+          value="new workspace"
           keywords={['create', 'add', 'tenant', 'organization']}
           onSelect={() => {
             close()
-            void goTo({ to: '/customers/new' })
+            void goTo({ to: '/' })
           }}
         >
-          <Plus aria-hidden /> New Customer
+          <Plus aria-hidden /> New Workspace
         </CommandItem>
       ) : null}
-      {isAdmin && currentCustomerSlug ? (
+      {isAdmin && currentWorkspaceSlug ? (
         <CommandItem
           value="new target"
           keywords={['create', 'add', 'endpoint', 'url']}
           onSelect={() => {
             close()
-            void goTo({
-              to: '/customers/$customerSlug/targets/new',
-              params: { customerSlug: currentCustomerSlug },
-            })
+            void goTo({ to: '/targets/new' })
           }}
         >
           <Plus aria-hidden /> New Target
@@ -270,10 +267,10 @@ export function NavigationCommandGroup({
       icon: ArrowRight,
     },
     {
-      value: 'go customers',
-      keywords: ['customers'],
-      to: '/customers',
-      label: 'Go to Customers',
+      value: 'go workspaces',
+      keywords: ['workspaces'],
+      to: '/',
+      label: 'Go to Workspaces',
       key: 'g c',
       icon: Users,
     },

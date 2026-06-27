@@ -1,5 +1,5 @@
 import { and, gte, inArray, lte, type SQL, sql } from 'drizzle-orm'
-import { attempts, customers, runs } from '@/lib/db/schema'
+import { attempts, runs, workspaces } from '@/lib/db/schema'
 import { z } from '@/shared/schemas/openapi'
 import { FAILURE_KINDS, RUN_OUTCOMES, RUN_STATUSES } from '@/shared/schemas/run'
 
@@ -41,7 +41,7 @@ const csvSlugs = z
 const isoTimestamp = z.iso.datetime().catch('').optional()
 
 export const RunsSearchSchema = z.object({
-  customer: csvSlugs,
+  workspace: csvSlugs,
   status: csvArray(RUN_STATUSES),
   outcome: csvArray(RUN_OUTCOMES),
   failureKind: csvArray(FAILURE_KINDS),
@@ -77,8 +77,8 @@ export function resolveRange(filters: RunsFilters, now: Date = new Date()): Reso
 export function filtersToWhere(filters: RunsFilters, now: Date = new Date()): SQL | undefined {
   const conditions: SQL[] = []
 
-  if (filters.customer && filters.customer.length > 0) {
-    conditions.push(inArray(customers.slug, filters.customer))
+  if (filters.workspace && filters.workspace.length > 0) {
+    conditions.push(inArray(workspaces.slug, filters.workspace))
   }
   if (filters.status && filters.status.length > 0) {
     conditions.push(inArray(runs.status, filters.status))

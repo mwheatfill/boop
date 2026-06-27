@@ -7,7 +7,7 @@ import type { RunsListResponse } from '@/shared/schemas/run'
 
 const PAGE_SIZE = 25
 
-const recentRunsOptions = (jobId: string, customerSlug: string, jobSlug: string) =>
+const recentRunsOptions = (jobId: string, workspaceSlug: string, jobSlug: string) =>
   infiniteQueryOptions({
     queryKey: ['jobs', jobId, 'runs'],
     queryFn: ({ pageParam }) =>
@@ -25,12 +25,12 @@ const recentRunsOptions = (jobId: string, customerSlug: string, jobSlug: string)
       if (!rows) return false
       return rows.some((r) => r.status === 'running') ? 5_000 : false
     },
-    meta: { customerSlug, jobSlug },
+    meta: { workspaceSlug, jobSlug },
   })
 
 interface RecentRunsPanelProps {
   jobId: string
-  customerSlug: string
+  workspaceSlug: string
   jobSlug: string
 }
 
@@ -46,9 +46,9 @@ function relativeTime(iso: string | null): string {
   return `${days}d ago`
 }
 
-export function RecentRunsPanel({ jobId, customerSlug, jobSlug }: RecentRunsPanelProps) {
+export function RecentRunsPanel({ jobId, workspaceSlug, jobSlug }: RecentRunsPanelProps) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery(
-    recentRunsOptions(jobId, customerSlug, jobSlug),
+    recentRunsOptions(jobId, workspaceSlug, jobSlug),
   )
 
   if (!data) return null
@@ -72,8 +72,8 @@ export function RecentRunsPanel({ jobId, customerSlug, jobSlug }: RecentRunsPane
             className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm"
           >
             <Link
-              to="/customers/$customerSlug/jobs/$jobSlug/runs/$runId"
-              params={{ customerSlug, jobSlug, runId: row.id }}
+              to="/jobs/$jobSlug/runs/$runId"
+              params={{ jobSlug, runId: row.id }}
               className="flex flex-1 items-center gap-2 hover:underline"
             >
               <RunStatusBadge outcome={row.displayOutcome} />

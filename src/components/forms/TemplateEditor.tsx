@@ -20,8 +20,8 @@ interface TemplateEditorProps {
   value: string
   onChange: (next: string) => void
   variant: 'body' | 'headers'
-  customerName: string
-  customerTimezone: string
+  workspaceName: string
+  workspaceTimezone: string
   helpText?: string
   height?: string
   readOnly?: boolean
@@ -37,8 +37,8 @@ export function TemplateEditor({
   value,
   onChange,
   variant,
-  customerName,
-  customerTimezone,
+  workspaceName,
+  workspaceTimezone,
   helpText,
   height = DEFAULT_HEIGHT,
   readOnly = false,
@@ -47,8 +47,8 @@ export function TemplateEditor({
 }: TemplateEditorProps) {
   const preview = useLiquidPreview({
     template: value,
-    customerName,
-    customerTimezone,
+    workspaceName,
+    workspaceTimezone,
     variant,
   })
 

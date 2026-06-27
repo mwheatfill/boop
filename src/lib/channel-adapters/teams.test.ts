@@ -5,14 +5,14 @@ import { buildTeamsCard, deliverTeams } from './teams'
 
 const baseContext: AlertContext = {
   kind: 'run',
-  customer_name: 'Acme',
-  customer_slug: 'acme',
+  workspace_name: 'Acme',
+  workspace_slug: 'acme',
   job_name: 'Daily',
   job_slug: 'daily',
   target_name: 'API',
   target_url: 'https://api.example.com',
   run_id: 'run_1',
-  run_url: 'https://boop/customers/acme/jobs/daily/runs/run_1',
+  run_url: 'https://boop/workspaces/acme/jobs/daily/runs/run_1',
   outcome: 'failure',
   started_at: '2026-05-12T00:00:00Z',
   completed_at: '2026-05-12T00:00:03Z',
@@ -28,8 +28,7 @@ const baseContext: AlertContext = {
 function teamsChannel(overrides: Partial<Channel> = {}): Channel {
   return {
     id: 'chn_1',
-    scope: 'customer',
-    customerId: 'cust_1',
+    workspaceId: 'wsp_1',
     kind: 'teams',
     name: 'Ops Teams',
     slug: 'ops-teams',
@@ -65,11 +64,11 @@ describe('buildTeamsCard', () => {
   it('renders missed schedule cards with a Job url action', () => {
     const card = buildTeamsCard({
       kind: 'missed',
-      customer_name: 'Acme',
-      customer_slug: 'acme',
+      workspace_name: 'Acme',
+      workspace_slug: 'acme',
       job_name: 'Daily',
       job_slug: 'daily',
-      job_url: 'https://boop/customers/acme/jobs/daily',
+      job_url: 'https://boop/workspaces/acme/jobs/daily',
       rule_name: 'Silence alert',
       rule_kind: 'missed_schedule',
       last_run_at: '2026-05-10T00:00:00.000Z',
@@ -83,7 +82,7 @@ describe('buildTeamsCard', () => {
       {
         type: 'Action.OpenUrl',
         title: 'Open Job',
-        url: 'https://boop/customers/acme/jobs/daily',
+        url: 'https://boop/workspaces/acme/jobs/daily',
       },
     ])
   })

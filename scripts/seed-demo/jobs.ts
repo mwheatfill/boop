@@ -23,7 +23,7 @@ export type DistributionPattern =
 type TriggerKind = 'cron' | 'interval' | 'webhook'
 
 export type DemoJobSpec = {
-  customerSlug: string
+  workspaceSlug: string
   targetSlug: string
   slug: string
   name: string
@@ -536,7 +536,7 @@ type JobOverrides = {
 }
 
 function job(
-  customerSlug: string,
+  workspaceSlug: string,
   targetSlug: string,
   slug: string,
   name: string,
@@ -545,7 +545,7 @@ function job(
 ): DemoJobSpec {
   const isWebhook = overrides.triggerKind === 'webhook'
   return {
-    customerSlug,
+    workspaceSlug,
     targetSlug,
     slug,
     name,
@@ -576,13 +576,13 @@ type JobInsert = InferInsertModel<typeof jobs>
 
 export function jobRow(
   spec: DemoJobSpec,
-  customerId: string,
+  workspaceId: string,
   targetId: string,
-  customerCreatedAt: Date,
+  workspaceCreatedAt: Date,
 ): JobInsert {
   return {
-    id: demoId('job', spec.customerSlug, spec.slug),
-    customerId,
+    id: demoId('job', spec.workspaceSlug, spec.slug),
+    workspaceId,
     targetId,
     name: spec.name,
     slug: spec.slug,
@@ -598,7 +598,7 @@ export function jobRow(
     maxAttempts: spec.maxAttempts,
     overallDeadlineMs: spec.overallDeadlineMs,
     status: spec.pattern === 'paused' ? 'paused' : 'active',
-    createdAt: customerCreatedAt,
-    updatedAt: customerCreatedAt,
+    createdAt: workspaceCreatedAt,
+    updatedAt: workspaceCreatedAt,
   }
 }

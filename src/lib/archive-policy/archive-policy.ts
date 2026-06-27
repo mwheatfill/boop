@@ -1,9 +1,9 @@
-import { and, eq, like, ne } from 'drizzle-orm'
+import { and, eq, ne, or } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { alertRules, channels, jobs } from '@/lib/db/schema'
 
-export interface ArchiveCustomerBreakdownEntry {
-  customerId: string | null
+export interface ArchiveWorkspaceBreakdownEntry {
+  workspaceId: string | null
   count: number
 }
 
@@ -13,14 +13,17 @@ export type ArchiveCheck =
       ok: false
       reason: 'has_active_jobs' | 'has_active_alert_rules'
       blockingCount: number
-      breakdown?: ArchiveCustomerBreakdownEntry[]
+      breakdown?: ArchiveWorkspaceBreakdownEntry[]
     }
 
-export async function canArchiveCustomer(db: Database, customerId: string): Promise<ArchiveCheck> {
+export async function canArchiveWorkspace(
+  db: Database,
+  workspaceId: string,
+): Promise<ArchiveCheck> {
   const rows = await db
     .select({ id: jobs.id })
     .from(jobs)
-    .where(and(eq(jobs.customerId, customerId), ne(jobs.status, 'archived')))
+    .where(and(eq(jobs.workspaceId, workspaceId), ne(jobs.status, 'archived')))
   if (rows.length === 0) return { ok: true }
   return { ok: false, reason: 'has_active_jobs', blockingCount: rows.length }
 }
@@ -45,38 +48,21 @@ function ruleReferencesChannel(channelIdsJson: string, channelId: string): boole
 
 export async function canArchiveChannel(db: Database, channelId: string): Promise<ArchiveCheck> {
   const channel = (await db.select().from(channels).where(eq(channels.id, channelId)).limit(1))[0]
-  if (!channel?.customerId) return { ok: true }
+  if (!channel?.workspaceId) return { ok: true }
   const rules = await db
     .select({ id: alertRules.id, channelIds: alertRules.channelIds })
     .from(alertRules)
-    .where(and(eq(alertRules.customerId, channel.customerId), eq(alertRules.status, 'active')))
+    .leftJoin(jobs, eq(alertRules.jobId, jobs.id))
+    .where(
+      and(
+        eq(alertRules.status, 'active'),
+        or(
+          eq(alertRules.workspaceId, channel.workspaceId),
+          eq(jobs.workspaceId, channel.workspaceId),
+        ),
+      ),
+    )
   const blocking = rules.filter((r) => ruleReferencesChannel(r.channelIds, channelId))
   if (blocking.length === 0) return { ok: true }
   return { ok: false, reason: 'has_active_alert_rules', blockingCount: blocking.length }
-}
-
-export async function canArchiveWorkspaceChannel(
-  db: Database,
-  channelId: string,
-): Promise<ArchiveCheck> {
-  const candidates = await db
-    .select({
-      id: alertRules.id,
-      customerId: alertRules.customerId,
-      channelIds: alertRules.channelIds,
-    })
-    .from(alertRules)
-    .where(and(eq(alertRules.status, 'active'), like(alertRules.channelIds, `%${channelId}%`)))
-  const blocking = candidates.filter((r) => ruleReferencesChannel(r.channelIds, channelId))
-  if (blocking.length === 0) return { ok: true }
-  const byCustomer = new Map<string | null, number>()
-  for (const r of blocking) {
-    byCustomer.set(r.customerId, (byCustomer.get(r.customerId) ?? 0) + 1)
-  }
-  return {
-    ok: false,
-    reason: 'has_active_alert_rules',
-    blockingCount: blocking.length,
-    breakdown: [...byCustomer.entries()].map(([customerId, count]) => ({ customerId, count })),
-  }
 }

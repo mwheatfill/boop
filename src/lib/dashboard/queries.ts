@@ -1,7 +1,7 @@
 import { Cron } from 'croner'
 import { and, count, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
-import { customers, jobs, runs } from '@/lib/db/schema'
+import { jobs, runs, workspaces } from '@/lib/db/schema'
 import type {
   DashboardSummary,
   NeedsAttentionRow,
@@ -198,14 +198,14 @@ async function computeNeedsAttention(db: Database, now: Date): Promise<NeedsAtte
 
   const paused = await db
     .select({
-      customerSlug: customers.slug,
-      customerName: customers.name,
+      workspaceSlug: workspaces.slug,
+      workspaceName: workspaces.name,
       jobSlug: jobs.slug,
       jobName: jobs.name,
       lastFireAt: jobs.lastFireAt,
     })
     .from(jobs)
-    .innerJoin(customers, eq(customers.id, jobs.customerId))
+    .innerJoin(workspaces, eq(workspaces.id, jobs.workspaceId))
     .where(eq(jobs.status, 'paused'))
     .orderBy(desc(jobs.updatedAt))
     .limit(NEEDS_ATTENTION_LIMIT)
@@ -219,14 +219,14 @@ async function computeNeedsAttention(db: Database, now: Date): Promise<NeedsAtte
   const failing = failingJobIds.length
     ? await db
         .select({
-          customerSlug: customers.slug,
-          customerName: customers.name,
+          workspaceSlug: workspaces.slug,
+          workspaceName: workspaces.name,
           jobSlug: jobs.slug,
           jobName: jobs.name,
           lastFailureAt: sql<number | null>`max(${runs.completedAt})`,
         })
         .from(jobs)
-        .innerJoin(customers, eq(customers.id, jobs.customerId))
+        .innerJoin(workspaces, eq(workspaces.id, jobs.workspaceId))
         .innerJoin(runs, eq(runs.jobId, jobs.id))
         .where(
           and(
@@ -236,7 +236,7 @@ async function computeNeedsAttention(db: Database, now: Date): Promise<NeedsAtte
             inArray(runs.outcome, ['failure', 'timeout']),
           ),
         )
-        .groupBy(customers.slug, customers.name, jobs.slug, jobs.name)
+        .groupBy(workspaces.slug, workspaces.name, jobs.slug, jobs.name)
         .orderBy(desc(sql`max(${runs.completedAt})`))
         .limit(NEEDS_ATTENTION_LIMIT)
     : []
@@ -244,8 +244,8 @@ async function computeNeedsAttention(db: Database, now: Date): Promise<NeedsAtte
   const rows: NeedsAttentionRow[] = [
     ...paused.map(
       (p): NeedsAttentionRow => ({
-        customerSlug: p.customerSlug,
-        customerName: p.customerName,
+        workspaceSlug: p.workspaceSlug,
+        workspaceName: p.workspaceName,
         jobSlug: p.jobSlug,
         jobName: p.jobName,
         status: 'paused',
@@ -254,8 +254,8 @@ async function computeNeedsAttention(db: Database, now: Date): Promise<NeedsAtte
     ),
     ...failing.map(
       (f): NeedsAttentionRow => ({
-        customerSlug: f.customerSlug,
-        customerName: f.customerName,
+        workspaceSlug: f.workspaceSlug,
+        workspaceName: f.workspaceName,
         jobSlug: f.jobSlug,
         jobName: f.jobName,
         status: 'failing',
@@ -269,9 +269,9 @@ async function computeNeedsAttention(db: Database, now: Date): Promise<NeedsAtte
 async function computeUpcomingFires(db: Database, now: Date): Promise<UpcomingFireRow[]> {
   const activeFireable = await db
     .select({
-      customerSlug: customers.slug,
-      customerName: customers.name,
-      customerTimezone: customers.timezone,
+      workspaceSlug: workspaces.slug,
+      workspaceName: workspaces.name,
+      workspaceTimezone: workspaces.timezone,
       jobSlug: jobs.slug,
       jobName: jobs.name,
       triggerKind: jobs.triggerKind,
@@ -282,7 +282,7 @@ async function computeUpcomingFires(db: Database, now: Date): Promise<UpcomingFi
       nextFireAt: jobs.nextFireAt,
     })
     .from(jobs)
-    .innerJoin(customers, eq(customers.id, jobs.customerId))
+    .innerJoin(workspaces, eq(workspaces.id, jobs.workspaceId))
     .where(and(eq(jobs.status, 'active'), inArray(jobs.triggerKind, ['cron', 'interval'])))
     .limit(UPCOMING_FIRES_CAP)
 
@@ -291,8 +291,8 @@ async function computeUpcomingFires(db: Database, now: Date): Promise<UpcomingFi
     const nextFireAt = computeNextFire(j, now)
     if (nextFireAt == null) continue
     upcoming.push({
-      customerSlug: j.customerSlug,
-      customerName: j.customerName,
+      workspaceSlug: j.workspaceSlug,
+      workspaceName: j.workspaceName,
       jobSlug: j.jobSlug,
       jobName: j.jobName,
       triggerSummary:
@@ -300,7 +300,7 @@ async function computeUpcomingFires(db: Database, now: Date): Promise<UpcomingFi
           ? `cron ${j.cronExpression ?? ''}`
           : `every ${j.intervalSeconds ?? 0}s`,
       nextFireAt,
-      timezone: j.triggerTimezone ?? j.customerTimezone,
+      timezone: j.triggerTimezone ?? j.workspaceTimezone,
     })
   }
   upcoming.sort((a, b) => a.nextFireAt - b.nextFireAt)
@@ -312,7 +312,7 @@ interface FireableJob {
   cronExpression: string | null
   intervalSeconds: number | null
   triggerTimezone: string | null
-  customerTimezone: string
+  workspaceTimezone: string
   lastFireAt: Date | null
   nextFireAt: Date | null
 }
@@ -324,7 +324,7 @@ function computeNextFire(j: FireableJob, now: Date): number | null {
   if (j.triggerKind === 'cron' && j.cronExpression) {
     try {
       const cron = new Cron(j.cronExpression, {
-        timezone: j.triggerTimezone ?? j.customerTimezone,
+        timezone: j.triggerTimezone ?? j.workspaceTimezone,
       })
       const next = cron.nextRun(now)
       return next?.getTime() ?? null
@@ -343,8 +343,8 @@ async function computeRecentFailures(db: Database): Promise<RecentFailureRow[]> 
   const rows = await db
     .select({
       runId: runs.id,
-      customerSlug: customers.slug,
-      customerName: customers.name,
+      workspaceSlug: workspaces.slug,
+      workspaceName: workspaces.name,
       jobSlug: jobs.slug,
       jobName: jobs.name,
       outcome: runs.outcome,
@@ -352,15 +352,15 @@ async function computeRecentFailures(db: Database): Promise<RecentFailureRow[]> 
     })
     .from(runs)
     .innerJoin(jobs, eq(jobs.id, runs.jobId))
-    .innerJoin(customers, eq(customers.id, runs.customerId))
+    .innerJoin(workspaces, eq(workspaces.id, runs.workspaceId))
     .where(inArray(runs.outcome, ['failure', 'timeout']))
     .orderBy(desc(runs.completedAt))
     .limit(RECENT_FAILURES_LIMIT)
 
   return rows.map((r) => ({
     runId: r.runId,
-    customerSlug: r.customerSlug,
-    customerName: r.customerName,
+    workspaceSlug: r.workspaceSlug,
+    workspaceName: r.workspaceName,
     jobSlug: r.jobSlug,
     jobName: r.jobName,
     outcome: (r.outcome as 'failure' | 'timeout') ?? 'failure',

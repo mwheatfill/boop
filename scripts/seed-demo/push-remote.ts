@@ -6,15 +6,15 @@ import { parseArgs } from 'node:util'
 import { FK_INSERT_ORDER, splitDumpByTable, stripTrackingInserts } from './dump'
 
 // DELETE statements walk the FK graph in reverse so children are gone before
-// their parents. customers and users (the seed_tag roots) come last.
+// their parents. workspaces and users (the seed_tag roots) come last.
 const RESET_REMOTE_SQL = `
 DELETE FROM attempts WHERE run_id IN (
-  SELECT id FROM runs WHERE customer_id IN (SELECT id FROM customers WHERE seed_tag = 'demo-v1')
+  SELECT id FROM runs WHERE workspace_id IN (SELECT id FROM workspaces WHERE seed_tag = 'demo-v1')
 );
-DELETE FROM runs WHERE customer_id IN (SELECT id FROM customers WHERE seed_tag = 'demo-v1');
-DELETE FROM jobs WHERE customer_id IN (SELECT id FROM customers WHERE seed_tag = 'demo-v1');
-DELETE FROM targets WHERE customer_id IN (SELECT id FROM customers WHERE seed_tag = 'demo-v1');
-DELETE FROM customers WHERE seed_tag = 'demo-v1';
+DELETE FROM runs WHERE workspace_id IN (SELECT id FROM workspaces WHERE seed_tag = 'demo-v1');
+DELETE FROM jobs WHERE workspace_id IN (SELECT id FROM workspaces WHERE seed_tag = 'demo-v1');
+DELETE FROM targets WHERE workspace_id IN (SELECT id FROM workspaces WHERE seed_tag = 'demo-v1');
+DELETE FROM workspaces WHERE seed_tag = 'demo-v1';
 DELETE FROM users WHERE seed_tag = 'demo-v1';
 `.trim()
 

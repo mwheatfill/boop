@@ -12,12 +12,7 @@ import {
 import { EntityModal } from '@/components/forms/EntityModal'
 import type { FormApiFor } from '@/components/forms/form-api'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
-import {
-  createChannelFn,
-  createWorkspaceChannelFn,
-  updateChannelFn,
-  updateWorkspaceChannelFn,
-} from '@/lib/channels/server-fns'
+import { createChannelFn, updateChannelFn } from '@/lib/channels/server-fns'
 import { mailer } from '@/lib/email-recipe'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import {
@@ -29,7 +24,7 @@ import {
   WEBHOOK_DEFAULT_BODY,
 } from '@/shared/schemas/channel'
 
-export type ChannelModalOwner = { scope: 'customer'; customerSlug: string } | { scope: 'workspace' }
+export type ChannelModalOwner = { workspaceSlug: string }
 
 export interface KindOption {
   kind: ChannelKind
@@ -161,7 +156,6 @@ export function ChannelModal({
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const slug = useSlugAutoFill(variant === 'edit')
-  const isWorkspace = owner.scope === 'workspace'
 
   const form = useForm({
     defaultValues: initialValues(initialChannel),
@@ -175,9 +169,7 @@ export function ChannelModal({
         }
 
         const base = { name: value.name, config: parsed.data }
-        const result: MutationResult<Channel> = isWorkspace
-          ? await submitWorkspaceChannel({ variant, value, base, initialChannel })
-          : await submitCustomerChannel({ variant, value, base, initialChannel, owner })
+        const result = await submitChannel({ variant, value, base, initialChannel, owner })
 
         if (!result.ok) {
           return {
@@ -186,29 +178,15 @@ export function ChannelModal({
           }
         }
 
-        if (isWorkspace) {
-          await queryClient.invalidateQueries({ queryKey: ['workspace', 'channels'] })
-        } else {
-          await queryClient.invalidateQueries({
-            queryKey: ['customers', owner.customerSlug, 'channels'],
-          })
-        }
+        await queryClient.invalidateQueries({
+          queryKey: ['workspaces', owner.workspaceSlug, 'channels'],
+        })
         if (variant === 'create' && onCreated) {
           await onCreated(result.data)
           return null
         }
         toast.success(variant === 'create' ? `Channel ${result.data.name} created` : 'Saved')
-        if (isWorkspace) {
-          await navigate({
-            to: '/channels/$channelSlug',
-            params: { channelSlug: result.data.slug },
-          })
-        } else {
-          await navigate({
-            to: '/customers/$customerSlug',
-            params: { customerSlug: owner.customerSlug },
-          })
-        }
+        await navigate({ to: '/' })
         return null
       },
     },
@@ -261,25 +239,7 @@ export function ChannelModal({
   )
 }
 
-async function submitWorkspaceChannel({
-  variant,
-  value,
-  base,
-  initialChannel,
-}: {
-  variant: 'create' | 'edit'
-  value: ChannelFormValues
-  base: { name: string; config: Channel['config'] }
-  initialChannel: Channel | undefined
-}) {
-  return variant === 'create'
-    ? createWorkspaceChannelFn({ data: { slug: value.slug, ...base } as never })
-    : updateWorkspaceChannelFn({
-        data: { channelSlug: initialChannel?.slug ?? '', ...base } as never,
-      })
-}
-
-async function submitCustomerChannel({
+async function submitChannel({
   variant,
   value,
   base,
@@ -290,14 +250,14 @@ async function submitCustomerChannel({
   value: ChannelFormValues
   base: { name: string; config: Channel['config'] }
   initialChannel: Channel | undefined
-  owner: Extract<ChannelModalOwner, { scope: 'customer' }>
-}) {
-  const customerSlug = owner.customerSlug
+  owner: ChannelModalOwner
+}): Promise<MutationResult<Channel>> {
+  const workspaceSlug = owner.workspaceSlug
   return variant === 'create'
-    ? createChannelFn({ data: { customerSlug, slug: value.slug, ...base } as never })
+    ? createChannelFn({ data: { workspaceSlug, slug: value.slug, ...base } as never })
     : updateChannelFn({
         data: {
-          customerSlug,
+          workspaceSlug,
           channelSlug: initialChannel?.slug ?? '',
           ...base,
         } as never,

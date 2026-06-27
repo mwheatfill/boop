@@ -20,7 +20,7 @@ describe('recents store', () => {
       entity: 'job',
       label: 'Backup',
       slug: 'backup',
-      customerSlug: 'acme',
+      workspaceSlug: 'acme',
     })
     const r = readRecents()
     expect(r).toHaveLength(1)
@@ -28,16 +28,16 @@ describe('recents store', () => {
   })
 
   it('promotes existing entry to head without duplicating', () => {
-    visitRecent({ id: 'a', entity: 'customer', label: 'A', slug: 'a' })
-    visitRecent({ id: 'b', entity: 'customer', label: 'B', slug: 'b' })
-    visitRecent({ id: 'a', entity: 'customer', label: 'A', slug: 'a' })
+    visitRecent({ id: 'a', entity: 'workspace', label: 'A', slug: 'a' })
+    visitRecent({ id: 'b', entity: 'workspace', label: 'B', slug: 'b' })
+    visitRecent({ id: 'a', entity: 'workspace', label: 'A', slug: 'a' })
     const r = readRecents()
     expect(r.map((x) => x.id)).toEqual(['a', 'b'])
   })
 
   it('caps at 5 entries', () => {
     for (let i = 0; i < 8; i++) {
-      visitRecent({ id: `c-${i}`, entity: 'customer', label: `C ${i}`, slug: `c-${i}` })
+      visitRecent({ id: `c-${i}`, entity: 'workspace', label: `C ${i}`, slug: `c-${i}` })
     }
     const r = readRecents()
     expect(r).toHaveLength(5)

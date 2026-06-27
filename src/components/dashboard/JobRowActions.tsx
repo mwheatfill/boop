@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { pauseJobFn, resumeJobFn, runJobNowFn } from '@/lib/jobs/server-fns'
 
 interface JobRowActionsProps {
-  customerSlug: string
+  workspaceSlug: string
   jobSlug: string
   status: 'paused' | 'failing'
 }
@@ -16,7 +16,7 @@ interface JobRowActionsProps {
  * Inline action cluster revealed on row hover / focus. Used by Needs Attention
  * and other dashboard rollups so triage happens without a drill-in.
  */
-export function JobRowActions({ customerSlug, jobSlug, status }: JobRowActionsProps) {
+export function JobRowActions({ workspaceSlug, jobSlug, status }: JobRowActionsProps) {
   const queryClient = useQueryClient()
   const [busy, setBusy] = useState(false)
 
@@ -28,7 +28,7 @@ export function JobRowActions({ customerSlug, jobSlug, status }: JobRowActionsPr
   const runNow = async () => {
     if (busy) return
     setBusy(true)
-    const result = await runJobNowFn({ data: { customerSlug, jobSlug } })
+    const result = await runJobNowFn({ data: { workspaceSlug, jobSlug } })
     setBusy(false)
     if (result.ok) {
       toast.success('Run queued')
@@ -42,7 +42,7 @@ export function JobRowActions({ customerSlug, jobSlug, status }: JobRowActionsPr
     if (busy) return
     setBusy(true)
     const fn = status === 'paused' ? resumeJobFn : pauseJobFn
-    const result = await fn({ data: { customerSlug, jobSlug } })
+    const result = await fn({ data: { workspaceSlug, jobSlug } })
     setBusy(false)
     if (result.ok) {
       toast.success(status === 'paused' ? 'Resumed' : 'Paused')
@@ -77,9 +77,7 @@ export function JobRowActions({ customerSlug, jobSlug, status }: JobRowActionsPr
       <Button
         size="xs"
         variant="ghost"
-        render={
-          <Link to="/customers/$customerSlug/jobs/$jobSlug" params={{ customerSlug, jobSlug }} />
-        }
+        render={<Link to="/jobs/$jobSlug" params={{ jobSlug }} />}
         aria-label="Open Job"
       >
         Open <ArrowRight aria-hidden />

@@ -3,8 +3,8 @@ import type { JobTemplate } from '@/shared/schemas/job-template'
 
 export function instantiateFromTemplate(
   template: JobTemplate,
-  customerSlug: string,
-): JobCreateInput & { customerSlug: string } {
+  workspaceSlug: string,
+): JobCreateInput & { workspaceSlug: string } {
   const trigger =
     template.triggerKind === 'cron'
       ? {
@@ -20,10 +20,10 @@ export function instantiateFromTemplate(
         : { triggerKind: 'webhook' as const }
 
   return {
-    customerSlug,
+    workspaceSlug,
     name: template.name,
     slug: template.slug,
-    targetSlug: template.scope === 'customer' ? template.targetRef : '',
+    targetSlug: template.builtIn ? '' : template.targetRef,
     trigger,
     bodyTemplate: template.bodyTemplate,
     headersTemplate: template.headersTemplate,

@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import type { attempts, customers, jobs, runs, targets } from '@/lib/db/schema'
+import type { attempts, jobs, runs, targets, workspaces } from '@/lib/db/schema'
 import { buildAlertContext, buildMissedAlertContext, buildSyntheticTestContext } from './build'
 
 type RunRow = typeof runs.$inferSelect
 type AttemptRow = typeof attempts.$inferSelect
 type JobRow = typeof jobs.$inferSelect
-type CustomerRow = typeof customers.$inferSelect
+type WorkspaceRow = typeof workspaces.$inferSelect
 type TargetRow = typeof targets.$inferSelect
 
 function makeRun(overrides: Partial<RunRow> = {}): RunRow {
   return {
     id: 'run_123',
     jobId: 'job_1',
-    customerId: 'cust_1',
+    workspaceId: 'cust_1',
     scheduledAt: new Date('2026-05-12T00:00:00Z'),
     startedAt: new Date('2026-05-12T00:00:01Z'),
     completedAt: new Date('2026-05-12T00:00:04Z'),
@@ -45,7 +45,7 @@ function makeAttempt(num: number, failureKind: AttemptRow['failureKind'] = null)
 
 const job: JobRow = {
   id: 'job_1',
-  customerId: 'cust_1',
+  workspaceId: 'cust_1',
   targetId: 'tgt_1',
   name: 'Daily backup',
   slug: 'daily-backup',
@@ -67,7 +67,7 @@ const job: JobRow = {
   updatedAt: new Date(),
 }
 
-const customer: CustomerRow = {
+const workspace: WorkspaceRow = {
   id: 'cust_1',
   name: 'Acme',
   slug: 'acme',
@@ -82,7 +82,7 @@ const customer: CustomerRow = {
 
 const target: TargetRow = {
   id: 'tgt_1',
-  customerId: 'cust_1',
+  workspaceId: 'cust_1',
   name: 'API',
   slug: 'api',
   url: 'https://api.example.com',
@@ -101,7 +101,7 @@ describe('buildAlertContext', () => {
       run: makeRun(),
       attempts: [makeAttempt(1, 'http_5xx'), makeAttempt(2, 'http_5xx')],
       job,
-      customer,
+      workspace,
       target,
       ruleName: 'Alert on first failure',
       ruleKind: 'first_failure',
@@ -109,9 +109,9 @@ describe('buildAlertContext', () => {
     })
     expect(ctx).toMatchObject({
       kind: 'run',
-      customer_name: 'Acme',
+      workspace_name: 'Acme',
       job_slug: 'daily-backup',
-      run_url: 'https://boop.example.com/customers/acme/jobs/daily-backup/runs/run_123',
+      run_url: 'https://boop.example.com/jobs/daily-backup/runs/run_123',
       duration_ms: 3000,
       attempt_count: 2,
       failure_kind: 'http_5xx',
@@ -124,7 +124,7 @@ describe('buildAlertContext', () => {
       run: makeRun({ outcome: 'success' }),
       attempts: [makeAttempt(1)],
       job,
-      customer,
+      workspace,
       target,
       ruleName: 'r',
       ruleKind: 'recovery',
@@ -140,7 +140,7 @@ describe('buildAlertContext', () => {
       run: makeRun(),
       attempts: [makeAttempt(3)],
       job,
-      customer,
+      workspace,
       target,
       ruleName: 'r',
       ruleKind: 'first_failure',
@@ -156,7 +156,7 @@ describe('buildMissedAlertContext', () => {
   it('populates Job-centered context without Run fields', () => {
     const ctx = buildMissedAlertContext({
       job,
-      customer,
+      workspace,
       ruleName: 'Silence alert',
       appOrigin: 'https://boop.example.com',
       lastRunAt: '2026-05-10T00:00:00.000Z',
@@ -164,8 +164,8 @@ describe('buildMissedAlertContext', () => {
     })
     expect(ctx).toMatchObject({
       kind: 'missed',
-      customer_name: 'Acme',
-      job_url: 'https://boop.example.com/customers/acme/jobs/daily-backup',
+      workspace_name: 'Acme',
+      job_url: 'https://boop.example.com/jobs/daily-backup',
       rule_kind: 'missed_schedule',
       last_run_at: '2026-05-10T00:00:00.000Z',
       silence_threshold_minutes: 60,

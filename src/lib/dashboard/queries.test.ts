@@ -1,18 +1,18 @@
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { newId } from '@/lib/db/ids'
-import { customers, jobs, runs } from '@/lib/db/schema'
+import { jobs, runs, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { dashboardSummary } from './queries'
 
-async function seedCustomerJob(db: ReturnType<typeof createTestDb>) {
-  const customerId = newId('cust')
+async function seedWorkspaceJob(db: ReturnType<typeof createTestDb>) {
+  const workspaceId = newId('cust')
   const targetId = newId('tgt')
   const jobId = newId('job')
   const now = new Date('2026-05-12T12:00:00Z')
 
-  await db.insert(customers).values({
-    id: customerId,
+  await db.insert(workspaces).values({
+    id: workspaceId,
     name: 'Acme',
     slug: 'acme',
     timezone: 'UTC',
@@ -22,13 +22,13 @@ async function seedCustomerJob(db: ReturnType<typeof createTestDb>) {
 
   // Insert a Target row directly so the FK constraint on jobs holds.
   await db.run(
-    `INSERT INTO targets (id, customer_id, name, slug, url, method, auth_kind, reachability, status, created_at, updated_at)
-     VALUES ('${targetId}', '${customerId}', 'API', 'api', 'https://x', 'POST', 'none', 'public', 'active', ${now.getTime()}, ${now.getTime()})` as never,
+    `INSERT INTO targets (id, workspace_id, name, slug, url, method, auth_kind, reachability, status, created_at, updated_at)
+     VALUES ('${targetId}', '${workspaceId}', 'API', 'api', 'https://x', 'POST', 'none', 'public', 'active', ${now.getTime()}, ${now.getTime()})` as never,
   )
 
   await db.insert(jobs).values({
     id: jobId,
-    customerId,
+    workspaceId,
     targetId,
     name: 'Backup',
     slug: 'backup',
@@ -44,7 +44,7 @@ async function seedCustomerJob(db: ReturnType<typeof createTestDb>) {
     updatedAt: now,
   })
 
-  return { customerId, jobId, now }
+  return { workspaceId, jobId, now }
 }
 
 describe('dashboardSummary', () => {
@@ -65,7 +65,7 @@ describe('dashboardSummary', () => {
 
   it('computes upcoming fires for cron Jobs', async () => {
     const db = createTestDb()
-    const { now } = await seedCustomerJob(db)
+    const { now } = await seedWorkspaceJob(db)
     const summary = await dashboardSummary(db, now)
     expect(summary.upcomingFires).toHaveLength(1)
     expect(summary.upcomingFires[0]?.jobSlug).toBe('backup')
@@ -74,13 +74,13 @@ describe('dashboardSummary', () => {
 
   it('flags failing Jobs in Needs Attention when the last terminal Run failed in the last 24h', async () => {
     const db = createTestDb()
-    const { customerId, jobId, now } = await seedCustomerJob(db)
+    const { workspaceId, jobId, now } = await seedWorkspaceJob(db)
     const runId = newId('run')
     const tenMinutesAgo = new Date(now.getTime() - 10 * 60_000)
     await db.insert(runs).values({
       id: runId,
       jobId,
-      customerId,
+      workspaceId,
       scheduledAt: tenMinutesAgo,
       startedAt: tenMinutesAgo,
       completedAt: tenMinutesAgo,
@@ -101,7 +101,7 @@ describe('dashboardSummary', () => {
 
   it('includes paused Jobs in Needs Attention', async () => {
     const db = createTestDb()
-    const { jobId, now } = await seedCustomerJob(db)
+    const { jobId, now } = await seedWorkspaceJob(db)
     await db.update(jobs).set({ status: 'paused' }).where(eq(jobs.id, jobId))
     const summary = await dashboardSummary(db, now)
     expect(summary.needsAttention.some((r) => r.status === 'paused')).toBe(true)

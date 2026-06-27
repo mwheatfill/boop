@@ -64,8 +64,7 @@ async function loadCandidates(db: Database): Promise<MissedCandidate[]> {
         eq(alertRules.status, 'active'),
         eq(alertRules.kind, 'missed_schedule'),
         or(
-          eq(alertRules.scope, 'workspace'),
-          and(eq(alertRules.scope, 'customer'), eq(alertRules.customerId, jobs.customerId)),
+          and(eq(alertRules.scope, 'workspace'), eq(alertRules.workspaceId, jobs.workspaceId)),
           and(eq(alertRules.scope, 'job'), eq(alertRules.jobId, jobs.id)),
         ),
       ),

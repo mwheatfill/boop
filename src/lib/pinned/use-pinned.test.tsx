@@ -21,9 +21,9 @@ function Harness({ apiRef }: { apiRef: { current: Api | null } }) {
   )
 }
 
-const customer = (id: string, label: string): PinnedEntity => ({
+const workspace = (id: string, label: string): PinnedEntity => ({
   id,
-  kind: 'customer',
+  kind: 'workspace',
   label,
   slug: id,
 })
@@ -42,17 +42,17 @@ describe('usePinned', () => {
     render(<Harness apiRef={apiRef} />)
     expect(apiRef.current).not.toBeNull()
     expect(apiRef.current?.pinned).toEqual([])
-    expect(apiRef.current?.isPinned({ id: 'x', kind: 'customer' })).toBe(false)
+    expect(apiRef.current?.isPinned({ id: 'x', kind: 'workspace' })).toBe(false)
   })
 
   it('pinning adds the entity and sorts alphabetically', () => {
     const apiRef: { current: Api | null } = { current: null }
     render(<Harness apiRef={apiRef} />)
     act(() => {
-      apiRef.current?.togglePin(customer('b', 'Bravo'))
+      apiRef.current?.togglePin(workspace('b', 'Bravo'))
     })
     act(() => {
-      apiRef.current?.togglePin(customer('a', 'Alpha'))
+      apiRef.current?.togglePin(workspace('a', 'Alpha'))
     })
     const items = screen.getAllByTestId('pin-item').map((n) => n.textContent)
     expect(items).toEqual(['Alpha', 'Bravo'])
@@ -62,11 +62,11 @@ describe('usePinned', () => {
     const apiRef: { current: Api | null } = { current: null }
     render(<Harness apiRef={apiRef} />)
     act(() => {
-      apiRef.current?.togglePin(customer('a', 'Alpha'))
+      apiRef.current?.togglePin(workspace('a', 'Alpha'))
     })
     expect(screen.getAllByTestId('pin-item')).toHaveLength(1)
     act(() => {
-      apiRef.current?.togglePin(customer('a', 'Alpha'))
+      apiRef.current?.togglePin(workspace('a', 'Alpha'))
     })
     expect(screen.queryAllByTestId('pin-item')).toHaveLength(0)
   })
@@ -76,22 +76,22 @@ describe('usePinned', () => {
     render(<Harness apiRef={apiRef} />)
     for (let i = 0; i < PINNED_LIMIT; i++) {
       act(() => {
-        apiRef.current?.togglePin(customer(`c-${i}`, `C-${String(i).padStart(2, '0')}`))
+        apiRef.current?.togglePin(workspace(`c-${i}`, `C-${String(i).padStart(2, '0')}`))
       })
     }
     expect(screen.getAllByTestId('pin-item')).toHaveLength(PINNED_LIMIT)
     act(() => {
-      apiRef.current?.togglePin(customer('overflow', 'Overflow'))
+      apiRef.current?.togglePin(workspace('overflow', 'Overflow'))
     })
     expect(screen.getAllByTestId('pin-item')).toHaveLength(PINNED_LIMIT)
-    expect(apiRef.current?.isPinned({ id: 'overflow', kind: 'customer' })).toBe(false)
+    expect(apiRef.current?.isPinned({ id: 'overflow', kind: 'workspace' })).toBe(false)
   })
 
   it('round-trips through localStorage', () => {
     const apiRef: { current: Api | null } = { current: null }
     const first = render(<Harness apiRef={apiRef} />)
     act(() => {
-      apiRef.current?.togglePin(customer('persist', 'Persist Me'))
+      apiRef.current?.togglePin(workspace('persist', 'Persist Me'))
     })
     expect(localStorage.getItem(PINNED_STORAGE_KEY)).toContain('Persist Me')
     first.unmount()

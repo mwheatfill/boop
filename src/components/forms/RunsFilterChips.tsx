@@ -1,24 +1,17 @@
-import { CalendarIcon, ChevronDown } from 'lucide-react'
+import { CalendarIcon } from 'lucide-react'
 import { useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TRIGGER_SOURCES } from '@/lib/runs/filter-schema'
-import type { Customer } from '@/shared/schemas/customer'
 import { FAILURE_KINDS, RUN_OUTCOMES, RUN_STATUSES } from '@/shared/schemas/run'
 
 type StringArray = string[] | undefined
 
 export interface RunsFilters {
-  customer?: string[] | undefined
+  workspace?: string[] | undefined
   status?: string[] | undefined
   outcome?: string[] | undefined
   failureKind?: string[] | undefined
@@ -30,7 +23,6 @@ export interface RunsFilters {
 
 interface RunsFilterChipsProps {
   filters: RunsFilters
-  customers: Pick<Customer, 'slug' | 'name'>[]
   onChange: (next: Partial<RunsFilters>) => void
 }
 
@@ -74,44 +66,12 @@ function formatRangeLabel(filters: RunsFilters): string {
   return 'Custom'
 }
 
-export function RunsFilterChips({ filters, customers, onChange }: RunsFilterChipsProps) {
+export function RunsFilterChips({ filters, onChange }: RunsFilterChipsProps) {
   const [customRangeOpen, setCustomRangeOpen] = useState(false)
-  const customerSelections = new Set(filters.customer ?? [])
   const showFailureKind = filters.outcome?.includes('failure') ?? false
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button variant="outline" size="xs">
-              Customer
-              {customerSelections.size > 0 ? (
-                <span className="ml-1 rounded bg-primary/15 px-1 text-[10px]">
-                  {customerSelections.size}
-                </span>
-              ) : null}
-              <ChevronDown aria-hidden className="ml-1" />
-            </Button>
-          }
-        />
-        <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
-          {customers.length === 0 ? (
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">No Customers</p>
-          ) : (
-            customers.map((c) => (
-              <DropdownMenuCheckboxItem
-                key={c.slug}
-                checked={customerSelections.has(c.slug)}
-                onCheckedChange={() => onChange({ customer: toggle(filters.customer, c.slug) })}
-              >
-                {c.name}
-              </DropdownMenuCheckboxItem>
-            ))
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
       <ChipGroup
         label="Status"
         values={RUN_STATUSES}

@@ -13,7 +13,6 @@ const RUN_STATUSES = ['scheduled', 'running', 'completed', 'canceled'] as const
 const RUN_OUTCOMES = ['success', 'failure', 'timeout'] as const
 const FAILURE_KINDS = ['timeout', 'network', 'http_4xx', 'http_5xx', 'non_2xx_other'] as const
 const CHANNEL_KINDS = ['teams', 'pagerduty', 'autotask', 'email', 'webhook'] as const
-const CHANNEL_SCOPES = ['workspace', 'customer'] as const
 const ALERT_RULE_KINDS = [
   'first_failure',
   'consecutive_failures',
@@ -21,9 +20,8 @@ const ALERT_RULE_KINDS = [
   'slow_run',
   'missed_schedule',
 ] as const
-const ALERT_RULE_SCOPES = ['workspace', 'customer', 'job'] as const
+const ALERT_RULE_SCOPES = ['workspace', 'job'] as const
 const AUTHORING_SESSION_STATES = ['draft', 'confirmed', 'abandoned'] as const
-const JOB_TEMPLATE_SCOPES = ['workspace', 'customer'] as const
 const JOB_TEMPLATE_TAGS = [
   'backups',
   'health-checks',
@@ -33,8 +31,8 @@ const JOB_TEMPLATE_TAGS = [
   'custom',
 ] as const
 
-export const customers = sqliteTable(
-  'customers',
+export const workspaces = sqliteTable(
+  'workspaces',
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
@@ -50,9 +48,9 @@ export const customers = sqliteTable(
     ...timestamps(),
   },
   (table) => [
-    uniqueIndex('customers_slug_idx').on(table.slug),
-    index('customers_status_idx').on(table.status),
-    index('customers_seed_tag_idx').on(table.seedTag).where(sql`${table.seedTag} IS NOT NULL`),
+    uniqueIndex('workspaces_slug_idx').on(table.slug),
+    index('workspaces_status_idx').on(table.status),
+    index('workspaces_seed_tag_idx').on(table.seedTag).where(sql`${table.seedTag} IS NOT NULL`),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
   ],
 )
@@ -79,9 +77,9 @@ export const targets = sqliteTable(
   'targets',
   {
     id: text('id').primaryKey(),
-    customerId: text('customer_id')
+    workspaceId: text('workspace_id')
       .notNull()
-      .references(() => customers.id, { onDelete: 'restrict' }),
+      .references(() => workspaces.id, { onDelete: 'restrict' }),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
     url: text('url').notNull(),
@@ -93,8 +91,8 @@ export const targets = sqliteTable(
     ...timestamps(),
   },
   (table) => [
-    uniqueIndex('targets_customer_slug_idx').on(table.customerId, table.slug),
-    index('targets_customer_status_idx').on(table.customerId, table.status),
+    uniqueIndex('targets_workspace_slug_idx').on(table.workspaceId, table.slug),
+    index('targets_workspace_status_idx').on(table.workspaceId, table.status),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
     lifecycleCheck(table.reachability, TARGET_REACHABILITIES),
     lifecycleCheck(table.authKind, TARGET_AUTH_KINDS),
@@ -105,9 +103,9 @@ export const jobs = sqliteTable(
   'jobs',
   {
     id: text('id').primaryKey(),
-    customerId: text('customer_id')
+    workspaceId: text('workspace_id')
       .notNull()
-      .references(() => customers.id, { onDelete: 'restrict' }),
+      .references(() => workspaces.id, { onDelete: 'restrict' }),
     targetId: text('target_id')
       .notNull()
       .references(() => targets.id, { onDelete: 'restrict' }),
@@ -133,22 +131,23 @@ export const jobs = sqliteTable(
     ...timestamps(),
   },
   (table) => [
-    uniqueIndex('jobs_customer_slug_idx').on(table.customerId, table.slug),
-    index('jobs_customer_status_idx').on(table.customerId, table.status),
+    uniqueIndex('jobs_workspace_slug_idx').on(table.workspaceId, table.slug),
+    index('jobs_workspace_status_idx').on(table.workspaceId, table.status),
     index('jobs_status_next_fire_idx').on(table.status, table.nextFireAt),
     lifecycleCheck(table.status, JOB_STATUSES),
     lifecycleCheck(table.triggerKind, TRIGGER_KINDS),
   ],
 )
 
+// A built-in template is a product-shipped seed (no owning Workspace);
+// every other template belongs to exactly one Workspace.
 export const jobTemplates = sqliteTable(
   'job_templates',
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
-    scope: enumColumn('scope', JOB_TEMPLATE_SCOPES).notNull(),
-    customerId: text('customer_id').references(() => customers.id, { onDelete: 'cascade' }),
+    workspaceId: text('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }),
     tag: enumColumn('tag', JOB_TEMPLATE_TAGS).notNull().default('custom'),
     icon: text('icon'),
     description: text('description'),
@@ -172,21 +171,20 @@ export const jobTemplates = sqliteTable(
     ...timestamps(),
   },
   (table) => [
-    uniqueIndex('job_templates_workspace_slug_idx')
+    uniqueIndex('job_templates_builtin_slug_idx')
       .on(table.slug)
-      .where(sql`${table.scope} = 'workspace' AND ${table.status} = 'active'`),
-    uniqueIndex('job_templates_customer_slug_idx')
-      .on(table.customerId, table.slug)
-      .where(sql`${table.scope} = 'customer' AND ${table.status} = 'active'`),
+      .where(sql`${table.workspaceId} IS NULL AND ${table.status} = 'active'`),
+    uniqueIndex('job_templates_workspace_slug_idx')
+      .on(table.workspaceId, table.slug)
+      .where(sql`${table.workspaceId} IS NOT NULL AND ${table.status} = 'active'`),
     index('job_templates_tag_idx').on(table.tag).where(sql`${table.status} = 'active'`),
-    index('job_templates_scope_status_idx').on(table.scope, table.status),
+    index('job_templates_workspace_status_idx').on(table.workspaceId, table.status),
     check(
-      'job_templates_scope_customer_id_check',
-      sql`(${table.scope} = 'workspace' AND ${table.customerId} IS NULL)
-        OR (${table.scope} = 'customer' AND ${table.customerId} IS NOT NULL)`,
+      'job_templates_builtin_owner_check',
+      sql`(${table.builtIn} = 1 AND ${table.workspaceId} IS NULL)
+        OR (${table.builtIn} = 0 AND ${table.workspaceId} IS NOT NULL)`,
     ),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
-    lifecycleCheck(table.scope, JOB_TEMPLATE_SCOPES),
     lifecycleCheck(table.tag, JOB_TEMPLATE_TAGS),
     lifecycleCheck(table.triggerKind, TRIGGER_KINDS),
   ],
@@ -202,9 +200,9 @@ export const runs = sqliteTable(
     jobId: text('job_id')
       .notNull()
       .references(() => jobs.id, { onDelete: 'cascade' }),
-    customerId: text('customer_id')
+    workspaceId: text('workspace_id')
       .notNull()
-      .references(() => customers.id, { onDelete: 'restrict' }),
+      .references(() => workspaces.id, { onDelete: 'restrict' }),
     scheduledAt: integer('scheduled_at', { mode: 'timestamp_ms' }).notNull(),
     startedAt: integer('started_at', { mode: 'timestamp_ms' }),
     completedAt: integer('completed_at', { mode: 'timestamp_ms' }),
@@ -216,7 +214,7 @@ export const runs = sqliteTable(
   },
   (table) => [
     index('runs_job_started_idx').on(table.jobId, sql`${table.startedAt} desc`),
-    index('runs_customer_started_idx').on(table.customerId, sql`${table.startedAt} desc`),
+    index('runs_workspace_started_idx').on(table.workspaceId, sql`${table.startedAt} desc`),
   ],
 )
 
@@ -246,8 +244,9 @@ export const channels = sqliteTable(
   'channels',
   {
     id: text('id').primaryKey(),
-    scope: enumColumn('scope', CHANNEL_SCOPES).notNull().default('customer'),
-    customerId: text('customer_id').references(() => customers.id, { onDelete: 'cascade' }),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
     kind: enumColumn('kind', CHANNEL_KINDS).notNull(),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
@@ -260,22 +259,10 @@ export const channels = sqliteTable(
     ...timestamps(),
   },
   (table) => [
-    uniqueIndex('channels_workspace_slug_idx')
-      .on(table.slug)
-      .where(sql`${table.scope} = 'workspace'`),
-    uniqueIndex('channels_customer_slug_idx')
-      .on(table.customerId, table.slug)
-      .where(sql`${table.scope} = 'customer'`),
-    index('channels_customer_status_idx').on(table.customerId, table.status),
-    index('channels_scope_status_idx').on(table.scope, table.status),
-    check(
-      'channels_scope_customer_id_check',
-      sql`(${table.scope} = 'workspace' AND ${table.customerId} IS NULL)
-        OR (${table.scope} = 'customer' AND ${table.customerId} IS NOT NULL)`,
-    ),
+    uniqueIndex('channels_workspace_slug_idx').on(table.workspaceId, table.slug),
+    index('channels_workspace_status_idx').on(table.workspaceId, table.status),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
     lifecycleCheck(table.kind, CHANNEL_KINDS),
-    lifecycleCheck(table.scope, CHANNEL_SCOPES),
   ],
 )
 
@@ -283,8 +270,8 @@ export const alertRules = sqliteTable(
   'alert_rules',
   {
     id: text('id').primaryKey(),
-    scope: enumColumn('scope', ALERT_RULE_SCOPES).notNull().default('customer'),
-    customerId: text('customer_id').references(() => customers.id, { onDelete: 'cascade' }),
+    scope: enumColumn('scope', ALERT_RULE_SCOPES).notNull().default('workspace'),
+    workspaceId: text('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }),
     jobId: text('job_id').references(() => jobs.id, { onDelete: 'cascade' }),
     kind: enumColumn('kind', ALERT_RULE_KINDS).notNull(),
     name: text('name').notNull(),
@@ -297,22 +284,18 @@ export const alertRules = sqliteTable(
   },
   (table) => [
     uniqueIndex('alert_rules_workspace_slug_idx')
-      .on(table.slug)
+      .on(table.workspaceId, table.slug)
       .where(sql`${table.scope} = 'workspace'`),
-    uniqueIndex('alert_rules_customer_slug_idx')
-      .on(table.customerId, table.slug)
-      .where(sql`${table.scope} = 'customer'`),
     uniqueIndex('alert_rules_job_slug_idx')
       .on(table.jobId, table.slug)
       .where(sql`${table.scope} = 'job'`),
-    index('alert_rules_customer_status_idx').on(table.customerId, table.status),
+    index('alert_rules_workspace_status_idx').on(table.workspaceId, table.status),
     index('alert_rules_job_idx').on(table.jobId),
     index('alert_rules_scope_status_idx').on(table.scope, table.status),
     check(
       'alert_rules_scope_owner_check',
-      sql`(${table.scope} = 'workspace' AND ${table.customerId} IS NULL AND ${table.jobId} IS NULL)
-        OR (${table.scope} = 'customer' AND ${table.customerId} IS NOT NULL AND ${table.jobId} IS NULL)
-        OR (${table.scope} = 'job' AND ${table.customerId} IS NOT NULL AND ${table.jobId} IS NOT NULL)`,
+      sql`(${table.scope} = 'workspace' AND ${table.workspaceId} IS NOT NULL AND ${table.jobId} IS NULL)
+        OR (${table.scope} = 'job' AND ${table.jobId} IS NOT NULL AND ${table.workspaceId} IS NULL)`,
     ),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
     lifecycleCheck(table.kind, ALERT_RULE_KINDS),
@@ -346,7 +329,7 @@ export const authoringSessions = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    customerId: text('customer_id').references(() => customers.id, {
+    workspaceId: text('workspace_id').references(() => workspaces.id, {
       onDelete: 'set null',
     }),
     messages: text('messages').notNull().default('[]'),
@@ -359,13 +342,13 @@ export const authoringSessions = sqliteTable(
   ],
 )
 
-export const customerSecrets = sqliteTable(
-  'customer_secrets',
+export const workspaceSecrets = sqliteTable(
+  'workspace_secrets',
   {
     id: text('id').primaryKey(),
-    customerId: text('customer_id')
+    workspaceId: text('workspace_id')
       .notNull()
-      .references(() => customers.id, { onDelete: 'cascade' }),
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     valueHash: text('value_hash').notNull(),
     valueCiphertext: text('value_ciphertext').notNull(),
@@ -375,9 +358,9 @@ export const customerSecrets = sqliteTable(
     ...timestamps(),
   },
   (table) => [
-    uniqueIndex('customer_secrets_active_name_idx')
-      .on(table.customerId, table.name)
+    uniqueIndex('workspace_secrets_active_name_idx')
+      .on(table.workspaceId, table.name)
       .where(sql`${table.revokedAt} IS NULL`),
-    index('customer_secrets_customer_idx').on(table.customerId),
+    index('workspace_secrets_workspace_idx').on(table.workspaceId),
   ],
 )

@@ -15,18 +15,6 @@ import {
   ChannelUpdateInput,
 } from '../src/shared/schemas/channel'
 import {
-  CustomerCreateInput,
-  CustomerSchema,
-  CustomerUpdateInput,
-} from '../src/shared/schemas/customer'
-import {
-  SecretCreateInputSchema,
-  SecretRevealedResponseSchema,
-  SecretRotateInputSchema,
-  SecretSummarySchema,
-} from '../src/shared/schemas/customer-secret'
-import { VariableMapSchema } from '../src/shared/schemas/customer-variables'
-import {
   DashboardSummarySchema,
   NeedsAttentionRowSchema,
   RecentFailureRowSchema,
@@ -64,6 +52,18 @@ import {
   WebhookSecretSummarySchema,
   WebhookSecretsStateSchema,
 } from '../src/shared/schemas/webhook-secret'
+import {
+  WorkspaceCreateInput,
+  WorkspaceSchema,
+  WorkspaceUpdateInput,
+} from '../src/shared/schemas/workspace'
+import {
+  SecretCreateInputSchema,
+  SecretRevealedResponseSchema,
+  SecretRotateInputSchema,
+  SecretSummarySchema,
+} from '../src/shared/schemas/workspace-secret'
+import { VariableMapSchema } from '../src/shared/schemas/workspace-variables'
 
 export const document = createDocument({
   openapi: '3.1.0',
@@ -78,9 +78,9 @@ export const document = createDocument({
   components: {
     schemas: {
       User: UserSchema,
-      Customer: CustomerSchema,
-      CustomerCreateInput,
-      CustomerUpdateInput,
+      Workspace: WorkspaceSchema,
+      WorkspaceCreateInput,
+      WorkspaceUpdateInput,
       Target: TargetSchema,
       TargetCreateInput,
       TargetUpdateInput,
@@ -121,10 +121,10 @@ export const document = createDocument({
       AlertRuleUpdateInput,
       AlertContext: AlertContextSchema,
       VariableMap: VariableMapSchema,
-      CustomerSecretSummary: SecretSummarySchema,
-      CustomerSecretCreateInput: SecretCreateInputSchema,
-      CustomerSecretRotateInput: SecretRotateInputSchema,
-      CustomerSecretRevealedResponse: SecretRevealedResponseSchema,
+      WorkspaceSecretSummary: SecretSummarySchema,
+      WorkspaceSecretCreateInput: SecretCreateInputSchema,
+      WorkspaceSecretRotateInput: SecretRotateInputSchema,
+      WorkspaceSecretRevealedResponse: SecretRevealedResponseSchema,
     },
   },
 })

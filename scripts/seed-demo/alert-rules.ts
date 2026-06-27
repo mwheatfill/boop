@@ -5,7 +5,7 @@ import { demoId } from './ids'
 type AlertRuleKind = 'first_failure' | 'consecutive_failures' | 'recovery' | 'slow_run'
 
 export type DemoAlertRuleSpec = {
-  customerSlug: string
+  workspaceSlug: string
   jobSlug: string | null
   slug: string
   name: string
@@ -17,7 +17,7 @@ export type DemoAlertRuleSpec = {
 export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
   // Desert Vista — critical Jobs route to PagerDuty + Teams
   {
-    customerSlug: 'desert-vista-cu',
+    workspaceSlug: 'desert-vista-cu',
     jobSlug: 'ach-transactions-ingest',
     slug: 'ach-first-failure',
     name: 'ACH first failure',
@@ -26,7 +26,7 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
     channelSlugs: ['ops-teams', 'pagerduty-critical'],
   },
   {
-    customerSlug: 'desert-vista-cu',
+    workspaceSlug: 'desert-vista-cu',
     jobSlug: 'ach-transactions-ingest',
     slug: 'ach-recovery',
     name: 'ACH recovery',
@@ -35,7 +35,7 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
     channelSlugs: ['ops-teams', 'pagerduty-critical'],
   },
   {
-    customerSlug: 'desert-vista-cu',
+    workspaceSlug: 'desert-vista-cu',
     jobSlug: 'fedline-batch-sync',
     slug: 'fedline-2-consecutive',
     name: 'FedLine 2 consecutive failures',
@@ -44,7 +44,7 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
     channelSlugs: ['ops-teams', 'pagerduty-critical'],
   },
   {
-    customerSlug: 'desert-vista-cu',
+    workspaceSlug: 'desert-vista-cu',
     jobSlug: 'card-settlements-reconcile',
     slug: 'card-recon-first-failure',
     name: 'Card reconcile first failure',
@@ -53,7 +53,7 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
     channelSlugs: ['ops-teams', 'compliance-email'],
   },
   {
-    customerSlug: 'desert-vista-cu',
+    workspaceSlug: 'desert-vista-cu',
     jobSlug: 'daily-balances-report',
     slug: 'daily-balances-slow',
     name: 'Daily balances slow run',
@@ -64,7 +64,7 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
 
   // Cactus Title
   {
-    customerSlug: 'cactus-title',
+    workspaceSlug: 'cactus-title',
     jobSlug: 'title-delta-sync',
     slug: 'title-2-consecutive',
     name: 'Title sync 2 consecutive failures',
@@ -73,7 +73,7 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
     channelSlugs: ['ops-teams', 'closings-email'],
   },
   {
-    customerSlug: 'cactus-title',
+    workspaceSlug: 'cactus-title',
     jobSlug: 'docusign-token-refresh',
     slug: 'docusign-token-first-failure',
     name: 'DocuSign token failure',
@@ -84,7 +84,7 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
 
   // Sun Valley
   {
-    customerSlug: 'sun-valley-insurance',
+    workspaceSlug: 'sun-valley-insurance',
     jobSlug: 'policy-api-probe',
     slug: 'policy-probe-2-consecutive',
     name: 'Policy probe 2 consecutive failures',
@@ -93,7 +93,7 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
     channelSlugs: ['ops-teams', 'autotask-webhook'],
   },
   {
-    customerSlug: 'sun-valley-insurance',
+    workspaceSlug: 'sun-valley-insurance',
     jobSlug: 'claims-status-webhook',
     slug: 'claims-webhook-first-failure',
     name: 'Claims webhook first failure',
@@ -104,7 +104,7 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
 
   // Phoenix Healthcare
   {
-    customerSlug: 'phoenix-healthcare-partners',
+    workspaceSlug: 'phoenix-healthcare-partners',
     jobSlug: 'patient-portal-probe',
     slug: 'portal-probe-2-consecutive',
     name: 'Patient portal 2 consecutive failures',
@@ -113,7 +113,7 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
     channelSlugs: ['ops-teams', 'pagerduty-critical'],
   },
   {
-    customerSlug: 'phoenix-healthcare-partners',
+    workspaceSlug: 'phoenix-healthcare-partners',
     jobSlug: 'patient-portal-probe',
     slug: 'portal-recovery',
     name: 'Patient portal recovery',
@@ -124,7 +124,7 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
 
   // Mesa Manufacturing
   {
-    customerSlug: 'mesa-manufacturing',
+    workspaceSlug: 'mesa-manufacturing',
     jobSlug: 'shop-floor-status',
     slug: 'shop-floor-slow',
     name: 'Shop floor slow run',
@@ -135,7 +135,7 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
 
   // Tempe Tech
   {
-    customerSlug: 'tempe-tech-group',
+    workspaceSlug: 'tempe-tech-group',
     jobSlug: 'daily-billing-summary',
     slug: 'billing-summary-2-consecutive',
     name: 'Billing summary 2 consecutive failures',
@@ -146,7 +146,7 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
 
   // SwitchThink
   {
-    customerSlug: 'switchthink',
+    workspaceSlug: 'switchthink',
     jobSlug: 'sla-probe',
     slug: 'sla-probe-first-failure',
     name: 'SLA probe first failure',
@@ -155,10 +155,10 @@ export const DEMO_ALERT_RULES: readonly DemoAlertRuleSpec[] = [
     channelSlugs: ['internal-teams', 'pagerduty-critical', 'oncall-email'],
   },
   {
-    customerSlug: 'switchthink',
-    jobSlug: null, // customer-wide default
+    workspaceSlug: 'switchthink',
+    jobSlug: null, // workspace-wide default
     slug: 'default-2-consecutive',
-    name: 'Customer default - 2 consecutive failures',
+    name: 'Workspace default - 2 consecutive failures',
     kind: 'consecutive_failures',
     config: { count: 2 },
     channelSlugs: ['internal-teams'],
@@ -169,15 +169,16 @@ type AlertRuleInsert = InferInsertModel<typeof alertRules>
 
 export function alertRuleRow(
   spec: DemoAlertRuleSpec,
-  customerId: string,
+  workspaceId: string,
   jobId: string | null,
   channelIds: readonly string[],
-  customerCreatedAt: Date,
+  workspaceCreatedAt: Date,
 ): AlertRuleInsert {
+  const scope = jobId ? ('job' as const) : ('workspace' as const)
   return {
-    id: demoId('rul', spec.customerSlug, spec.slug),
-    scope: jobId ? 'job' : 'customer',
-    customerId,
+    id: demoId('rul', spec.workspaceSlug, spec.slug),
+    scope,
+    workspaceId: scope === 'workspace' ? workspaceId : null,
     jobId,
     kind: spec.kind,
     name: spec.name,
@@ -186,7 +187,7 @@ export function alertRuleRow(
     channelIds: JSON.stringify(channelIds),
     status: 'active',
     lastFiredAt: null,
-    createdAt: customerCreatedAt,
-    updatedAt: customerCreatedAt,
+    createdAt: workspaceCreatedAt,
+    updatedAt: workspaceCreatedAt,
   }
 }

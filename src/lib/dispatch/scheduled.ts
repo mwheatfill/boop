@@ -4,7 +4,7 @@ import type { AlertQueueMessage } from '@/lib/alert-queue/types'
 import { evaluateMissedSchedules } from '@/lib/alert-rules/missed-schedule'
 import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
-import { customers, jobs } from '@/lib/db/schema'
+import { jobs, workspaces } from '@/lib/db/schema'
 import { logError, logInfo } from '@/lib/log'
 
 const STALE_CLAIM_MS = 300_000
@@ -52,11 +52,11 @@ async function selectDueCronJobs(db: Database, now: Date): Promise<DueRow[]> {
       jobId: jobs.id,
       cronExpression: jobs.cronExpression,
       triggerTimezone: jobs.triggerTimezone,
-      customerTimezone: customers.timezone,
+      workspaceTimezone: workspaces.timezone,
       nextFireAt: jobs.nextFireAt,
     })
     .from(jobs)
-    .innerJoin(customers, eq(customers.id, jobs.customerId))
+    .innerJoin(workspaces, eq(workspaces.id, jobs.workspaceId))
     .where(
       and(
         eq(jobs.status, 'active'),
@@ -67,7 +67,7 @@ async function selectDueCronJobs(db: Database, now: Date): Promise<DueRow[]> {
   return rows.map((r) => ({
     jobId: r.jobId,
     cronExpression: r.cronExpression,
-    effectiveTz: r.triggerTimezone ?? r.customerTimezone,
+    effectiveTz: r.triggerTimezone ?? r.workspaceTimezone,
     nextFireAt: r.nextFireAt,
   }))
 }

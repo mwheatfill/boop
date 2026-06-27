@@ -1,6 +1,6 @@
 import { eq, inArray } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
-import { attempts, customers, jobs, runs, targets, users } from '@/lib/db/schema'
+import { attempts, jobs, runs, targets, users, workspaces } from '@/lib/db/schema'
 import { SEED_TAG } from './constants'
 
 export type CleanupCounts = {
@@ -8,7 +8,7 @@ export type CleanupCounts = {
   runs: number
   jobs: number
   targets: number
-  customers: number
+  workspaces: number
   users: number
 }
 
@@ -16,26 +16,26 @@ export type CleanupCounts = {
 const BATCH_SIZE = 90
 
 export async function cleanupDemoData(db: Database): Promise<CleanupCounts> {
-  const demoCustomers = await db
-    .select({ id: customers.id })
-    .from(customers)
-    .where(eq(customers.seedTag, SEED_TAG))
-  const customerIds = demoCustomers.map((r) => r.id)
+  const demoWorkspaces = await db
+    .select({ id: workspaces.id })
+    .from(workspaces)
+    .where(eq(workspaces.seedTag, SEED_TAG))
+  const workspaceIds = demoWorkspaces.map((r) => r.id)
 
   const counts: CleanupCounts = {
     attempts: 0,
     runs: 0,
     jobs: 0,
     targets: 0,
-    customers: 0,
+    workspaces: 0,
     users: 0,
   }
 
-  if (customerIds.length > 0) {
+  if (workspaceIds.length > 0) {
     const jobRows = await db
       .select({ id: jobs.id })
       .from(jobs)
-      .where(inArray(jobs.customerId, customerIds))
+      .where(inArray(jobs.workspaceId, workspaceIds))
     const jobIds = jobRows.map((r) => r.id)
 
     if (jobIds.length > 0) {
@@ -60,24 +60,24 @@ export async function cleanupDemoData(db: Database): Promise<CleanupCounts> {
     }
     counts.jobs = jobIds.length
     await Promise.all(
-      chunked(customerIds).map((chunk) => db.delete(jobs).where(inArray(jobs.customerId, chunk))),
+      chunked(workspaceIds).map((chunk) => db.delete(jobs).where(inArray(jobs.workspaceId, chunk))),
     )
 
     const targetRows = await db
       .select({ id: targets.id })
       .from(targets)
-      .where(inArray(targets.customerId, customerIds))
+      .where(inArray(targets.workspaceId, workspaceIds))
     counts.targets = targetRows.length
     await Promise.all(
-      chunked(customerIds).map((chunk) =>
-        db.delete(targets).where(inArray(targets.customerId, chunk)),
+      chunked(workspaceIds).map((chunk) =>
+        db.delete(targets).where(inArray(targets.workspaceId, chunk)),
       ),
     )
   }
 
-  // channels and alert_rules cascade from customers
-  await db.delete(customers).where(eq(customers.seedTag, SEED_TAG))
-  counts.customers = customerIds.length
+  // channels and alert_rules cascade from workspaces
+  await db.delete(workspaces).where(eq(workspaces.seedTag, SEED_TAG))
+  counts.workspaces = workspaceIds.length
 
   const demoUsers = await db.select({ id: users.id }).from(users).where(eq(users.seedTag, SEED_TAG))
   await db.delete(users).where(eq(users.seedTag, SEED_TAG))

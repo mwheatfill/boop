@@ -2,14 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { previewBody, previewHeaders, syntheticRenderContext } from './render-preview'
 
 const baseContext = syntheticRenderContext({
-  customerName: 'Acme',
-  customerTimezone: 'UTC',
+  workspaceName: 'Acme',
+  workspaceTimezone: 'UTC',
   now: new Date('2026-05-12T15:30:00.000Z'),
 })
 
 describe('previewBody', () => {
   it('renders a template against the synthetic context', async () => {
-    const result = await previewBody('Hello {{ customer_name }} from run {{ run_id }}', baseContext)
+    const result = await previewBody(
+      'Hello {{ workspace_name }} from run {{ run_id }}',
+      baseContext,
+    )
     expect(result.rendered).toBe('Hello Acme from run run_preview')
     expect(result.error).toBeUndefined()
   })
@@ -36,13 +39,13 @@ describe('previewBody', () => {
 describe('previewHeaders', () => {
   it('parses a valid JSON headers template into Record<string,string>', async () => {
     const result = await previewHeaders(
-      '{ "X-Run": "{{ run_id }}", "X-Customer": "{{ customer_name }}" }',
+      '{ "X-Run": "{{ run_id }}", "X-Workspace": "{{ workspace_name }}" }',
       baseContext,
     )
     expect(result.error).toBeUndefined()
     expect(result.headers).toEqual({
       'X-Run': 'run_preview',
-      'X-Customer': 'Acme',
+      'X-Workspace': 'Acme',
     })
   })
 

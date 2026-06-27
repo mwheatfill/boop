@@ -5,8 +5,8 @@ export type SecretResolver = (name: string) => Promise<string>
 export interface RenderContext {
   runId: string
   attemptNumber: number
-  customerName: string
-  customerTimezone: string
+  workspaceName: string
+  workspaceTimezone: string
   now: Date
   variables?: Record<string, unknown>
   secretResolver?: SecretResolver
@@ -112,8 +112,8 @@ engine.registerTag('boop_secret', {
 export const BUILTIN_RENDER_VARIABLE_NAMES = [
   'run_id',
   'attempt_number',
-  'customer_name',
-  'customer_timezone',
+  'workspace_name',
+  'workspace_timezone',
   'now',
 ] as const
 
@@ -126,8 +126,8 @@ export async function renderTemplate(template: string, context: RenderContext): 
   return engine.parseAndRender(template, {
     run_id: context.runId,
     attempt_number: context.attemptNumber,
-    customer_name: context.customerName,
-    customer_timezone: context.customerTimezone,
+    workspace_name: context.workspaceName,
+    workspace_timezone: context.workspaceTimezone,
     now: context.now,
     ...(context.variables ?? {}),
     [PREVIEW_MODE_KEY]: context.previewMode === true,

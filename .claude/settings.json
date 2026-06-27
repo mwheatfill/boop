@@ -41,6 +41,8 @@
       "Bash(git stash:*)",
       "Bash(git fetch:*)",
       "Bash(git pull:*)",
+      "Bash(git branch -D worktree-*)",
+      "Bash(git worktree remove:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr list:*)",
       "Bash(gh issue view:*)",
@@ -77,14 +79,14 @@
       "Bash(git push -f:*)",
       "Bash(git reset --hard:*)",
       "Bash(git clean -f:*)",
-      "Bash(git branch -D:*)",
       "Bash(wrangler deploy:*)",
       "Bash(wrangler secret put:*)",
       "Bash(wrangler secret delete:*)",
       "Bash(wrangler d1 delete:*)",
       "Bash(wrangler r2 bucket delete:*)",
       "Bash(wrangler kv namespace delete:*)"
-    ]
+    ],
+    "ask": ["Bash(git branch -D:*)"]
   },
   "hooks": {
     "UserPromptSubmit": [

@@ -2,8 +2,8 @@ import { z } from './openapi'
 
 const RunAlertContextSchema = z.object({
   kind: z.literal('run'),
-  customer_name: z.string(),
-  customer_slug: z.string(),
+  workspace_name: z.string(),
+  workspace_slug: z.string(),
   job_name: z.string(),
   job_slug: z.string(),
   target_name: z.string(),
@@ -24,8 +24,8 @@ const RunAlertContextSchema = z.object({
 
 const MissedAlertContextSchema = z.object({
   kind: z.literal('missed'),
-  customer_name: z.string(),
-  customer_slug: z.string(),
+  workspace_name: z.string(),
+  workspace_slug: z.string(),
   job_name: z.string(),
   job_slug: z.string(),
   job_url: z.string(),

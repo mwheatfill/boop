@@ -28,14 +28,14 @@ import type {
 
 const DEFAULT_OVERLAP_HOURS = 24
 
-const webhookSecretsOptions = (customerSlug: string, jobSlug: string) =>
+const webhookSecretsOptions = (workspaceSlug: string, jobSlug: string) =>
   queryOptions({
-    queryKey: ['jobs', customerSlug, jobSlug, 'webhook-secrets'],
-    queryFn: () => listWebhookSecretsFn({ data: { customerSlug, jobSlug } }),
+    queryKey: ['jobs', workspaceSlug, jobSlug, 'webhook-secrets'],
+    queryFn: () => listWebhookSecretsFn({ data: { workspaceSlug, jobSlug } }),
   })
 
 interface WebhookSecretPanelProps {
-  customerSlug: string
+  workspaceSlug: string
   jobSlug: string
   origin?: string
 }
@@ -112,15 +112,15 @@ function isActive(secret: WebhookSecretSummary, now: number): boolean {
   return true
 }
 
-export function WebhookSecretPanel({ customerSlug, jobSlug, origin }: WebhookSecretPanelProps) {
+export function WebhookSecretPanel({ workspaceSlug, jobSlug, origin }: WebhookSecretPanelProps) {
   const queryClient = useQueryClient()
-  const { data } = useQuery(webhookSecretsOptions(customerSlug, jobSlug))
+  const { data } = useQuery(webhookSecretsOptions(workspaceSlug, jobSlug))
   const [state, dispatch] = useReducer(webhookSecretReducer, initialWebhookSecretState)
   const { justGenerated, rotateOpen, revokeOpen, overlapHours, pending } = state
 
   const inferredOrigin =
     origin ?? (typeof window !== 'undefined' ? window.location.origin : 'https://<host>')
-  const url = `${inferredOrigin}/w/${customerSlug}/${jobSlug}`
+  const url = `${inferredOrigin}/w/${workspaceSlug}/${jobSlug}`
 
   const now = Date.now()
   const active = (data?.secrets ?? []).filter((s) => isActive(s, now))
@@ -129,13 +129,13 @@ export function WebhookSecretPanel({ customerSlug, jobSlug, origin }: WebhookSec
 
   const invalidate = () =>
     queryClient.invalidateQueries({
-      queryKey: ['jobs', customerSlug, jobSlug, 'webhook-secrets'],
+      queryKey: ['jobs', workspaceSlug, jobSlug, 'webhook-secrets'],
     })
 
   const onGenerate = async () => {
     dispatch({ type: 'generate-submitted' })
     try {
-      const result = await generateWebhookSecretFn({ data: { customerSlug, jobSlug } })
+      const result = await generateWebhookSecretFn({ data: { workspaceSlug, jobSlug } })
       await invalidate()
       dispatch({ type: 'secret-generated', secret: result })
     } finally {
@@ -147,7 +147,7 @@ export function WebhookSecretPanel({ customerSlug, jobSlug, origin }: WebhookSec
     dispatch({ type: 'rotation-submitted' })
     try {
       const result = await rotateWebhookSecretFn({
-        data: { customerSlug, jobSlug, overlapHours },
+        data: { workspaceSlug, jobSlug, overlapHours },
       })
       await invalidate()
       dispatch({ type: 'rotation-succeeded', secret: result })
@@ -159,7 +159,7 @@ export function WebhookSecretPanel({ customerSlug, jobSlug, origin }: WebhookSec
   const onRevoke = async () => {
     dispatch({ type: 'revoke-submitted' })
     try {
-      await revokeWebhookSecretsFn({ data: { customerSlug, jobSlug } })
+      await revokeWebhookSecretsFn({ data: { workspaceSlug, jobSlug } })
       await invalidate()
       toast.success('All secrets revoked')
       dispatch({ type: 'revoke-succeeded' })

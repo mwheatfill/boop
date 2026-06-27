@@ -86,14 +86,14 @@ function evaluateOne(
 
 export interface EvaluateRulesInput {
   db: Database
-  customerId: string
+  workspaceId: string
   jobId: string
   runId: string
 }
 
 export async function evaluateRulesForRun({
   db,
-  customerId,
+  workspaceId,
   jobId,
   runId,
 }: EvaluateRulesInput): Promise<FiringPair[]> {
@@ -104,8 +104,7 @@ export async function evaluateRulesForRun({
       and(
         eq(alertRules.status, 'active'),
         or(
-          eq(alertRules.scope, 'workspace'),
-          and(eq(alertRules.scope, 'customer'), eq(alertRules.customerId, customerId)),
+          and(eq(alertRules.scope, 'workspace'), eq(alertRules.workspaceId, workspaceId)),
           and(eq(alertRules.scope, 'job'), eq(alertRules.jobId, jobId)),
         ),
       ),

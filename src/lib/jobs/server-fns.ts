@@ -16,7 +16,7 @@ import {
   runJobNow,
   updateJob,
 } from './commands'
-import { getJobDetail, listAllJobs, listJobsForCustomer } from './queries'
+import { getJobDetail, listAllJobs, listJobsForWorkspace } from './queries'
 
 function makeDeps(): JobsDeps {
   return {
@@ -28,27 +28,27 @@ function makeDeps(): JobsDeps {
   }
 }
 
-const customerOnly = z.object({ customerSlug: z.string().min(1) })
+const workspaceOnly = z.object({ workspaceSlug: z.string().min(1) })
 const jobSlugPair = z.object({
-  customerSlug: z.string().min(1),
+  workspaceSlug: z.string().min(1),
   jobSlug: z.string().min(1),
 })
 
 export const listAllJobsFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .inputValidator(
-    (data: { customerSlug?: string; status?: 'active' | 'paused' | 'archived' } | undefined) =>
+    (data: { workspaceSlug?: string; status?: 'active' | 'paused' | 'archived' } | undefined) =>
       z
         .object({
-          customerSlug: z.string().min(1).optional(),
+          workspaceSlug: z.string().min(1).optional(),
           status: z.enum(['active', 'paused', 'archived']).optional(),
         })
         .parse(data ?? {}),
   )
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
-    if (data.customerSlug) {
-      return listJobsForCustomer(db, data.customerSlug, {
+    if (data.workspaceSlug) {
+      return listJobsForWorkspace(db, data.workspaceSlug, {
         includeArchived: data.status === 'archived',
       })
     }
@@ -61,17 +61,17 @@ export const listAllJobsFn = createServerFn({ method: 'GET' })
 export const getJobFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .inputValidator((data) => jobSlugPair.parse(data))
-  .handler(async ({ data }) => getJobDetail(createDb(env.DB), data.customerSlug, data.jobSlug))
+  .handler(async ({ data }) => getJobDetail(createDb(env.DB), data.workspaceSlug, data.jobSlug))
 
 export const createJobFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data: { customerSlug: string } & z.infer<typeof JobCreateInput>) =>
-    customerOnly.extend(JobCreateInput.shape).parse(data),
+  .inputValidator((data: { workspaceSlug: string } & z.infer<typeof JobCreateInput>) =>
+    workspaceOnly.extend(JobCreateInput.shape).parse(data),
   )
   .handler(async ({ data }): Promise<MutationResult<Job>> => {
-    const { customerSlug, ...input } = data
+    const { workspaceSlug, ...input } = data
     try {
-      const job = await createJob(makeDeps(), customerSlug, input)
+      const job = await createJob(makeDeps(), workspaceSlug, input)
       return { ok: true, data: job }
     } catch (err) {
       const failure = asMutationFailure(err)
@@ -83,13 +83,13 @@ export const createJobFn = createServerFn({ method: 'POST' })
 export const updateJobFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .inputValidator(
-    (data: { customerSlug: string; jobSlug: string } & z.infer<typeof JobUpdateInput>) =>
+    (data: { workspaceSlug: string; jobSlug: string } & z.infer<typeof JobUpdateInput>) =>
       jobSlugPair.extend(JobUpdateInput.shape).parse(data),
   )
   .handler(async ({ data }): Promise<MutationResult<Job>> => {
-    const { customerSlug, jobSlug, ...input } = data
+    const { workspaceSlug, jobSlug, ...input } = data
     try {
-      const job = await updateJob(makeDeps(), customerSlug, jobSlug, input)
+      const job = await updateJob(makeDeps(), workspaceSlug, jobSlug, input)
       return { ok: true, data: job }
     } catch (err) {
       const failure = asMutationFailure(err)
@@ -100,10 +100,10 @@ export const updateJobFn = createServerFn({ method: 'POST' })
 
 async function statusChange(
   action: (deps: JobsDeps, c: string, j: string) => Promise<Job>,
-  data: { customerSlug: string; jobSlug: string },
+  data: { workspaceSlug: string; jobSlug: string },
 ): Promise<MutationResult<Job>> {
   try {
-    const job = await action(makeDeps(), data.customerSlug, data.jobSlug)
+    const job = await action(makeDeps(), data.workspaceSlug, data.jobSlug)
     return { ok: true, data: job }
   } catch (err) {
     const failure = asMutationFailure(err)

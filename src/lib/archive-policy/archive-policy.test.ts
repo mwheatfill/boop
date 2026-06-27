@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { newId } from '@/lib/db/ids'
-import { customers, jobs, targets } from '@/lib/db/schema'
+import { alertRules, channels, jobs, targets, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
-import { canArchiveCustomer, canArchiveTarget } from './archive-policy'
+import { canArchiveChannel, canArchiveTarget, canArchiveWorkspace } from './archive-policy'
 
-async function seedCustomer(db: ReturnType<typeof createTestDb>) {
+async function seedWorkspace(db: ReturnType<typeof createTestDb>) {
   const id = newId('cust')
-  await db.insert(customers).values({
+  await db.insert(workspaces).values({
     id,
     name: 'Acme',
     slug: 'acme',
@@ -15,11 +15,11 @@ async function seedCustomer(db: ReturnType<typeof createTestDb>) {
   return id
 }
 
-async function seedTarget(db: ReturnType<typeof createTestDb>, customerId: string) {
+async function seedTarget(db: ReturnType<typeof createTestDb>, workspaceId: string) {
   const id = newId('tgt')
   await db.insert(targets).values({
     id,
-    customerId,
+    workspaceId,
     name: 'API',
     slug: 'api',
     url: 'https://example.com',
@@ -30,14 +30,15 @@ async function seedTarget(db: ReturnType<typeof createTestDb>, customerId: strin
 
 async function seedJob(
   db: ReturnType<typeof createTestDb>,
-  customerId: string,
+  workspaceId: string,
   targetId: string,
   status: 'active' | 'paused' | 'archived',
   slug = `job-${status}`,
 ) {
+  const id = newId('job')
   await db.insert(jobs).values({
-    id: newId('job'),
-    customerId,
+    id,
+    workspaceId,
     targetId,
     name: `Job ${status}`,
     slug,
@@ -46,41 +47,48 @@ async function seedJob(
     triggerTimezone: 'UTC',
     status,
   })
+  return id
 }
 
-describe('canArchiveCustomer', () => {
-  it('returns ok when the customer has no jobs', async () => {
+async function seedChannel(db: ReturnType<typeof createTestDb>, workspaceId: string) {
+  const id = newId('chn')
+  await db.insert(channels).values({ id, workspaceId, kind: 'webhook', name: 'Ops', slug: 'ops' })
+  return id
+}
+
+describe('canArchiveWorkspace', () => {
+  it('returns ok when the workspace has no jobs', async () => {
     const db = createTestDb()
-    const customerId = await seedCustomer(db)
-    await expect(canArchiveCustomer(db, customerId)).resolves.toEqual({ ok: true })
+    const workspaceId = await seedWorkspace(db)
+    await expect(canArchiveWorkspace(db, workspaceId)).resolves.toEqual({ ok: true })
   })
 
-  it('returns ok when the customer only has archived jobs', async () => {
+  it('returns ok when the workspace only has archived jobs', async () => {
     const db = createTestDb()
-    const customerId = await seedCustomer(db)
-    const targetId = await seedTarget(db, customerId)
-    await seedJob(db, customerId, targetId, 'archived')
-    await expect(canArchiveCustomer(db, customerId)).resolves.toEqual({ ok: true })
+    const workspaceId = await seedWorkspace(db)
+    const targetId = await seedTarget(db, workspaceId)
+    await seedJob(db, workspaceId, targetId, 'archived')
+    await expect(canArchiveWorkspace(db, workspaceId)).resolves.toEqual({ ok: true })
   })
 
-  it('blocks when the customer has an active job', async () => {
+  it('blocks when the workspace has an active job', async () => {
     const db = createTestDb()
-    const customerId = await seedCustomer(db)
-    const targetId = await seedTarget(db, customerId)
-    await seedJob(db, customerId, targetId, 'active')
-    await expect(canArchiveCustomer(db, customerId)).resolves.toEqual({
+    const workspaceId = await seedWorkspace(db)
+    const targetId = await seedTarget(db, workspaceId)
+    await seedJob(db, workspaceId, targetId, 'active')
+    await expect(canArchiveWorkspace(db, workspaceId)).resolves.toEqual({
       ok: false,
       reason: 'has_active_jobs',
       blockingCount: 1,
     })
   })
 
-  it('blocks when the customer has a paused job (paused counts as non-archived)', async () => {
+  it('blocks when the workspace has a paused job (paused counts as non-archived)', async () => {
     const db = createTestDb()
-    const customerId = await seedCustomer(db)
-    const targetId = await seedTarget(db, customerId)
-    await seedJob(db, customerId, targetId, 'paused')
-    await expect(canArchiveCustomer(db, customerId)).resolves.toEqual({
+    const workspaceId = await seedWorkspace(db)
+    const targetId = await seedTarget(db, workspaceId)
+    await seedJob(db, workspaceId, targetId, 'paused')
+    await expect(canArchiveWorkspace(db, workspaceId)).resolves.toEqual({
       ok: false,
       reason: 'has_active_jobs',
       blockingCount: 1,
@@ -89,23 +97,23 @@ describe('canArchiveCustomer', () => {
 
   it('counts the blocking job total accurately', async () => {
     const db = createTestDb()
-    const customerId = await seedCustomer(db)
-    const targetId = await seedTarget(db, customerId)
-    await seedJob(db, customerId, targetId, 'active', 'job-a')
-    await seedJob(db, customerId, targetId, 'paused', 'job-b')
-    await seedJob(db, customerId, targetId, 'archived', 'job-c')
-    await expect(canArchiveCustomer(db, customerId)).resolves.toEqual({
+    const workspaceId = await seedWorkspace(db)
+    const targetId = await seedTarget(db, workspaceId)
+    await seedJob(db, workspaceId, targetId, 'active', 'job-a')
+    await seedJob(db, workspaceId, targetId, 'paused', 'job-b')
+    await seedJob(db, workspaceId, targetId, 'archived', 'job-c')
+    await expect(canArchiveWorkspace(db, workspaceId)).resolves.toEqual({
       ok: false,
       reason: 'has_active_jobs',
       blockingCount: 2,
     })
   })
 
-  it('scopes the check to the asked-about customer only', async () => {
+  it('scopes the check to the asked-about workspace only', async () => {
     const db = createTestDb()
-    const first = await seedCustomer(db)
+    const first = await seedWorkspace(db)
     const second = newId('cust')
-    await db.insert(customers).values({
+    await db.insert(workspaces).values({
       id: second,
       name: 'Beta',
       slug: 'beta',
@@ -113,37 +121,88 @@ describe('canArchiveCustomer', () => {
     })
     const targetId = await seedTarget(db, first)
     await seedJob(db, first, targetId, 'active')
-    await expect(canArchiveCustomer(db, second)).resolves.toEqual({ ok: true })
+    await expect(canArchiveWorkspace(db, second)).resolves.toEqual({ ok: true })
   })
 })
 
 describe('canArchiveTarget', () => {
   it('returns ok when the target has no jobs', async () => {
     const db = createTestDb()
-    const customerId = await seedCustomer(db)
-    const targetId = await seedTarget(db, customerId)
+    const workspaceId = await seedWorkspace(db)
+    const targetId = await seedTarget(db, workspaceId)
     await expect(canArchiveTarget(db, targetId)).resolves.toEqual({ ok: true })
   })
 
   it('returns ok when all jobs referencing the target are archived', async () => {
     const db = createTestDb()
-    const customerId = await seedCustomer(db)
-    const targetId = await seedTarget(db, customerId)
-    await seedJob(db, customerId, targetId, 'archived')
+    const workspaceId = await seedWorkspace(db)
+    const targetId = await seedTarget(db, workspaceId)
+    await seedJob(db, workspaceId, targetId, 'archived')
     await expect(canArchiveTarget(db, targetId)).resolves.toEqual({ ok: true })
   })
 
   it('blocks when an active or paused job references the target', async () => {
     const db = createTestDb()
-    const customerId = await seedCustomer(db)
-    const targetId = await seedTarget(db, customerId)
-    await seedJob(db, customerId, targetId, 'active', 'job-a')
-    await seedJob(db, customerId, targetId, 'paused', 'job-b')
-    await seedJob(db, customerId, targetId, 'archived', 'job-c')
+    const workspaceId = await seedWorkspace(db)
+    const targetId = await seedTarget(db, workspaceId)
+    await seedJob(db, workspaceId, targetId, 'active', 'job-a')
+    await seedJob(db, workspaceId, targetId, 'paused', 'job-b')
+    await seedJob(db, workspaceId, targetId, 'archived', 'job-c')
     await expect(canArchiveTarget(db, targetId)).resolves.toEqual({
       ok: false,
       reason: 'has_active_jobs',
       blockingCount: 2,
+    })
+  })
+})
+
+describe('canArchiveChannel', () => {
+  it('returns ok when no active rule references the channel', async () => {
+    const db = createTestDb()
+    const workspaceId = await seedWorkspace(db)
+    const channelId = await seedChannel(db, workspaceId)
+    await expect(canArchiveChannel(db, channelId)).resolves.toEqual({ ok: true })
+  })
+
+  it('blocks when a workspace-scoped rule references the channel', async () => {
+    const db = createTestDb()
+    const workspaceId = await seedWorkspace(db)
+    const channelId = await seedChannel(db, workspaceId)
+    await db.insert(alertRules).values({
+      id: newId('rul'),
+      scope: 'workspace',
+      workspaceId,
+      kind: 'first_failure',
+      name: 'WS rule',
+      slug: 'ws-rule',
+      channelIds: JSON.stringify([channelId]),
+    })
+    await expect(canArchiveChannel(db, channelId)).resolves.toEqual({
+      ok: false,
+      reason: 'has_active_alert_rules',
+      blockingCount: 1,
+    })
+  })
+
+  it('blocks when a job-scoped rule in the same workspace references the channel', async () => {
+    const db = createTestDb()
+    const workspaceId = await seedWorkspace(db)
+    const targetId = await seedTarget(db, workspaceId)
+    const jobId = await seedJob(db, workspaceId, targetId, 'active')
+    const channelId = await seedChannel(db, workspaceId)
+    await db.insert(alertRules).values({
+      id: newId('rul'),
+      scope: 'job',
+      jobId,
+      kind: 'first_failure',
+      name: 'Job rule',
+      slug: 'job-rule',
+      channelIds: JSON.stringify([channelId]),
+    })
+    await expect(canArchiveChannel(db, channelId)).resolves.toEqual({
+      ok: false,
+      reason: 'has_active_alert_rules',
+      blockingCount: 1,
     })
   })
 })

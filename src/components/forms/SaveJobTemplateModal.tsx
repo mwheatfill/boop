@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { EntityModal } from '@/components/forms/EntityModal'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -47,7 +46,6 @@ export function SaveJobTemplateModal({ job, onClose }: SaveJobTemplateModalProps
     defaultValues: {
       name: `${job.name} template`,
       slug: slugify(`${job.name} template`),
-      scope: 'customer' as 'workspace' | 'customer',
       tag: 'custom' as JobTemplateTag,
       description: '',
       bodyTemplate: true,
@@ -60,11 +58,10 @@ export function SaveJobTemplateModal({ job, onClose }: SaveJobTemplateModalProps
       onSubmitAsync: async ({ value }) => {
         const result: MutationResult<JobTemplate> = await saveJobAsTemplateFn({
           data: {
-            customerSlug: job.customerSlug,
+            workspaceSlug: job.workspaceSlug,
             jobSlug: job.slug,
             name: value.name,
             slug: value.slug,
-            scope: value.scope,
             tag: value.tag,
             ...(value.description ? { description: value.description } : {}),
             capture: {
@@ -139,26 +136,6 @@ export function SaveJobTemplateModal({ job, onClose }: SaveJobTemplateModalProps
             </div>
           )}
         </form.Field>
-
-        <div className="flex flex-wrap gap-2">
-          <form.Field name="scope">
-            {(field) => (
-              <>
-                {(['customer', 'workspace'] as const).map((scope) => (
-                  <Button
-                    key={scope}
-                    type="button"
-                    size="sm"
-                    variant={field.state.value === scope ? 'default' : 'outline'}
-                    onClick={() => field.handleChange(scope)}
-                  >
-                    {scope === 'customer' ? 'Customer' : 'Workspace'}
-                  </Button>
-                ))}
-              </>
-            )}
-          </form.Field>
-        </div>
 
         <form.Field name="tag">
           {(field) => (

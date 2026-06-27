@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -44,10 +45,12 @@ export function UserMenu({ user }: UserMenuProps) {
         }
       />
       <DropdownMenuContent align="start" side="right" sideOffset={8} className="min-w-56">
-        <DropdownMenuLabel className="flex flex-col">
-          <span className="text-xs font-normal text-muted-foreground">Signed in as</span>
-          <span className="font-medium">{user.email}</span>
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex flex-col">
+            <span className="text-xs font-normal text-muted-foreground">Signed in as</span>
+            <span className="font-medium">{user.email}</span>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           render={

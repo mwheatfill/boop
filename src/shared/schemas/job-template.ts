@@ -1,9 +1,8 @@
-import { VariableMapSchema } from './customer-variables'
 import { nameField, slugField } from './fields'
 import { z } from './openapi'
 import { tzSchema } from './timezone'
+import { VariableMapSchema } from './workspace-variables'
 
-export const JOB_TEMPLATE_SCOPES = ['workspace', 'customer'] as const
 export const JOB_TEMPLATE_TAGS = [
   'backups',
   'health-checks',
@@ -14,7 +13,6 @@ export const JOB_TEMPLATE_TAGS = [
 ] as const
 export const JOB_TEMPLATE_STATUSES = ['active', 'archived'] as const
 
-export type JobTemplateScope = (typeof JOB_TEMPLATE_SCOPES)[number]
 export type JobTemplateTag = (typeof JOB_TEMPLATE_TAGS)[number]
 
 const triggerConfigSchema = z
@@ -71,10 +69,9 @@ export const JobTemplateSchema = z
     id: z.string(),
     name: z.string(),
     slug: z.string(),
-    scope: z.enum(JOB_TEMPLATE_SCOPES),
-    customerId: z.string().nullable(),
-    customerSlug: z.string().nullable(),
-    customerName: z.string().nullable(),
+    workspaceId: z.string().nullable(),
+    workspaceSlug: z.string().nullable(),
+    workspaceName: z.string().nullable(),
     tag: z.enum(JOB_TEMPLATE_TAGS),
     icon: z.string().nullable(),
     description: z.string().nullable(),
@@ -103,8 +100,7 @@ export const JobTemplateCreateInput = z
   .object({
     ...templateMutableFields,
     slug: slugField,
-    scope: z.enum(JOB_TEMPLATE_SCOPES),
-    customerSlug: slugField.optional(),
+    workspaceSlug: slugField.optional(),
   })
   .meta({ id: 'JobTemplateCreateInput' })
 
@@ -120,11 +116,10 @@ export type JobTemplateUpdateInput = z.infer<typeof JobTemplateUpdateInput>
 
 export const JobTemplateSaveFromJobInput = z
   .object({
-    customerSlug: slugField,
+    workspaceSlug: slugField,
     jobSlug: slugField,
     name: nameField,
     slug: slugField,
-    scope: z.enum(JOB_TEMPLATE_SCOPES),
     tag: z.enum(JOB_TEMPLATE_TAGS).default('custom'),
     description: z.string().trim().max(240).optional(),
     capture: captureFieldsSchema,

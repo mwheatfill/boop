@@ -38,8 +38,8 @@ export type RunsDailyBucket = z.infer<typeof RunsDailyBucketSchema>
 
 export const NeedsAttentionRowSchema = z
   .object({
-    customerSlug: z.string(),
-    customerName: z.string(),
+    workspaceSlug: z.string(),
+    workspaceName: z.string(),
     jobSlug: z.string(),
     jobName: z.string(),
     status: z.enum(['paused', 'failing']),
@@ -51,8 +51,8 @@ export type NeedsAttentionRow = z.infer<typeof NeedsAttentionRowSchema>
 
 export const UpcomingFireRowSchema = z
   .object({
-    customerSlug: z.string(),
-    customerName: z.string(),
+    workspaceSlug: z.string(),
+    workspaceName: z.string(),
     jobSlug: z.string(),
     jobName: z.string(),
     triggerSummary: z.string(),
@@ -66,8 +66,8 @@ export type UpcomingFireRow = z.infer<typeof UpcomingFireRowSchema>
 export const RecentFailureRowSchema = z
   .object({
     runId: z.string(),
-    customerSlug: z.string(),
-    customerName: z.string(),
+    workspaceSlug: z.string(),
+    workspaceName: z.string(),
     jobSlug: z.string(),
     jobName: z.string(),
     outcome: z.enum(['failure', 'timeout']),

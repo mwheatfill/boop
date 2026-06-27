@@ -22,6 +22,6 @@ export function humanizeTemplateSchedule(template: JobTemplate): string {
     return `Runs every ${seconds}s`
   }
   const expression = String(template.triggerConfig.cronExpression ?? '')
-  const timezone = String(template.triggerConfig.triggerTimezone ?? 'Customer timezone')
+  const timezone = String(template.triggerConfig.triggerTimezone ?? 'Workspace timezone')
   return expression ? `Cron ${expression} in ${timezone}` : `Cron schedule in ${timezone}`
 }

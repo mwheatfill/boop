@@ -51,9 +51,9 @@ export function TemplateCard({ template, onSelect, compact = false }: TemplateCa
           Starter
         </Badge>
       ) : null}
-      {template.scope === 'customer' ? (
+      {template.workspaceId ? (
         <span className="absolute left-3 top-3 rounded-md border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-          Customer
+          Workspace
         </span>
       ) : null}
       <span className="flex size-14 items-center justify-center rounded-full bg-secondary/70 text-foreground">

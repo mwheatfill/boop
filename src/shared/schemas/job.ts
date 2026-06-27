@@ -1,8 +1,8 @@
 import { cronSchema } from './cron'
-import { VariableMapSchema } from './customer-variables'
 import { nameField, slugField } from './fields'
 import { z } from './openapi'
 import { tzSchema } from './timezone'
+import { VariableMapSchema } from './workspace-variables'
 
 export const TRIGGER_KINDS = ['cron', 'interval', 'webhook'] as const
 export type TriggerKind = (typeof TRIGGER_KINDS)[number]
@@ -80,10 +80,10 @@ export type JobUpdateInput = z.infer<typeof JobUpdateInput>
 export const JobSchema = z
   .object({
     id: z.string(),
-    customerId: z.string(),
-    customerSlug: z.string(),
-    customerName: z.string(),
-    customerTimezone: tzSchema,
+    workspaceId: z.string(),
+    workspaceSlug: z.string(),
+    workspaceName: z.string(),
+    workspaceTimezone: tzSchema,
     targetId: z.string(),
     targetSlug: z.string(),
     targetName: z.string(),
@@ -106,7 +106,7 @@ export const JobSchema = z
   })
   .meta({
     id: 'Job',
-    description: 'A scheduled HTTP call owned by a Customer.',
+    description: 'A scheduled HTTP call owned by a Workspace.',
   })
 
 export type Job = z.infer<typeof JobSchema>
@@ -116,13 +116,13 @@ export const JobSummarySchema = z
     id: z.string(),
     slug: z.string(),
     name: z.string(),
-    customerSlug: z.string(),
-    customerName: z.string(),
+    workspaceSlug: z.string(),
+    workspaceName: z.string(),
     triggerKind: z.enum(TRIGGER_KINDS),
     cronExpression: z.string().nullable(),
     intervalSeconds: z.int().nullable(),
     triggerTimezone: z.string().nullable(),
-    customerTimezone: tzSchema,
+    workspaceTimezone: tzSchema,
     nextFireAt: z.iso.datetime().nullable(),
     lastFireAt: z.iso.datetime().nullable(),
     status: z.enum(JOB_STATUSES),

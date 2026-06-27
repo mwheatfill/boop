@@ -1,6 +1,6 @@
 import { and, asc, eq } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
-import { customers, targets } from '@/lib/db/schema'
+import { targets, workspaces } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
 import type {
   TARGET_AUTH_KINDS,
@@ -12,7 +12,7 @@ import type {
 function toTarget(row: typeof targets.$inferSelect): Target {
   return {
     id: row.id,
-    customerId: row.customerId,
+    workspaceId: row.workspaceId,
     name: row.name,
     slug: row.slug,
     url: row.url,
@@ -26,45 +26,45 @@ function toTarget(row: typeof targets.$inferSelect): Target {
   }
 }
 
-export async function listTargetsForCustomer(
+export async function listTargetsForWorkspace(
   db: Database,
-  customerSlug: string,
+  workspaceSlug: string,
   { includeArchived = false }: { includeArchived?: boolean } = {},
 ): Promise<Target[]> {
-  const customer = (
-    await db.select().from(customers).where(eq(customers.slug, customerSlug)).limit(1)
+  const workspace = (
+    await db.select().from(workspaces).where(eq(workspaces.slug, workspaceSlug)).limit(1)
   )[0]
-  if (!customer) throw new NotFoundError('Customer', customerSlug)
+  if (!workspace) throw new NotFoundError('Workspace', workspaceSlug)
   const rows = includeArchived
     ? await db
         .select()
         .from(targets)
-        .where(eq(targets.customerId, customer.id))
+        .where(eq(targets.workspaceId, workspace.id))
         .orderBy(asc(targets.name))
     : await db
         .select()
         .from(targets)
-        .where(and(eq(targets.customerId, customer.id), eq(targets.status, 'active')))
+        .where(and(eq(targets.workspaceId, workspace.id), eq(targets.status, 'active')))
         .orderBy(asc(targets.name))
   return rows.map(toTarget)
 }
 
 export async function getTargetBySlug(
   db: Database,
-  customerSlug: string,
+  workspaceSlug: string,
   targetSlug: string,
 ): Promise<Target> {
-  const customer = (
-    await db.select().from(customers).where(eq(customers.slug, customerSlug)).limit(1)
+  const workspace = (
+    await db.select().from(workspaces).where(eq(workspaces.slug, workspaceSlug)).limit(1)
   )[0]
-  if (!customer) throw new NotFoundError('Customer', customerSlug)
+  if (!workspace) throw new NotFoundError('Workspace', workspaceSlug)
   const row = (
     await db
       .select()
       .from(targets)
-      .where(and(eq(targets.customerId, customer.id), eq(targets.slug, targetSlug)))
+      .where(and(eq(targets.workspaceId, workspace.id), eq(targets.slug, targetSlug)))
       .limit(1)
   )[0]
-  if (!row) throw new NotFoundError('Target', `${customerSlug}/${targetSlug}`)
+  if (!row) throw new NotFoundError('Target', `${workspaceSlug}/${targetSlug}`)
   return toTarget(row)
 }

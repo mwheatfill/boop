@@ -1,4 +1,4 @@
-import { useNavigate, useRouterState } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import type { User } from '@/shared/schemas/auth'
 import { useKeyboard } from './KeyboardProvider'
@@ -10,7 +10,6 @@ interface GlobalShortcutsProps {
 
 export function GlobalShortcuts({ currentUser }: GlobalShortcutsProps) {
   const navigate = useNavigate()
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { paletteOpen, setPaletteOpen, cheatsheetOpen, setCheatsheetOpen } = useKeyboard()
   const isAdmin = currentUser.role === 'admin'
 
@@ -32,8 +31,8 @@ export function GlobalShortcuts({ currentUser }: GlobalShortcutsProps) {
     description: 'Go to Jobs',
     section: 'navigation',
   })
-  useShortcut('g c', () => void navigate({ to: '/customers' }), {
-    description: 'Go to Customers',
+  useShortcut('g c', () => void navigate({ to: '/' }), {
+    description: 'Go to Workspaces',
     section: 'navigation',
   })
   useShortcut('g r', () => void navigate({ to: '/runs' }), {
@@ -44,30 +43,6 @@ export function GlobalShortcuts({ currentUser }: GlobalShortcutsProps) {
     description: 'Go to Templates',
     section: 'navigation',
   })
-
-  useShortcut(
-    'g n',
-    () => {
-      if (!isAdmin) {
-        toast.error('Admin only.')
-        return
-      }
-      void navigate({ to: '/channels' })
-    },
-    { description: 'Go to Channels (Admin)', section: 'navigation' },
-  )
-
-  useShortcut(
-    'g a',
-    () => {
-      if (!isAdmin) {
-        toast.error('Admin only.')
-        return
-      }
-      void navigate({ to: '/alert-rules' })
-    },
-    { description: 'Go to Alert Rules (Admin)', section: 'navigation' },
-  )
 
   useShortcut('n j', () => void navigate({ to: '/jobs/new' }), {
     description: 'New Job',
@@ -86,9 +61,9 @@ export function GlobalShortcuts({ currentUser }: GlobalShortcutsProps) {
         toast.error('Admin only.')
         return
       }
-      void navigate({ to: '/customers/new' })
+      void navigate({ to: '/' })
     },
-    { description: 'New Customer (Admin)', section: 'navigation' },
+    { description: 'New Workspace (Admin)', section: 'navigation' },
   )
 
   useShortcut(
@@ -98,18 +73,9 @@ export function GlobalShortcuts({ currentUser }: GlobalShortcutsProps) {
         toast.error('Admin only.')
         return
       }
-      const match = pathname.match(/^\/customers\/([^/]+)/)
-      const customerSlug = match?.[1]
-      if (!customerSlug) {
-        toast.error('Open a Customer hub first to add a Target.')
-        return
-      }
-      void navigate({
-        to: '/customers/$customerSlug/targets/new',
-        params: { customerSlug },
-      })
+      void navigate({ to: '/targets/new' })
     },
-    { description: 'New Target (Admin, current Customer)', section: 'navigation' },
+    { description: 'New Target (Admin, current Workspace)', section: 'navigation' },
   )
 
   useShortcut(
@@ -119,35 +85,17 @@ export function GlobalShortcuts({ currentUser }: GlobalShortcutsProps) {
         toast.error('Admin only.')
         return
       }
-      const match = pathname.match(/^\/customers\/([^/]+)/)
-      const customerSlug = match?.[1]
-      if (!customerSlug) {
-        toast.error('Open a Customer hub first to add a Channel.')
-        return
-      }
-      void navigate({
-        to: '/customers/$customerSlug/channels/new',
-        params: { customerSlug },
-      })
+      void navigate({ to: '/channels/new' })
     },
-    { description: 'New Channel (Admin, current Customer)', section: 'navigation' },
+    { description: 'New Channel (Admin, current Workspace)', section: 'navigation' },
   )
 
   useShortcut(
     'n a',
     () => {
-      const match = pathname.match(/^\/customers\/([^/]+)/)
-      const customerSlug = match?.[1]
-      if (!customerSlug) {
-        toast.error('Open a Customer hub first to add an Alert Rule.')
-        return
-      }
-      void navigate({
-        to: '/customers/$customerSlug/alert-rules/new',
-        params: { customerSlug },
-      })
+      void navigate({ to: '/alert-rules/new' })
     },
-    { description: 'New Alert Rule (current Customer)', section: 'navigation' },
+    { description: 'New Alert Rule (current Workspace)', section: 'navigation' },
   )
 
   return null

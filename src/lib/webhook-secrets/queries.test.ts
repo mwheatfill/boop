@@ -1,18 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { newId } from '@/lib/db/ids'
-import { customers, jobs, targets, webhookSecrets } from '@/lib/db/schema'
+import { jobs, targets, webhookSecrets, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { listActiveSecrets, listSecretsForJob } from './queries'
 
 async function seedJob() {
   const db = createTestDb()
-  const customerId = newId('cust')
+  const workspaceId = newId('cust')
   const targetId = newId('tgt')
   const jobId = newId('job')
-  await db.insert(customers).values({ id: customerId, name: 'Acme', slug: 'acme', timezone: 'UTC' })
+  await db
+    .insert(workspaces)
+    .values({ id: workspaceId, name: 'Acme', slug: 'acme', timezone: 'UTC' })
   await db.insert(targets).values({
     id: targetId,
-    customerId,
+    workspaceId,
     name: 'Health',
     slug: 'health',
     url: 'https://example.test',
@@ -20,7 +22,7 @@ async function seedJob() {
   })
   await db.insert(jobs).values({
     id: jobId,
-    customerId,
+    workspaceId,
     targetId,
     name: 'Hook',
     slug: 'hook',

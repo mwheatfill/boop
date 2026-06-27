@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { AlertQueueMessage } from '@/lib/alert-queue/types'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { alertRules, customers, jobs, runs, targets } from '@/lib/db/schema'
+import { alertRules, jobs, runs, targets, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { evaluateMissedSchedules } from './missed-schedule'
 
@@ -23,22 +23,22 @@ function captureAlertQueue(): {
   return { queue: queue as unknown as Queue<AlertQueueMessage>, sent }
 }
 
-async function seedCustomer(db: Database, slug: string) {
-  const customerId = newId('cust')
-  await db.insert(customers).values({
-    id: customerId,
+async function seedWorkspace(db: Database, slug: string) {
+  const workspaceId = newId('cust')
+  await db.insert(workspaces).values({
+    id: workspaceId,
     name: slug === 'acme' ? 'Acme' : 'Beta',
     slug,
     timezone: 'UTC',
   })
-  return customerId
+  return workspaceId
 }
 
-async function seedTarget(db: Database, customerId: string) {
+async function seedTarget(db: Database, workspaceId: string) {
   const targetId = newId('tgt')
   await db.insert(targets).values({
     id: targetId,
-    customerId,
+    workspaceId,
     name: 'API',
     slug: `api-${targetId.slice(-4)}`,
     url: 'https://example.com',
@@ -49,14 +49,14 @@ async function seedTarget(db: Database, customerId: string) {
 
 async function seedJob(
   db: Database,
-  customerId: string,
+  workspaceId: string,
   targetId: string,
   createdAt = new Date('2026-05-10T00:00:00.000Z'),
 ) {
   const jobId = newId('job')
   await db.insert(jobs).values({
     id: jobId,
-    customerId,
+    workspaceId,
     targetId,
     name: `Job ${jobId.slice(-4)}`,
     slug: `job-${jobId.slice(-4)}`,
@@ -69,11 +69,11 @@ async function seedJob(
   return jobId
 }
 
-async function seedRun(db: Database, jobId: string, customerId: string, startedAt: Date) {
+async function seedRun(db: Database, jobId: string, workspaceId: string, startedAt: Date) {
   await db.insert(runs).values({
     id: newId('run'),
     jobId,
-    customerId,
+    workspaceId,
     scheduledAt: startedAt,
     startedAt,
     completedAt: new Date(startedAt.getTime() + 1000),
@@ -85,8 +85,8 @@ async function seedRun(db: Database, jobId: string, customerId: string, startedA
 async function seedRule(
   db: Database,
   input: {
-    scope: 'workspace' | 'customer' | 'job'
-    customerId?: string
+    scope: 'workspace' | 'job'
+    workspaceId?: string
     jobId?: string
     minutes: number
     channelIds?: string[]
@@ -96,7 +96,7 @@ async function seedRule(
   await db.insert(alertRules).values({
     id,
     scope: input.scope,
-    customerId: input.customerId ?? null,
+    workspaceId: input.workspaceId ?? null,
     jobId: input.jobId ?? null,
     kind: 'missed_schedule',
     name: 'Silence alert',
@@ -108,19 +108,19 @@ async function seedRule(
   return id
 }
 
-async function seedCustomerJob(db: Database, slug = 'acme') {
-  const customerId = await seedCustomer(db, slug)
-  const targetId = await seedTarget(db, customerId)
-  const jobId = await seedJob(db, customerId, targetId)
-  return { customerId, targetId, jobId }
+async function seedWorkspaceJob(db: Database, slug = 'acme') {
+  const workspaceId = await seedWorkspace(db, slug)
+  const targetId = await seedTarget(db, workspaceId)
+  const jobId = await seedJob(db, workspaceId, targetId)
+  return { workspaceId, targetId, jobId }
 }
 
 describe('evaluateMissedSchedules', () => {
   it('does not alert without a missed_schedule rule', async () => {
     const db = createTestDb()
     const { queue, sent } = captureAlertQueue()
-    const { customerId, jobId } = await seedCustomerJob(db)
-    await seedRun(db, jobId, customerId, new Date('2026-05-10T00:00:00.000Z'))
+    const { workspaceId, jobId } = await seedWorkspaceJob(db)
+    await seedRun(db, jobId, workspaceId, new Date('2026-05-10T00:00:00.000Z'))
 
     const result = await evaluateMissedSchedules({
       db,
@@ -135,9 +135,9 @@ describe('evaluateMissedSchedules', () => {
   it('alerts when the last Run is older than the silence threshold', async () => {
     const db = createTestDb()
     const { queue, sent } = captureAlertQueue()
-    const { customerId, jobId } = await seedCustomerJob(db)
-    await seedRun(db, jobId, customerId, new Date('2026-05-11T23:00:00.000Z'))
-    const ruleId = await seedRule(db, { scope: 'customer', customerId, minutes: 24 * 60 })
+    const { workspaceId, jobId } = await seedWorkspaceJob(db)
+    await seedRun(db, jobId, workspaceId, new Date('2026-05-11T23:00:00.000Z'))
+    const ruleId = await seedRule(db, { scope: 'workspace', workspaceId, minutes: 24 * 60 })
 
     const result = await evaluateMissedSchedules({
       db,
@@ -158,9 +158,9 @@ describe('evaluateMissedSchedules', () => {
   it('debounces until another real Run starts', async () => {
     const db = createTestDb()
     const { queue, sent } = captureAlertQueue()
-    const { customerId, jobId } = await seedCustomerJob(db)
-    await seedRun(db, jobId, customerId, new Date('2026-05-11T23:00:00.000Z'))
-    await seedRule(db, { scope: 'customer', customerId, minutes: 24 * 60 })
+    const { workspaceId, jobId } = await seedWorkspaceJob(db)
+    await seedRun(db, jobId, workspaceId, new Date('2026-05-11T23:00:00.000Z'))
+    await seedRule(db, { scope: 'workspace', workspaceId, minutes: 24 * 60 })
 
     await evaluateMissedSchedules({
       db,
@@ -174,7 +174,7 @@ describe('evaluateMissedSchedules', () => {
     })
 
     expect(sent).toHaveLength(1)
-    await seedRun(db, jobId, customerId, new Date('2026-05-13T00:02:00.000Z'))
+    await seedRun(db, jobId, workspaceId, new Date('2026-05-13T00:02:00.000Z'))
     await evaluateMissedSchedules({
       db,
       alertQueue: queue,
@@ -186,8 +186,8 @@ describe('evaluateMissedSchedules', () => {
   it('uses job.created_at when a Job has never run', async () => {
     const db = createTestDb()
     const { queue, sent } = captureAlertQueue()
-    const { customerId } = await seedCustomerJob(db)
-    await seedRule(db, { scope: 'customer', customerId, minutes: 60 })
+    const { workspaceId } = await seedWorkspaceJob(db)
+    await seedRule(db, { scope: 'workspace', workspaceId, minutes: 60 })
 
     await evaluateMissedSchedules({
       db,
@@ -199,34 +199,12 @@ describe('evaluateMissedSchedules', () => {
     expect(sent[0]).toMatchObject({ lastRunAt: null })
   })
 
-  it('fans out a workspace rule across multiple Customers', async () => {
+  it('keeps workspace-scoped rules inside their Workspace', async () => {
     const db = createTestDb()
     const { queue, sent } = captureAlertQueue()
-    const acme = await seedCustomerJob(db, 'acme')
-    const beta = await seedCustomerJob(db, 'beta')
-    await Promise.all([
-      seedRun(db, acme.jobId, acme.customerId, new Date('2026-05-10T00:00:00.000Z')),
-      seedRun(db, beta.jobId, beta.customerId, new Date('2026-05-10T00:00:00.000Z')),
-    ])
-    await seedRule(db, { scope: 'workspace', minutes: 24 * 60, channelIds: ['chn_ws'] })
-
-    await evaluateMissedSchedules({
-      db,
-      alertQueue: queue,
-      now: () => new Date('2026-05-12T00:00:00.000Z'),
-    })
-
-    expect(sent.map((message) => ('jobId' in message ? message.jobId : '')).sort()).toEqual(
-      [acme.jobId, beta.jobId].sort(),
-    )
-  })
-
-  it('keeps customer-scoped rules inside their Customer', async () => {
-    const db = createTestDb()
-    const { queue, sent } = captureAlertQueue()
-    const acme = await seedCustomerJob(db, 'acme')
-    const beta = await seedCustomerJob(db, 'beta')
-    await seedRule(db, { scope: 'customer', customerId: acme.customerId, minutes: 24 * 60 })
+    const acme = await seedWorkspaceJob(db, 'acme')
+    const beta = await seedWorkspaceJob(db, 'beta')
+    await seedRule(db, { scope: 'workspace', workspaceId: acme.workspaceId, minutes: 24 * 60 })
 
     await evaluateMissedSchedules({
       db,

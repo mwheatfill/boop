@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { customers, jobs, runs, targets } from '@/lib/db/schema'
+import { jobs, runs, targets, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { generateSecret } from '@/lib/webhook-secrets/commands'
 import { signWebhook } from '@/lib/webhook-signing/sign'
@@ -31,23 +31,23 @@ function stubRateLimit(success: boolean): WebhookDeps['rateLimit'] {
 interface JobOverrides {
   status?: 'active' | 'paused' | 'archived'
   triggerKind?: 'cron' | 'interval' | 'webhook'
-  customerSlug?: string
+  workspaceSlug?: string
   jobSlug?: string
 }
 
 async function seedJobForWebhook(db: Database, o: JobOverrides = {}) {
-  const customerId = newId('cust')
+  const workspaceId = newId('cust')
   const targetId = newId('tgt')
   const jobId = newId('job')
-  await db.insert(customers).values({
-    id: customerId,
+  await db.insert(workspaces).values({
+    id: workspaceId,
     name: 'Acme',
-    slug: o.customerSlug ?? 'acme',
+    slug: o.workspaceSlug ?? 'acme',
     timezone: 'UTC',
   })
   await db.insert(targets).values({
     id: targetId,
-    customerId,
+    workspaceId,
     name: 'Health',
     slug: 'health',
     url: 'https://example.test/ping',
@@ -55,7 +55,7 @@ async function seedJobForWebhook(db: Database, o: JobOverrides = {}) {
   })
   await db.insert(jobs).values({
     id: jobId,
-    customerId,
+    workspaceId,
     targetId,
     name: 'Hook',
     slug: o.jobSlug ?? 'health-check',
@@ -63,9 +63,9 @@ async function seedJobForWebhook(db: Database, o: JobOverrides = {}) {
     ...(o.status !== undefined && { status: o.status }),
   })
   return {
-    customerId,
+    workspaceId,
     jobId,
-    customerSlug: o.customerSlug ?? 'acme',
+    workspaceSlug: o.workspaceSlug ?? 'acme',
     jobSlug: o.jobSlug ?? 'health-check',
   }
 }
@@ -89,7 +89,7 @@ describe('handleWebhook (signed happy path)', () => {
   it('returns 200, pre-creates a scheduled Run, and enqueues with the runId', async () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
-    const { customerSlug, jobSlug, jobId, customerId } = await seedJobForWebhook(db)
+    const { workspaceSlug, jobSlug, jobId, workspaceId } = await seedJobForWebhook(db)
     const { plaintext } = await generateSecret({ db, now: () => FIXED }, jobId)
 
     const req = await signedRequest(plaintext, '{"hello":"world"}')
@@ -97,7 +97,7 @@ describe('handleWebhook (signed happy path)', () => {
     const res = await handleWebhook(
       { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
       req,
-      customerSlug,
+      workspaceSlug,
       jobSlug,
     )
 
@@ -120,7 +120,7 @@ describe('handleWebhook (signed happy path)', () => {
 
     const [runRow] = await db.select().from(runs).where(eq(runs.id, body.runId))
     expect(runRow?.status).toBe('scheduled')
-    expect(runRow?.customerId).toBe(customerId)
+    expect(runRow?.workspaceId).toBe(workspaceId)
     expect(runRow?.triggerSource).toBe('webhook')
     expect(runRow?.scheduledAt.toISOString()).toBe(FIXED.toISOString())
   })
@@ -128,7 +128,7 @@ describe('handleWebhook (signed happy path)', () => {
   it('verifies against any active secret during rotation overlap', async () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
-    const { customerSlug, jobSlug, jobId } = await seedJobForWebhook(db)
+    const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
     await generateSecret({ db, now: () => new Date(FIXED.getTime() - 60_000) }, jobId)
     const { plaintext: newSecret } = await generateSecret(
       { db, now: () => new Date(FIXED.getTime() - 1000) },
@@ -139,7 +139,7 @@ describe('handleWebhook (signed happy path)', () => {
     const res = await handleWebhook(
       { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
       req,
-      customerSlug,
+      workspaceSlug,
       jobSlug,
     )
 
@@ -152,14 +152,14 @@ describe('handleWebhook (rejection paths)', () => {
   it('returns 429 when the rate limit binding denies the request, before any DB read', async () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
-    const { customerSlug, jobSlug, jobId } = await seedJobForWebhook(db)
+    const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
     const { plaintext } = await generateSecret({ db, now: () => FIXED }, jobId)
 
     const req = await signedRequest(plaintext, 'x')
     const res = await handleWebhook(
       { db, dispatchQueue: queue, rateLimit: stubRateLimit(false), now: () => FIXED },
       req,
-      customerSlug,
+      workspaceSlug,
       jobSlug,
     )
     expect(res.status).toBe(429)
@@ -168,10 +168,10 @@ describe('handleWebhook (rejection paths)', () => {
     expect(inserted).toHaveLength(0)
   })
 
-  it('returns 404 when the customer slug is unknown', async () => {
+  it('returns 404 when the workspace slug is unknown', async () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
-    await seedJobForWebhook(db, { customerSlug: 'acme', jobSlug: 'hook' })
+    await seedJobForWebhook(db, { workspaceSlug: 'acme', jobSlug: 'hook' })
     const req = new Request('https://example.test/w/nope/hook', { method: 'POST', body: '' })
 
     const res = await handleWebhook(
@@ -203,13 +203,13 @@ describe('handleWebhook (rejection paths)', () => {
   it('returns 410 when the Job is paused', async () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
-    const { customerSlug, jobSlug } = await seedJobForWebhook(db, { status: 'paused' })
+    const { workspaceSlug, jobSlug } = await seedJobForWebhook(db, { status: 'paused' })
     const req = new Request('https://example.test', { method: 'POST', body: '' })
 
     const res = await handleWebhook(
       { db, dispatchQueue: queue, rateLimit: stubRateLimit(true) },
       req,
-      customerSlug,
+      workspaceSlug,
       jobSlug,
     )
     expect(res.status).toBe(410)
@@ -219,13 +219,13 @@ describe('handleWebhook (rejection paths)', () => {
   it('returns 410 when the Job is archived', async () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
-    const { customerSlug, jobSlug } = await seedJobForWebhook(db, { status: 'archived' })
+    const { workspaceSlug, jobSlug } = await seedJobForWebhook(db, { status: 'archived' })
     const req = new Request('https://example.test', { method: 'POST', body: '' })
 
     const res = await handleWebhook(
       { db, dispatchQueue: queue, rateLimit: stubRateLimit(true) },
       req,
-      customerSlug,
+      workspaceSlug,
       jobSlug,
     )
     expect(res.status).toBe(410)
@@ -235,13 +235,13 @@ describe('handleWebhook (rejection paths)', () => {
   it('returns 409 when the Job trigger is cron, not webhook', async () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
-    const { customerSlug, jobSlug } = await seedJobForWebhook(db, { triggerKind: 'cron' })
+    const { workspaceSlug, jobSlug } = await seedJobForWebhook(db, { triggerKind: 'cron' })
     const req = new Request('https://example.test', { method: 'POST', body: '' })
 
     const res = await handleWebhook(
       { db, dispatchQueue: queue, rateLimit: stubRateLimit(true) },
       req,
-      customerSlug,
+      workspaceSlug,
       jobSlug,
     )
     expect(res.status).toBe(409)
@@ -251,14 +251,14 @@ describe('handleWebhook (rejection paths)', () => {
   it('returns 401 when the X-Boop-Signature header is missing', async () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
-    const { customerSlug, jobSlug, jobId } = await seedJobForWebhook(db)
+    const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
     await generateSecret({ db, now: () => FIXED }, jobId)
     const req = new Request('https://example.test', { method: 'POST', body: 'payload' })
 
     const res = await handleWebhook(
       { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
       req,
-      customerSlug,
+      workspaceSlug,
       jobSlug,
     )
     expect(res.status).toBe(401)
@@ -269,7 +269,7 @@ describe('handleWebhook (rejection paths)', () => {
   it('returns 401 when the signature header is malformed', async () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
-    const { customerSlug, jobSlug, jobId } = await seedJobForWebhook(db)
+    const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
     await generateSecret({ db, now: () => FIXED }, jobId)
     const req = new Request('https://example.test', {
       method: 'POST',
@@ -280,7 +280,7 @@ describe('handleWebhook (rejection paths)', () => {
     const res = await handleWebhook(
       { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
       req,
-      customerSlug,
+      workspaceSlug,
       jobSlug,
     )
     expect(res.status).toBe(401)
@@ -291,7 +291,7 @@ describe('handleWebhook (rejection paths)', () => {
   it('returns 403 when the timestamp is outside the tolerance window', async () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
-    const { customerSlug, jobSlug, jobId } = await seedJobForWebhook(db)
+    const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
     const { plaintext } = await generateSecret({ db, now: () => FIXED }, jobId)
 
     const staleAt = FIXED.getTime() - 6 * 60 * 1000
@@ -299,7 +299,7 @@ describe('handleWebhook (rejection paths)', () => {
     const res = await handleWebhook(
       { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
       req,
-      customerSlug,
+      workspaceSlug,
       jobSlug,
     )
     expect(res.status).toBe(403)
@@ -310,14 +310,14 @@ describe('handleWebhook (rejection paths)', () => {
   it('returns 403 when the signature is well-formed but does not match', async () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
-    const { customerSlug, jobSlug, jobId } = await seedJobForWebhook(db)
+    const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
     await generateSecret({ db, now: () => FIXED }, jobId)
 
     const req = await signedRequest('wrong-secret', 'payload')
     const res = await handleWebhook(
       { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
       req,
-      customerSlug,
+      workspaceSlug,
       jobSlug,
     )
     expect(res.status).toBe(403)
@@ -328,13 +328,13 @@ describe('handleWebhook (rejection paths)', () => {
   it('returns 403 when the Job has no active secrets yet', async () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
-    const { customerSlug, jobSlug } = await seedJobForWebhook(db)
+    const { workspaceSlug, jobSlug } = await seedJobForWebhook(db)
 
     const req = await signedRequest('anything', 'payload')
     const res = await handleWebhook(
       { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
       req,
-      customerSlug,
+      workspaceSlug,
       jobSlug,
     )
     expect(res.status).toBe(403)

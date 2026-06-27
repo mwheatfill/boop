@@ -1,8 +1,8 @@
-import { and, asc, eq, isNull, sql } from 'drizzle-orm'
-import { resolveCustomerId } from '@/lib/customers/resolve'
+import { and, asc, eq, sql } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { alertRules } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
+import { resolveWorkspaceId } from '@/lib/workspaces/resolve'
 import {
   type AlertRule,
   AlertRuleConfigSchema,
@@ -30,7 +30,7 @@ export function rowToAlertRule(row: AlertRuleRow): AlertRule {
   return {
     id: row.id,
     scope: row.scope as AlertRuleScope,
-    customerId: row.customerId,
+    workspaceId: row.workspaceId,
     jobId: row.jobId,
     kind: row.kind as AlertRuleKind,
     name: row.name,
@@ -44,27 +44,13 @@ export function rowToAlertRule(row: AlertRuleRow): AlertRule {
   }
 }
 
-export async function listAlertRulesForCustomer(
+export async function listAlertRulesForWorkspace(
   db: Database,
-  customerSlug: string,
+  workspaceSlug: string,
   { includeArchived = false }: { includeArchived?: boolean } = {},
 ): Promise<AlertRule[]> {
-  const customerId = await resolveCustomerId(db, customerSlug)
-  const conditions = [eq(alertRules.scope, 'customer'), eq(alertRules.customerId, customerId)]
-  if (!includeArchived) conditions.push(eq(alertRules.status, 'active'))
-  const rows = await db
-    .select()
-    .from(alertRules)
-    .where(and(...conditions))
-    .orderBy(asc(alertRules.name))
-  return rows.map(rowToAlertRule)
-}
-
-export async function listWorkspaceAlertRules(
-  db: Database,
-  { includeArchived = false }: { includeArchived?: boolean } = {},
-): Promise<AlertRule[]> {
-  const conditions = [eq(alertRules.scope, 'workspace')]
+  const workspaceId = await resolveWorkspaceId(db, workspaceSlug)
+  const conditions = [eq(alertRules.scope, 'workspace'), eq(alertRules.workspaceId, workspaceId)]
   if (!includeArchived) conditions.push(eq(alertRules.status, 'active'))
   const rows = await db
     .select()
@@ -76,31 +62,10 @@ export async function listWorkspaceAlertRules(
 
 export async function getAlertRuleBySlug(
   db: Database,
-  customerSlug: string,
+  workspaceSlug: string,
   ruleSlug: string,
 ): Promise<AlertRule> {
-  const customerId = await resolveCustomerId(db, customerSlug)
-  const row = (
-    await db
-      .select()
-      .from(alertRules)
-      .where(
-        and(
-          eq(alertRules.scope, 'customer'),
-          eq(alertRules.customerId, customerId),
-          eq(alertRules.slug, ruleSlug),
-        ),
-      )
-      .limit(1)
-  )[0]
-  if (!row) throw new NotFoundError('AlertRule', `${customerSlug}/${ruleSlug}`)
-  return rowToAlertRule(row)
-}
-
-export async function getWorkspaceAlertRuleBySlug(
-  db: Database,
-  ruleSlug: string,
-): Promise<AlertRule> {
+  const workspaceId = await resolveWorkspaceId(db, workspaceSlug)
   const row = (
     await db
       .select()
@@ -108,24 +73,24 @@ export async function getWorkspaceAlertRuleBySlug(
       .where(
         and(
           eq(alertRules.scope, 'workspace'),
-          isNull(alertRules.customerId),
+          eq(alertRules.workspaceId, workspaceId),
           eq(alertRules.slug, ruleSlug),
         ),
       )
       .limit(1)
   )[0]
-  if (!row) throw new NotFoundError('AlertRule', `workspace/${ruleSlug}`)
+  if (!row) throw new NotFoundError('AlertRule', `${workspaceSlug}/${ruleSlug}`)
   return rowToAlertRule(row)
 }
 
-export async function countCustomerRulesForJob(
+export async function countWorkspaceRulesForJob(
   db: Database,
-  customerSlug: string,
+  workspaceSlug: string,
 ): Promise<number> {
-  const customerId = await resolveCustomerId(db, customerSlug)
+  const workspaceId = await resolveWorkspaceId(db, workspaceSlug)
   const [row] = await db
     .select({ count: sql<number>`count(*)` })
     .from(alertRules)
-    .where(and(eq(alertRules.customerId, customerId), eq(alertRules.status, 'active')))
+    .where(and(eq(alertRules.workspaceId, workspaceId), eq(alertRules.status, 'active')))
   return row?.count ?? 0
 }

@@ -1,10 +1,10 @@
 import { and, eq } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { customers, jobs, targets } from '@/lib/db/schema'
+import { jobs, targets } from '@/lib/db/schema'
 import type { DispatchMessage } from '@/lib/dispatch/scheduled'
-import { FieldValidationError, isUniqueConstraintViolation, NotFoundError } from '@/lib/errors'
-import { slugify } from '@/lib/slug/slugify'
+import { FieldValidationError, isUniqueConstraintViolation } from '@/lib/errors'
+import { normalizeSlug, resolveWorkspaceId } from '@/lib/workspaces/resolve'
 import type { Job, JobCreateInput, JobUpdateInput, TriggerKind } from '@/shared/schemas/job'
 import { getJobDetail } from './queries'
 import { planTriggerTransition, type TriggerColumn } from './trigger-transition'
@@ -42,37 +42,21 @@ function triggerColumnsFor(input: JobCreateInput | JobUpdateInput): TriggerColum
   return { cronExpression: null, intervalSeconds: null, triggerTimezone: null }
 }
 
-function normalizeSlug(raw: string): string {
-  const slug = slugify(raw)
-  if (slug.length === 0) {
-    throw new FieldValidationError({ slug: ['Slug must contain letters or digits'] })
-  }
-  return slug
-}
-
-async function resolveCustomerId(db: Database, customerSlug: string): Promise<string> {
-  const row = (
-    await db.select().from(customers).where(eq(customers.slug, customerSlug)).limit(1)
-  )[0]
-  if (!row) throw new NotFoundError('Customer', customerSlug)
-  return row.id
-}
-
 async function resolveTargetId(
   db: Database,
-  customerId: string,
+  workspaceId: string,
   targetSlug: string,
 ): Promise<string> {
   const row = (
     await db
       .select()
       .from(targets)
-      .where(and(eq(targets.customerId, customerId), eq(targets.slug, targetSlug)))
+      .where(and(eq(targets.workspaceId, workspaceId), eq(targets.slug, targetSlug)))
       .limit(1)
   )[0]
   if (!row) {
     throw new FieldValidationError({
-      targetSlug: [`No active Target with slug '${targetSlug}' for this Customer`],
+      targetSlug: [`No active Target with slug '${targetSlug}' for this Workspace`],
     })
   }
   return row.id
@@ -102,18 +86,18 @@ function nulledTriggerColumns(columns: TriggerColumn[]): Partial<TriggerColumns>
 
 export async function createJob(
   deps: JobsDeps,
-  customerSlug: string,
+  workspaceSlug: string,
   input: JobCreateInput,
 ): Promise<Job> {
-  const customerId = await resolveCustomerId(deps.db, customerSlug)
-  const targetId = await resolveTargetId(deps.db, customerId, input.targetSlug)
+  const workspaceId = await resolveWorkspaceId(deps.db, workspaceSlug)
+  const targetId = await resolveTargetId(deps.db, workspaceId, input.targetSlug)
   const slug = normalizeSlug(input.slug)
   const id = newId('job')
   const trig = triggerColumnsFor(input)
   try {
     await deps.db.insert(jobs).values({
       id,
-      customerId,
+      workspaceId,
       targetId,
       name: input.name.trim(),
       slug,
@@ -130,7 +114,7 @@ export async function createJob(
   } catch (err) {
     if (isUniqueConstraintViolation(err, 'jobs.slug')) {
       throw new FieldValidationError({
-        slug: [`Slug '${slug}' is already in use by another Job for this Customer`],
+        slug: [`Slug '${slug}' is already in use by another Job for this Workspace`],
       })
     }
     throw err
@@ -138,18 +122,18 @@ export async function createJob(
   if (input.trigger.triggerKind === 'interval') {
     await deps.enterIntervalMode(id)
   }
-  return getJobDetail(deps.db, customerSlug, slug)
+  return getJobDetail(deps.db, workspaceSlug, slug)
 }
 
 export async function updateJob(
   deps: JobsDeps,
-  customerSlug: string,
+  workspaceSlug: string,
   jobSlug: string,
   input: JobUpdateInput,
 ): Promise<Job> {
-  const current = await getJobDetail(deps.db, customerSlug, jobSlug)
+  const current = await getJobDetail(deps.db, workspaceSlug, jobSlug)
   const newTrig = triggerColumnsFor(input)
-  const targetId = await resolveTargetId(deps.db, current.customerId, input.targetSlug)
+  const targetId = await resolveTargetId(deps.db, current.workspaceId, input.targetSlug)
   const plan = planTriggerTransition({
     oldKind: current.triggerKind,
     newKind: input.trigger.triggerKind,
@@ -176,37 +160,37 @@ export async function updateJob(
     })
     .where(eq(jobs.id, current.id))
   await performModeChange(deps, current.id, plan.modeChange)
-  return getJobDetail(deps.db, customerSlug, jobSlug)
+  return getJobDetail(deps.db, workspaceSlug, jobSlug)
 }
 
 async function setJobStatus(
   db: Database,
-  customerSlug: string,
+  workspaceSlug: string,
   jobSlug: string,
   status: 'active' | 'paused' | 'archived',
   now: Date,
 ): Promise<Job> {
-  const job = await getJobDetail(db, customerSlug, jobSlug)
+  const job = await getJobDetail(db, workspaceSlug, jobSlug)
   await db.update(jobs).set({ status, updatedAt: now }).where(eq(jobs.id, job.id))
-  return getJobDetail(db, customerSlug, jobSlug)
+  return getJobDetail(db, workspaceSlug, jobSlug)
 }
 
-export async function pauseJob(deps: JobsDeps, customerSlug: string, jobSlug: string) {
-  return setJobStatus(deps.db, customerSlug, jobSlug, 'paused', deps.now?.() ?? new Date())
+export async function pauseJob(deps: JobsDeps, workspaceSlug: string, jobSlug: string) {
+  return setJobStatus(deps.db, workspaceSlug, jobSlug, 'paused', deps.now?.() ?? new Date())
 }
 
-export async function resumeJob(deps: JobsDeps, customerSlug: string, jobSlug: string) {
-  return setJobStatus(deps.db, customerSlug, jobSlug, 'active', deps.now?.() ?? new Date())
+export async function resumeJob(deps: JobsDeps, workspaceSlug: string, jobSlug: string) {
+  return setJobStatus(deps.db, workspaceSlug, jobSlug, 'active', deps.now?.() ?? new Date())
 }
 
-export async function archiveJob(deps: JobsDeps, customerSlug: string, jobSlug: string) {
-  return setJobStatus(deps.db, customerSlug, jobSlug, 'archived', deps.now?.() ?? new Date())
+export async function archiveJob(deps: JobsDeps, workspaceSlug: string, jobSlug: string) {
+  return setJobStatus(deps.db, workspaceSlug, jobSlug, 'archived', deps.now?.() ?? new Date())
 }
 
-export async function restoreJob(deps: JobsDeps, customerSlug: string, jobSlug: string) {
+export async function restoreJob(deps: JobsDeps, workspaceSlug: string, jobSlug: string) {
   const job = await setJobStatus(
     deps.db,
-    customerSlug,
+    workspaceSlug,
     jobSlug,
     'active',
     deps.now?.() ?? new Date(),
@@ -219,10 +203,10 @@ export async function restoreJob(deps: JobsDeps, customerSlug: string, jobSlug: 
 
 export async function runJobNow(
   deps: JobsDeps,
-  customerSlug: string,
+  workspaceSlug: string,
   jobSlug: string,
 ): Promise<Job> {
-  const job = await getJobDetail(deps.db, customerSlug, jobSlug)
+  const job = await getJobDetail(deps.db, workspaceSlug, jobSlug)
   if (job.status !== 'active') {
     throw new FieldValidationError({
       status: [`Job is ${job.status}; Run now is only available for active Jobs`],

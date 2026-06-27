@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { newId } from '@/lib/db/ids'
-import { alertRules, customers } from '@/lib/db/schema'
+import { alertRules, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { ArchiveBlockedError, FieldValidationError, NotFoundError } from '@/lib/errors'
 import { archiveChannel, createChannel, restoreChannel, updateChannel } from './commands'
 
-async function seedCustomer(db: ReturnType<typeof createTestDb>) {
+async function seedWorkspace(db: ReturnType<typeof createTestDb>) {
   const id = newId('cust')
-  await db.insert(customers).values({ id, name: 'Acme', slug: 'acme', timezone: 'UTC' })
+  await db.insert(workspaces).values({ id, name: 'Acme', slug: 'acme', timezone: 'UTC' })
   return id
 }
 
@@ -20,23 +20,23 @@ const teamsInput = {
 describe('createChannel', () => {
   it('inserts a channel with generated id + normalized slug', async () => {
     const db = createTestDb()
-    await seedCustomer(db)
+    await seedWorkspace(db)
     const channel = await createChannel(db, 'acme', teamsInput)
     expect(channel.id).toMatch(/^chn_/)
     expect(channel.slug).toBe('ops-teams')
     expect(channel.kind).toBe('teams')
   })
 
-  it('rejects duplicate slug per Customer', async () => {
+  it('rejects duplicate slug per Workspace', async () => {
     const db = createTestDb()
-    await seedCustomer(db)
+    await seedWorkspace(db)
     await createChannel(db, 'acme', teamsInput)
     await expect(
       createChannel(db, 'acme', { ...teamsInput, name: 'Other' }),
     ).rejects.toBeInstanceOf(FieldValidationError)
   })
 
-  it('NotFound when customer missing', async () => {
+  it('NotFound when workspace missing', async () => {
     const db = createTestDb()
     await expect(createChannel(db, 'missing', teamsInput)).rejects.toBeInstanceOf(NotFoundError)
   })
@@ -45,7 +45,7 @@ describe('createChannel', () => {
 describe('updateChannel', () => {
   it('updates name + config', async () => {
     const db = createTestDb()
-    await seedCustomer(db)
+    await seedWorkspace(db)
     await createChannel(db, 'acme', teamsInput)
     const updated = await updateChannel(db, 'acme', 'ops-teams', {
       name: 'Ops Teams (renamed)',
@@ -59,7 +59,7 @@ describe('updateChannel', () => {
 describe('archiveChannel', () => {
   it('archives when no active rule references the channel', async () => {
     const db = createTestDb()
-    await seedCustomer(db)
+    await seedWorkspace(db)
     await createChannel(db, 'acme', teamsInput)
     const archived = await archiveChannel(db, 'acme', 'ops-teams')
     expect(archived.status).toBe('archived')
@@ -67,11 +67,11 @@ describe('archiveChannel', () => {
 
   it('blocks when an active rule references the channel', async () => {
     const db = createTestDb()
-    const customerId = await seedCustomer(db)
+    const workspaceId = await seedWorkspace(db)
     const channel = await createChannel(db, 'acme', teamsInput)
     await db.insert(alertRules).values({
       id: newId('rul'),
-      customerId,
+      workspaceId,
       kind: 'first_failure',
       name: 'On first failure',
       slug: 'on-first-failure',
@@ -92,7 +92,7 @@ describe('archiveChannel', () => {
 describe('restoreChannel', () => {
   it('restores an archived channel round-trip', async () => {
     const db = createTestDb()
-    await seedCustomer(db)
+    await seedWorkspace(db)
     await createChannel(db, 'acme', teamsInput)
     await archiveChannel(db, 'acme', 'ops-teams')
     const restored = await restoreChannel(db, 'acme', 'ops-teams')

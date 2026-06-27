@@ -1,13 +1,13 @@
 import { queryOptions } from '@tanstack/react-query'
 import { getJobTemplateFn, listJobTemplatesFn } from './server-fns'
 
-export const listJobTemplatesQueryOptions = (customerSlug?: string, includeArchived = false) =>
+export const listJobTemplatesQueryOptions = (workspaceSlug?: string, includeArchived = false) =>
   queryOptions({
-    queryKey: ['job-templates', { customerSlug: customerSlug ?? null, includeArchived }],
+    queryKey: ['job-templates', { workspaceSlug: workspaceSlug ?? null, includeArchived }],
     queryFn: () =>
       listJobTemplatesFn({
         data: {
-          ...(customerSlug ? { customerSlug } : {}),
+          ...(workspaceSlug ? { workspaceSlug } : {}),
           includeArchived,
         },
       }),

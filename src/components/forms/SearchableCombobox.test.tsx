@@ -3,32 +3,32 @@ import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { SearchableCombobox } from './SearchableCombobox'
 
-interface Customer {
+interface Workspace {
   slug: string
   name: string
 }
 
-const acme: Customer = { slug: 'acme', name: 'Acme' }
-const beta: Customer = { slug: 'beta', name: 'Beta' }
-const switchthink: Customer = { slug: 'switchthink', name: 'SwitchThink' }
-const customers: Customer[] = [acme, beta, switchthink]
-const EMPTY_CUSTOMERS: Customer[] = []
+const acme: Workspace = { slug: 'acme', name: 'Acme' }
+const beta: Workspace = { slug: 'beta', name: 'Beta' }
+const switchthink: Workspace = { slug: 'switchthink', name: 'SwitchThink' }
+const workspaces: Workspace[] = [acme, beta, switchthink]
+const EMPTY_WORKSPACES: Workspace[] = []
 
 function Harness({
   initialValue = null,
-  recents = EMPTY_CUSTOMERS,
+  recents = EMPTY_WORKSPACES,
   createAffordance,
 }: {
-  initialValue?: Customer | null
-  recents?: Customer[]
-  createAffordance?: Parameters<typeof SearchableCombobox<Customer>>[0]['createAffordance']
+  initialValue?: Workspace | null
+  recents?: Workspace[]
+  createAffordance?: Parameters<typeof SearchableCombobox<Workspace>>[0]['createAffordance']
 }) {
-  const [value, setValue] = useState<Customer | null>(null)
+  const [value, setValue] = useState<Workspace | null>(null)
   const selected = value ?? initialValue
   return (
-    <SearchableCombobox<Customer>
-      label="Customer"
-      items={customers}
+    <SearchableCombobox<Workspace>
+      label="Workspace"
+      items={workspaces}
       recents={recents}
       value={selected}
       onValueChange={setValue}
@@ -60,7 +60,7 @@ describe('SearchableCombobox', () => {
   it('filters via fuzzy on input', () => {
     render(<Harness />)
     openPopup()
-    const input = screen.getByPlaceholderText(/Search customer/i)
+    const input = screen.getByPlaceholderText(/Search workspace/i)
     fireEvent.change(input, { target: { value: 'swit' } })
     const list = screen.getByRole('listbox')
     expect(within(list).queryByText('Acme')).toBeNull()
@@ -79,7 +79,7 @@ describe('SearchableCombobox', () => {
     const onCreate = vi.fn()
     render(<Harness createAffordance={{ enabled: true, onCreate }} />)
     openPopup()
-    const input = screen.getByPlaceholderText(/Search customer/i)
+    const input = screen.getByPlaceholderText(/Search workspace/i)
     fireEvent.change(input, { target: { value: 'zenith' } })
     const createBtn = screen.getByRole('button', { name: /Create "zenith"/ })
     fireEvent.click(createBtn)
@@ -97,7 +97,7 @@ describe('SearchableCombobox', () => {
       />,
     )
     openPopup()
-    const input = screen.getByPlaceholderText(/Search customer/i)
+    const input = screen.getByPlaceholderText(/Search workspace/i)
     fireEvent.change(input, { target: { value: 'zenith' } })
     const row = screen.getByText(/Create "zenith"/i)
     expect(row).toBeTruthy()
@@ -107,7 +107,7 @@ describe('SearchableCombobox', () => {
   it('suppresses the create row when the query exactly matches an existing item', () => {
     render(<Harness createAffordance={{ enabled: true, onCreate: vi.fn() }} />)
     openPopup()
-    const input = screen.getByPlaceholderText(/Search customer/i)
+    const input = screen.getByPlaceholderText(/Search workspace/i)
     fireEvent.change(input, { target: { value: 'Acme' } })
     expect(screen.queryByRole('button', { name: /Create "Acme"/ })).toBeNull()
   })

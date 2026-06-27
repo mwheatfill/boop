@@ -45,25 +45,32 @@ Canonical shadcn flat OKLCH tokens on `base-vega` (Base UI). Two blocks in `src/
 
 ## 4. Navigation layout
 
-**URLs nest under Customer** per [ADR-018](docs/adr/018-navigation-ia.md). Navigation surfaces are Jobs-first.
+**URLs nest under Workspace** per [ADR-027](docs/adr/027-domain-simplification-workspace-consolidation.md) (superseding ADR-018's Customer grammar). Navigation surfaces are Jobs-first; a Workspace switcher in the sidebar header scopes Workspace-owned surfaces.
 
 ```
-/                                                           Home (Jobs-first table)
-/customers                                                  Customer list
-/customers/$customerSlug                                    Customer hub
-/customers/$customerSlug/jobs/$jobSlug                      Job detail
-/customers/$customerSlug/jobs/$jobSlug/runs/$runId          Run detail
-/runs                                                       Cross-Customer Run history (PRD #21)
-/w/$customerSlug/$jobSlug                                   Public webhook receiver
+/                                                           Home (Jobs-first table, cross-Workspace)
+/jobs                                                       Jobs (cross-Workspace)
+/runs                                                       Run history (cross-Workspace)
+/templates                                                  Job templates
+/targets?ws=$slug                                           Targets (active-Workspace-scoped)
+/channels?ws=$slug                                          Channels (active-Workspace-scoped)
+/alert-rules?ws=$slug                                       AlertRules (active-Workspace-scoped)
+/workspaces                                                 Workspace list
+/workspaces/$workspaceSlug                                  Workspace hub (overview + Jobs)
+/workspaces/$workspaceSlug/jobs/$jobSlug                    Job detail
+/workspaces/$workspaceSlug/channels/$channelSlug            Channel detail (nested for slug-uniqueness)
+/w/$workspaceSlug/$jobSlug                                  Public webhook receiver
 ```
 
-**Current layout: inverted-L sidebar.** A fixed-left sidebar at ~16rem (~256px) collapses to a ~3rem icon rail. Sections from top: workspace mark, primary nav (Home, Jobs, Customers, Runs), `Recent` (shared store with the Cmd+K palette), `Pinned` (device-local, capped at 20), footer with theme toggle + user menu. Below the `md` breakpoint the sidebar becomes a slide-in drawer via the shadcn `sidebar` primitive's built-in `Sheet` integration. Content area scrolls independently. The brand-vs-UI-accent split holds: chrome stays monochrome with the cool-blue accent reserved for selection and primary action.
+The active Workspace is a retained `ws` search param (defaults to the first Workspace); the switcher sets it, and the Targets / Channels / AlertRules surfaces read it. Flat list, nested detail.
+
+**Current layout: inverted-L sidebar.** A fixed-left sidebar at ~16rem (~256px) collapses to a ~3rem icon rail. Sections from top: brand mark + Workspace switcher (current Workspace, click to switch; defaults to the active Workspace), primary nav (Home, Jobs, Templates, Workspaces, Runs, Targets, Channels, Alert Rules), `Recent` (shared store with the Cmd+K palette), `Pinned` (device-local, capped at 20), footer with theme toggle + user menu. Below the `md` breakpoint the sidebar becomes a slide-in drawer via the shadcn `sidebar` primitive's built-in `Sheet` integration. Content area scrolls independently. The brand-vs-UI-accent split holds: chrome stays monochrome with the cool-blue accent reserved for selection and primary action.
 
 **Title strategy:**
-- List views: small heading at top-left (`My Jobs`, `Customers`, `Runs`). The data is the focus, not the page name.
-- Detail views: large heading carrying the entity title (the Run, the Job, the Customer name).
+- List views: small heading at top-left (`My Jobs`, `Workspaces`, `Runs`). The data is the focus, not the page name.
+- Detail views: large heading carrying the entity title (the Run, the Job, the Workspace name).
 
-**Breadcrumbs reflect URL nesting** on detail pages: `Customers > Acme > Jobs > db-backup > Run`. Customer-nested URLs make this mechanical.
+**Breadcrumbs reflect URL nesting** on detail pages: `Workspaces > Acme > Jobs > db-backup > Run`. Workspace-nested URLs make this mechanical.
 
 ## 5. Lists and tables
 

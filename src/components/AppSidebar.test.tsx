@@ -36,6 +36,9 @@ vi.mock('@tanstack/react-router', () => {
   }
   return {
     Link,
+    useNavigate: () => () => {},
+    useParams: () => ({}),
+    useSearch: () => ({}),
     useRouterState: <T,>({ select }: { select: (s: { location: { pathname: string } }) => T }) =>
       select({ location: { pathname: activePath } }),
   }
@@ -65,12 +68,12 @@ beforeEach(() => {
 })
 
 describe('<AppSidebar>', () => {
-  it('renders all four primary nav items', () => {
+  it('renders the primary nav items', () => {
     renderSidebar()
     expect(screen.getByRole('link', { name: /home/i })).toBeTruthy()
     expect(screen.getByRole('link', { name: /jobs/i })).toBeTruthy()
-    expect(screen.getByRole('link', { name: /customers/i })).toBeTruthy()
     expect(screen.getByRole('link', { name: /runs/i })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /targets/i })).toBeTruthy()
   })
 
   it('marks the active route via data-active', () => {
@@ -81,14 +84,14 @@ describe('<AppSidebar>', () => {
     // the SidebarMenuButton's isActive prop is true. Either an empty
     // string or "true" indicates active state in the rendered DOM.
     expect(jobsLink.hasAttribute('data-active')).toBe(true)
-    const customersLink = screen.getByRole('link', { name: /customers/i })
-    expect(customersLink.hasAttribute('data-active')).toBe(false)
+    const runsLink = screen.getByRole('link', { name: /runs/i })
+    expect(runsLink.hasAttribute('data-active')).toBe(false)
   })
 
   it('shows empty Recent + Pinned hints when storage is empty', () => {
     renderSidebar()
     expect(screen.getByText(/visited entities will appear here/i)).toBeTruthy()
-    expect(screen.getByText(/pin a customer or job from its detail page/i)).toBeTruthy()
+    expect(screen.getByText(/pin a job from its detail page/i)).toBeTruthy()
   })
 
   it('renders recents from the shared store', () => {
@@ -96,8 +99,8 @@ describe('<AppSidebar>', () => {
       RECENTS_STORAGE_KEY,
       JSON.stringify([
         {
-          id: 'customer:acme',
-          entity: 'customer',
+          id: 'workspace:acme',
+          entity: 'workspace',
           label: 'Acme',
           slug: 'acme',
           visitedAt: Date.now(),
@@ -114,8 +117,8 @@ describe('<AppSidebar>', () => {
     localStorage.setItem(
       PINNED_STORAGE_KEY,
       JSON.stringify([
-        { id: 'a', kind: 'customer', label: 'Alpha', slug: 'a' },
-        { id: 'b', kind: 'customer', label: 'Bravo', slug: 'b' },
+        { id: 'a', kind: 'workspace', label: 'Alpha', slug: 'a' },
+        { id: 'b', kind: 'workspace', label: 'Bravo', slug: 'b' },
       ]),
     )
     renderSidebar()

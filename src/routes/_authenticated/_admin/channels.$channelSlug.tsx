@@ -5,56 +5,57 @@ import { toast } from 'sonner'
 import { ChannelDetailView } from '@/components/channels/ChannelDetailView'
 import { useShortcut } from '@/components/keyboard/use-shortcut'
 import { Button } from '@/components/ui/button'
-import { workspaceChannelQueryOptions } from '@/lib/channels/query-options'
-import {
-  archiveWorkspaceChannelFn,
-  restoreWorkspaceChannelFn,
-  sendWorkspaceTestAlertFn,
-} from '@/lib/channels/server-fns'
+import { channelQueryOptions } from '@/lib/channels/query-options'
+import { archiveChannelFn, restoreChannelFn, sendTestAlertFn } from '@/lib/channels/server-fns'
 
 export const Route = createFileRoute('/_authenticated/_admin/channels/$channelSlug')({
   loader: async ({ context, params }) => {
-    await context.queryClient.ensureQueryData(workspaceChannelQueryOptions(params.channelSlug))
+    await context.queryClient.ensureQueryData(
+      channelQueryOptions(context.workspaceSlug, params.channelSlug),
+    )
   },
-  component: WorkspaceChannelDetailPage,
+  component: ChannelDetailPage,
 })
 
-function WorkspaceChannelDetailPage() {
+function ChannelDetailPage() {
   const { channelSlug } = Route.useParams()
+  const { workspaceSlug } = Route.useRouteContext()
   const goTo = useNavigate()
   const queryClient = useQueryClient()
-  const { data: channel } = useSuspenseQuery(workspaceChannelQueryOptions(channelSlug))
+  const { data: channel } = useSuspenseQuery(channelQueryOptions(workspaceSlug, channelSlug))
 
   const archive = useMutation({
-    mutationFn: () => archiveWorkspaceChannelFn({ data: { channelSlug } }),
+    mutationFn: () => archiveChannelFn({ data: { workspaceSlug, channelSlug } }),
     onSuccess: async (result) => {
       if (!result.ok) {
         toast.error(result.message ?? 'Cannot archive')
         return
       }
       toast.success('Archived')
-      await queryClient.invalidateQueries({ queryKey: ['workspace', 'channels'] })
+      await queryClient.invalidateQueries({ queryKey: ['workspaces', workspaceSlug, 'channels'] })
       await goTo({ to: '/channels' })
     },
   })
 
   const restore = useMutation({
-    mutationFn: () => restoreWorkspaceChannelFn({ data: { channelSlug } }),
+    mutationFn: () => restoreChannelFn({ data: { workspaceSlug, channelSlug } }),
     onSuccess: async () => {
       toast.success('Restored')
-      await queryClient.invalidateQueries({ queryKey: ['workspace', 'channels'] })
+      await queryClient.invalidateQueries({ queryKey: ['workspaces', workspaceSlug, 'channels'] })
     },
   })
 
   const sendTest = useMutation({
-    mutationFn: () => sendWorkspaceTestAlertFn({ data: { channelSlug } }),
+    mutationFn: () => sendTestAlertFn({ data: { workspaceSlug, channelSlug } }),
     onSuccess: async (result) => {
       if (!result.ok) {
         toast.error(result.message ?? 'Could not queue test alert')
         return
       }
       toast.message('Test alert queued, watch for status below.')
-      await queryClient.invalidateQueries({ queryKey: ['workspace', 'channels', channelSlug] })
+      await queryClient.invalidateQueries({
+        queryKey: ['workspaces', workspaceSlug, 'channels', channelSlug],
+      })
     },
   })
 
@@ -74,7 +75,7 @@ function WorkspaceChannelDetailPage() {
     <>
       <ChannelDetailView
         channel={channel}
-        eyebrow={`Channel · workspace · ${channel.kind}`}
+        eyebrow={`Channel · ${channel.kind}`}
         backLink={
           <Link
             to="/channels"

@@ -30,7 +30,7 @@ function CommandDialog({
   open,
   onOpenChange,
   title = 'Command palette',
-  description = 'Search Customers, Jobs, and actions',
+  description = 'Search Workspaces, Jobs, and actions',
   children,
   ...props
 }: CommandDialogProps) {

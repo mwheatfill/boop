@@ -53,8 +53,8 @@ function adaptiveCard(body: AdaptiveCardElement[], action: AdaptiveCardAction): 
 
 function buildRunCard(ctx: Extract<AlertContext, { kind: 'run' }>): unknown {
   const headline = ctx.test
-    ? `boop test alert · ${ctx.customer_name}`
-    : `${ctx.customer_name} · ${ctx.job_name} · ${ctx.outcome}`
+    ? `boop test alert · ${ctx.workspace_name}`
+    : `${ctx.workspace_name} · ${ctx.job_name} · ${ctx.outcome}`
 
   const body: AdaptiveCardElement[] = [
     { type: 'TextBlock', text: headline, size: 'Large', weight: 'Bolder', wrap: true },
@@ -86,7 +86,7 @@ function buildMissedCard(ctx: Extract<AlertContext, { kind: 'missed' }>): unknow
   const body: AdaptiveCardElement[] = [
     {
       type: 'TextBlock',
-      text: `${ctx.customer_name} · ${ctx.job_name} has not fired in ${minutesLabel(
+      text: `${ctx.workspace_name} · ${ctx.job_name} has not fired in ${minutesLabel(
         ctx.silence_threshold_minutes,
       )}`,
       size: 'Large',

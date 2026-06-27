@@ -1,6 +1,8 @@
 # ADR-018: Navigation IA (Customer-nested URLs, Jobs-first navigation surfaces)
 
-![Status](https://img.shields.io/badge/status-Proposed-yellow) ![Date](https://img.shields.io/badge/date-2026--05--12-blue)
+![Status](https://img.shields.io/badge/status-Superseded%20for%20boop-lightgrey) ![Date](https://img.shields.io/badge/date-2026--05--12-blue)
+
+> Superseded in part by [ADR-027](027-domain-simplification-workspace-consolidation.md). The Customer-nested URL grammar is replaced by an active-Workspace context (switcher + default). The Jobs-first navigation principle below carries forward unchanged.
 
 ## Context
 

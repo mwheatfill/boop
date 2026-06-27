@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { createChannel } from '@/lib/channels/commands'
 import { newId } from '@/lib/db/ids'
-import { customers } from '@/lib/db/schema'
+import { workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { FieldValidationError } from '@/lib/errors'
 import { archiveAlertRule, createAlertRule, restoreAlertRule, updateAlertRule } from './commands'
 
-async function seedCustomer(db: ReturnType<typeof createTestDb>) {
+async function seedWorkspace(db: ReturnType<typeof createTestDb>) {
   const id = newId('cust')
-  await db.insert(customers).values({ id, name: 'Acme', slug: 'acme', timezone: 'UTC' })
+  await db.insert(workspaces).values({ id, name: 'Acme', slug: 'acme', timezone: 'UTC' })
   return id
 }
 
@@ -23,7 +23,7 @@ async function seedChannel(db: ReturnType<typeof createTestDb>, slug = 'ops-team
 describe('createAlertRule', () => {
   it('inserts a rule with validated channel ids', async () => {
     const db = createTestDb()
-    await seedCustomer(db)
+    await seedWorkspace(db)
     const channel = await seedChannel(db)
     const rule = await createAlertRule(db, 'acme', {
       name: 'On first failure',
@@ -35,9 +35,9 @@ describe('createAlertRule', () => {
     expect(rule.channelIds).toEqual([channel.id])
   })
 
-  it('rejects when a channel id does not belong to the customer', async () => {
+  it('rejects when a channel id does not belong to the workspace', async () => {
     const db = createTestDb()
-    await seedCustomer(db)
+    await seedWorkspace(db)
     await expect(
       createAlertRule(db, 'acme', {
         name: 'On first failure',
@@ -50,7 +50,7 @@ describe('createAlertRule', () => {
 
   it('rejects when the slug already exists', async () => {
     const db = createTestDb()
-    await seedCustomer(db)
+    await seedWorkspace(db)
     const channel = await seedChannel(db)
     await createAlertRule(db, 'acme', {
       name: 'Alert',
@@ -72,7 +72,7 @@ describe('createAlertRule', () => {
 describe('updateAlertRule', () => {
   it('updates kind, config, and channel set', async () => {
     const db = createTestDb()
-    await seedCustomer(db)
+    await seedWorkspace(db)
     const channel = await seedChannel(db)
     const otherChannel = await seedChannel(db, 'ops-email')
     await createAlertRule(db, 'acme', {
@@ -94,7 +94,7 @@ describe('updateAlertRule', () => {
 describe('archiveAlertRule + restoreAlertRule', () => {
   it('archive + restore round-trips status', async () => {
     const db = createTestDb()
-    await seedCustomer(db)
+    await seedWorkspace(db)
     const channel = await seedChannel(db)
     await createAlertRule(db, 'acme', {
       name: 'R',

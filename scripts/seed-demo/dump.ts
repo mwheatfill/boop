@@ -1,11 +1,11 @@
 export const TRACKING_TABLES = ['d1_migrations', 'sqlite_sequence'] as const
 
-// Insert order honors FK dependencies. customers and users are roots; targets
-// depend on customers; jobs depend on customers + targets; channels and
-// alert_rules depend on customers (and alert_rules optionally on jobs); runs
-// depend on jobs + customers; attempts depend on runs.
+// Insert order honors FK dependencies. workspaces and users are roots; targets
+// depend on workspaces; jobs depend on workspaces + targets; channels and
+// alert_rules depend on workspaces (and alert_rules optionally on jobs); runs
+// depend on jobs + workspaces; attempts depend on runs.
 export const FK_INSERT_ORDER = [
-  'customers',
+  'workspaces',
   'users',
   'targets',
   'jobs',

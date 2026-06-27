@@ -5,85 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1778566030624,
-      "tag": "0000_romantic_susan_delgado",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1778570126426,
-      "tag": "0001_slimy_sersi",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1778570647063,
-      "tag": "0002_youthful_magdalene",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1778596533724,
-      "tag": "0003_organic_scalphunter",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1778604109087,
-      "tag": "0004_cute_molecule_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1778609112728,
-      "tag": "0005_curvy_deathstrike",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "6",
-      "when": 1778616068530,
-      "tag": "0006_real_johnny_storm",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "6",
-      "when": 1778621912282,
-      "tag": "0007_eager_hellcat",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "6",
-      "when": 1778630016633,
-      "tag": "0008_medical_tiger_shark",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "6",
-      "when": 1778633085983,
-      "tag": "0009_worried_silver_surfer",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "6",
-      "when": 1778637619451,
-      "tag": "0010_moaning_bishop",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "6",
-      "when": 1778713075815,
-      "tag": "0011_fuzzy_triathlon",
+      "when": 1781145463291,
+      "tag": "0000_true_daredevil",
       "breakpoints": true
     }
   ]

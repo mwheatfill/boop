@@ -2,15 +2,16 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ChannelModal } from '@/components/forms/ChannelModal'
 
 export const Route = createFileRoute('/_authenticated/_admin/channels/new')({
-  component: NewWorkspaceChannelPage,
+  component: NewChannelPage,
 })
 
-function NewWorkspaceChannelPage() {
+function NewChannelPage() {
+  const { workspaceSlug } = Route.useRouteContext()
   const navigate = Route.useNavigate()
   return (
     <ChannelModal
       variant="create"
-      owner={{ scope: 'workspace' }}
+      owner={{ workspaceSlug }}
       onClose={() => navigate({ to: '/channels' })}
     />
   )

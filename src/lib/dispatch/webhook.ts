@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { customers, jobs, runs } from '@/lib/db/schema'
+import { jobs, runs, workspaces } from '@/lib/db/schema'
 import { logInfo, logWarn } from '@/lib/log'
 import { listActiveSecrets } from '@/lib/webhook-secrets/queries'
 import { verifyWebhook } from '@/lib/webhook-signing/verify'
@@ -24,7 +24,7 @@ function clientIp(request: Request): string | null {
 export async function handleWebhook(
   { db, dispatchQueue, rateLimit, now = () => new Date() }: WebhookDeps,
   request: Request,
-  customerSlug: string,
+  workspaceSlug: string,
   jobSlug: string,
 ): Promise<Response> {
   const ip = clientIp(request)
@@ -32,23 +32,23 @@ export async function handleWebhook(
   const [row] = await db
     .select({
       jobId: jobs.id,
-      customerId: customers.id,
+      workspaceId: workspaces.id,
       jobStatus: jobs.status,
       triggerKind: jobs.triggerKind,
     })
     .from(jobs)
-    .innerJoin(customers, eq(customers.id, jobs.customerId))
-    .where(and(eq(customers.slug, customerSlug), eq(jobs.slug, jobSlug)))
+    .innerJoin(workspaces, eq(workspaces.id, jobs.workspaceId))
+    .where(and(eq(workspaces.slug, workspaceSlug), eq(jobs.slug, jobSlug)))
     .limit(1)
 
   if (!row) {
-    logInfo('webhook.received', { customerSlug, jobSlug, accepted: false, reason: 'not_found' })
+    logInfo('webhook.received', { workspaceSlug, jobSlug, accepted: false, reason: 'not_found' })
     return Response.json({ error: NOT_FOUND_MESSAGE }, { status: 404 })
   }
 
   if (row.jobStatus !== 'active') {
     logInfo('webhook.received', {
-      customerSlug,
+      workspaceSlug,
       jobSlug,
       accepted: false,
       reason: `job_${row.jobStatus}`,
@@ -58,7 +58,7 @@ export async function handleWebhook(
 
   if (row.triggerKind !== 'webhook') {
     logInfo('webhook.received', {
-      customerSlug,
+      workspaceSlug,
       jobSlug,
       accepted: false,
       reason: 'trigger_kind_mismatch',
@@ -69,9 +69,9 @@ export async function handleWebhook(
     )
   }
 
-  const rateLimitResult = await rateLimit.limit({ key: customerSlug })
+  const rateLimitResult = await rateLimit.limit({ key: workspaceSlug })
   if (!rateLimitResult.success) {
-    logWarn('webhook.rate_limited', { customerSlug, jobSlug, ip })
+    logWarn('webhook.rate_limited', { workspaceSlug, jobSlug, ip })
     return Response.json({ error: 'rate_limit_exceeded' }, { status: 429 })
   }
 
@@ -86,7 +86,7 @@ export async function handleWebhook(
   })
   if (!verification.valid) {
     logWarn('webhook.rejected', {
-      customerSlug,
+      workspaceSlug,
       jobSlug,
       reason: verification.reason,
       ip,
@@ -101,7 +101,7 @@ export async function handleWebhook(
   await db.insert(runs).values({
     id: runId,
     jobId: row.jobId,
-    customerId: row.customerId,
+    workspaceId: row.workspaceId,
     scheduledAt,
     status: 'scheduled',
     triggerSource: 'webhook',
@@ -113,7 +113,7 @@ export async function handleWebhook(
     runId,
   })
   logInfo('webhook.received', {
-    customerSlug,
+    workspaceSlug,
     jobSlug,
     accepted: true,
     jobId: row.jobId,

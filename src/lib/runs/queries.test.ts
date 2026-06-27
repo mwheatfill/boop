@@ -1,36 +1,36 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { attempts, customers, jobs, runs, targets } from '@/lib/db/schema'
+import { attempts, jobs, runs, targets, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { RunsSearchSchema } from './filter-schema'
 import { getRunDetail, listAllRuns, listRunsForJob } from './queries'
 
 interface SeedJob {
-  customerId: string
+  workspaceId: string
   jobId: string
-  customerSlug: string
+  workspaceSlug: string
   jobSlug: string
 }
 
 async function seedJob(
   db: Database,
-  opts: { customerSlug?: string; jobSlug?: string } = {},
+  opts: { workspaceSlug?: string; jobSlug?: string } = {},
 ): Promise<SeedJob> {
-  const customerSlug = opts.customerSlug ?? 'acme'
+  const workspaceSlug = opts.workspaceSlug ?? 'acme'
   const jobSlug = opts.jobSlug ?? 'daily'
-  const customerId = newId('cust')
+  const workspaceId = newId('cust')
   const targetId = newId('tgt')
   const jobId = newId('job')
-  await db.insert(customers).values({
-    id: customerId,
-    name: customerSlug,
-    slug: customerSlug,
+  await db.insert(workspaces).values({
+    id: workspaceId,
+    name: workspaceSlug,
+    slug: workspaceSlug,
     timezone: 'UTC',
   })
   await db.insert(targets).values({
     id: targetId,
-    customerId,
+    workspaceId,
     name: 'API',
     slug: 'api',
     url: 'https://example.com',
@@ -38,7 +38,7 @@ async function seedJob(
   })
   await db.insert(jobs).values({
     id: jobId,
-    customerId,
+    workspaceId,
     targetId,
     name: 'Daily',
     slug: jobSlug,
@@ -46,7 +46,7 @@ async function seedJob(
     cronExpression: '* * * * *',
     triggerTimezone: 'UTC',
   })
-  return { customerId, jobId, customerSlug, jobSlug }
+  return { workspaceId, jobId, workspaceSlug, jobSlug }
 }
 
 interface RunSeed {
@@ -60,14 +60,14 @@ interface RunSeed {
 
 async function seedRun(
   db: Database,
-  { customerId, jobId }: SeedJob,
+  { workspaceId, jobId }: SeedJob,
   seed: RunSeed,
 ): Promise<string> {
   const id = seed.id ?? newId('run')
   await db.insert(runs).values({
     id,
     jobId,
-    customerId,
+    workspaceId,
     scheduledAt: seed.startedAt,
     startedAt: seed.startedAt,
     completedAt: new Date(seed.startedAt.getTime() + 1_000),
@@ -98,17 +98,17 @@ async function seedAttempt(
 }
 
 describe('getRunDetail', () => {
-  it('returns the joined Run + Job + Customer + Target + Attempts in attempt order', async () => {
+  it('returns the joined Run + Job + Workspace + Target + Attempts in attempt order', async () => {
     const db = createTestDb()
     const seed = await seedJob(db)
     const runId = await seedRun(db, seed, { startedAt: new Date('2026-05-12T15:00:00.000Z') })
     await seedAttempt(db, runId, 2)
     await seedAttempt(db, runId, 1)
 
-    const detail = await getRunDetail(db, seed.customerSlug, seed.jobSlug, runId)
+    const detail = await getRunDetail(db, seed.workspaceSlug, seed.jobSlug, runId)
     expect(detail).not.toBeNull()
     expect(detail?.run.id).toBe(runId)
-    expect(detail?.customer.slug).toBe('acme')
+    expect(detail?.workspace.slug).toBe('acme')
     expect(detail?.job.slug).toBe('daily')
     expect(detail?.attempts.map((a) => a.attemptNumber)).toEqual([1, 2])
     expect(detail?.attempts[0]?.requestHeaders).toEqual({ 'X-Run': runId })
@@ -123,7 +123,7 @@ describe('getRunDetail', () => {
       outcome: null,
       skippedReason: 'job paused',
     })
-    const detail = await getRunDetail(db, seed.customerSlug, seed.jobSlug, runId)
+    const detail = await getRunDetail(db, seed.workspaceSlug, seed.jobSlug, runId)
     expect(detail?.displayOutcome).toBe('skipped')
     expect(detail?.run.skippedReason).toBe('job paused')
   })
@@ -131,15 +131,15 @@ describe('getRunDetail', () => {
   it('returns null for unknown id', async () => {
     const db = createTestDb()
     const seed = await seedJob(db)
-    expect(await getRunDetail(db, seed.customerSlug, seed.jobSlug, 'run_missing')).toBeNull()
+    expect(await getRunDetail(db, seed.workspaceSlug, seed.jobSlug, 'run_missing')).toBeNull()
   })
 
-  it('returns null when the runId does not belong to the given (customer, job) pair', async () => {
+  it('returns null when the runId does not belong to the given (workspace, job) pair', async () => {
     const db = createTestDb()
-    const a = await seedJob(db, { customerSlug: 'acme', jobSlug: 'daily' })
-    const b = await seedJob(db, { customerSlug: 'beta', jobSlug: 'hourly' })
+    const a = await seedJob(db, { workspaceSlug: 'acme', jobSlug: 'daily' })
+    const b = await seedJob(db, { workspaceSlug: 'beta', jobSlug: 'hourly' })
     const aRunId = await seedRun(db, a, { startedAt: new Date('2026-05-12T15:00:00.000Z') })
-    expect(await getRunDetail(db, b.customerSlug, b.jobSlug, aRunId)).toBeNull()
+    expect(await getRunDetail(db, b.workspaceSlug, b.jobSlug, aRunId)).toBeNull()
   })
 })
 
@@ -190,15 +190,15 @@ describe('listAllRuns', () => {
     expect(result.rows.map((r) => r.triggerSource)).toEqual(['manual'])
   })
 
-  it('filters by customer slug (multi-select)', async () => {
+  it('filters by workspace slug (multi-select)', async () => {
     const db = createTestDb()
-    const a = await seedJob(db, { customerSlug: 'acme', jobSlug: 'a' })
-    const b = await seedJob(db, { customerSlug: 'beta', jobSlug: 'b' })
+    const a = await seedJob(db, { workspaceSlug: 'acme', jobSlug: 'a' })
+    const b = await seedJob(db, { workspaceSlug: 'beta', jobSlug: 'b' })
     await seedRun(db, a, { startedAt: new Date('2026-05-12T14:00:00.000Z') })
     await seedRun(db, b, { startedAt: new Date('2026-05-12T13:00:00.000Z') })
-    const filters = RunsSearchSchema.parse({ customer: 'beta' })
+    const filters = RunsSearchSchema.parse({ workspace: 'beta' })
     const result = await listAllRuns(db, { filters, now })
-    expect(result.rows.map((r) => r.customerSlug)).toEqual(['beta'])
+    expect(result.rows.map((r) => r.workspaceSlug)).toEqual(['beta'])
   })
 
   it('cursor-paginates across an exact page boundary', async () => {
@@ -251,8 +251,8 @@ describe('listRunsForJob', () => {
 
   it('returns Runs for the job in startedAt DESC order with cursor pagination', async () => {
     const db = createTestDb()
-    const a = await seedJob(db, { customerSlug: 'acme', jobSlug: 'a' })
-    const b = await seedJob(db, { customerSlug: 'acme-2', jobSlug: 'b' })
+    const a = await seedJob(db, { workspaceSlug: 'acme', jobSlug: 'a' })
+    const b = await seedJob(db, { workspaceSlug: 'acme-2', jobSlug: 'b' })
     await seedRun(db, a, { startedAt: new Date('2026-05-12T14:00:00.000Z') })
     await seedRun(db, a, { startedAt: new Date('2026-05-12T13:00:00.000Z') })
     await seedRun(db, b, { startedAt: new Date('2026-05-12T12:00:00.000Z') })

@@ -1,6 +1,8 @@
 # ADR-025: Workspace scope on Channels and AlertRules, additive override hierarchy
 
-![Status](https://img.shields.io/badge/status-Proposed-yellow) ![Date](https://img.shields.io/badge/date-2026--05--12-blue)
+![Status](https://img.shields.io/badge/status-Superseded-lightgrey) ![Date](https://img.shields.io/badge/date-2026--05--12-blue)
+
+> Superseded by [ADR-027](027-domain-simplification-workspace-consolidation.md). The Customer tier is removed: `Workspace` replaces `Customer` as the single org tier, a `Channel` belongs to one Workspace, and AlertRule scope reduces to `workspace` or `job`. The additive override semantics below carry forward across the two remaining tiers.
 
 ## Context
 

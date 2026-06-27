@@ -2,7 +2,7 @@ export type Profile = 'demo' | 'stress' | 'minimal'
 
 export type ProfileConfig = {
   historyDays: number
-  customerSlugs: 'all' | readonly string[]
+  workspaceSlugs: 'all' | readonly string[]
   jobSlugs: 'all' | readonly string[]
 }
 
@@ -11,17 +11,17 @@ const ALL_OF: 'all' = 'all'
 export const PROFILES: Record<Profile, ProfileConfig> = {
   demo: {
     historyDays: 14,
-    customerSlugs: ALL_OF,
+    workspaceSlugs: ['desert-vista-cu'],
     jobSlugs: ALL_OF,
   },
   stress: {
     historyDays: 90,
-    customerSlugs: ALL_OF,
+    workspaceSlugs: ALL_OF,
     jobSlugs: ALL_OF,
   },
   minimal: {
     historyDays: 3,
-    customerSlugs: ['desert-vista-cu'],
+    workspaceSlugs: ['desert-vista-cu'],
     jobSlugs: [
       'core-banking-probe',
       'ach-transactions-ingest',

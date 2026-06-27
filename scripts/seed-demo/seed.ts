@@ -6,21 +6,21 @@ import {
   alertRules,
   attempts,
   channels,
-  customers,
   jobs,
   runs,
   targets,
   users,
+  workspaces,
 } from '@/lib/db/schema'
 import { alertRuleRow, DEMO_ALERT_RULES } from './alert-rules'
 import { channelRow, DEMO_CHANNELS } from './channels'
-import { customerRow, DEMO_CUSTOMERS } from './customers'
 import { DEMO_JOBS, jobRow } from './jobs'
 import { isProfile, PROFILES, type Profile } from './manifest'
 import { DEMO_OPERATORS, operatorRow } from './operators'
 import { createPrng } from './prng'
 import { generateRunsForJob } from './runs'
 import { DEMO_TARGETS, targetRow } from './targets'
+import { DEMO_WORKSPACES, workspaceRow } from './workspaces'
 
 export type SeedOptions = {
   profile: Profile
@@ -35,7 +35,7 @@ export type SeedProgressEvent = {
 }
 
 export type SeedCounts = {
-  customers: number
+  workspaces: number
   operators: number
   targets: number
   jobs: number
@@ -55,27 +55,27 @@ export async function seedDemoData(db: Database, options: SeedOptions): Promise<
   const profile = PROFILES[options.profile]
   const log = options.onProgress ?? (() => {})
 
-  const customerSpecs = filterByField(DEMO_CUSTOMERS, 'slug', profile.customerSlugs)
-  const customerSlugSet = new Set(customerSpecs.map((c) => c.slug))
-  const jobSpecsAll = DEMO_JOBS.filter((j) => customerSlugSet.has(j.customerSlug))
+  const workspaceSpecs = filterByField(DEMO_WORKSPACES, 'slug', profile.workspaceSlugs)
+  const workspaceSlugSet = new Set(workspaceSpecs.map((c) => c.slug))
+  const jobSpecsAll = DEMO_JOBS.filter((j) => workspaceSlugSet.has(j.workspaceSlug))
   const jobSpecs = filterByField(jobSpecsAll, 'slug', profile.jobSlugs)
   const allowedJobSlugSet = new Set(jobSpecs.map((j) => j.slug))
-  const targetSpecs = DEMO_TARGETS.filter((t) => customerSlugSet.has(t.customerSlug))
-  const channelSpecs = DEMO_CHANNELS.filter((c) => customerSlugSet.has(c.customerSlug))
+  const targetSpecs = DEMO_TARGETS.filter((t) => workspaceSlugSet.has(t.workspaceSlug))
+  const channelSpecs = DEMO_CHANNELS.filter((c) => workspaceSlugSet.has(c.workspaceSlug))
   const alertRuleSpecs = DEMO_ALERT_RULES.filter(
     (r) =>
-      customerSlugSet.has(r.customerSlug) &&
+      workspaceSlugSet.has(r.workspaceSlug) &&
       (r.jobSlug === null || allowedJobSlugSet.has(r.jobSlug)),
   )
 
-  log({ kind: 'phase', message: 'Upserting Customers' })
-  const customerRows = customerSpecs.map((c) => customerRow(c, now))
-  await upsertBatched(db, customers, customerRows)
-  const customerIdBySlug = new Map<string, string>()
-  const customerCreatedAtBySlug = new Map<string, Date>()
-  for (const row of customerRows) {
-    customerIdBySlug.set(row.slug, row.id)
-    customerCreatedAtBySlug.set(row.slug, row.createdAt as Date)
+  log({ kind: 'phase', message: 'Upserting Workspaces' })
+  const workspaceRows = workspaceSpecs.map((c) => workspaceRow(c, now))
+  await upsertBatched(db, workspaces, workspaceRows)
+  const workspaceIdBySlug = new Map<string, string>()
+  const workspaceCreatedAtBySlug = new Map<string, Date>()
+  for (const row of workspaceRows) {
+    workspaceIdBySlug.set(row.slug, row.id)
+    workspaceCreatedAtBySlug.set(row.slug, row.createdAt as Date)
   }
 
   log({ kind: 'phase', message: 'Upserting Operators' })
@@ -86,12 +86,12 @@ export async function seedDemoData(db: Database, options: SeedOptions): Promise<
   const targetRows: ReturnType<typeof targetRow>[] = []
   const targetIdByKey = new Map<string, string>()
   for (const t of targetSpecs) {
-    const cId = customerIdBySlug.get(t.customerSlug)
-    if (!cId) throw new Error(`Target ${t.slug} references unknown Customer ${t.customerSlug}`)
-    const createdAt = customerCreatedAtBySlug.get(t.customerSlug) ?? now
+    const cId = workspaceIdBySlug.get(t.workspaceSlug)
+    if (!cId) throw new Error(`Target ${t.slug} references unknown Workspace ${t.workspaceSlug}`)
+    const createdAt = workspaceCreatedAtBySlug.get(t.workspaceSlug) ?? now
     const row = targetRow(t, cId, createdAt)
     targetRows.push(row)
-    targetIdByKey.set(targetKey(t.customerSlug, t.slug), row.id)
+    targetIdByKey.set(targetKey(t.workspaceSlug, t.slug), row.id)
   }
   await upsertBatched(db, targets, targetRows)
 
@@ -99,16 +99,16 @@ export async function seedDemoData(db: Database, options: SeedOptions): Promise<
   const jobRows: ReturnType<typeof jobRow>[] = []
   const jobIdBySlug = new Map<string, string>()
   for (const j of jobSpecs) {
-    const cId = customerIdBySlug.get(j.customerSlug)
-    if (!cId) throw new Error(`Job ${j.slug} references unknown Customer ${j.customerSlug}`)
-    const tId = targetIdByKey.get(targetKey(j.customerSlug, j.targetSlug))
+    const cId = workspaceIdBySlug.get(j.workspaceSlug)
+    if (!cId) throw new Error(`Job ${j.slug} references unknown Workspace ${j.workspaceSlug}`)
+    const tId = targetIdByKey.get(targetKey(j.workspaceSlug, j.targetSlug))
     if (!tId) {
-      throw new Error(`Job ${j.slug} references unknown Target ${j.customerSlug}/${j.targetSlug}`)
+      throw new Error(`Job ${j.slug} references unknown Target ${j.workspaceSlug}/${j.targetSlug}`)
     }
-    const createdAt = customerCreatedAtBySlug.get(j.customerSlug) ?? now
+    const createdAt = workspaceCreatedAtBySlug.get(j.workspaceSlug) ?? now
     const row = jobRow(j, cId, tId, createdAt)
     jobRows.push(row)
-    jobIdBySlug.set(jobKey(j.customerSlug, j.slug), row.id)
+    jobIdBySlug.set(jobKey(j.workspaceSlug, j.slug), row.id)
   }
   await upsertBatched(db, jobs, jobRows)
 
@@ -116,26 +116,26 @@ export async function seedDemoData(db: Database, options: SeedOptions): Promise<
   const channelRows: ReturnType<typeof channelRow>[] = []
   const channelIdByKey = new Map<string, string>()
   for (const c of channelSpecs) {
-    const cId = customerIdBySlug.get(c.customerSlug)
-    if (!cId) throw new Error(`Channel ${c.slug} references unknown Customer ${c.customerSlug}`)
-    const createdAt = customerCreatedAtBySlug.get(c.customerSlug) ?? now
+    const cId = workspaceIdBySlug.get(c.workspaceSlug)
+    if (!cId) throw new Error(`Channel ${c.slug} references unknown Workspace ${c.workspaceSlug}`)
+    const createdAt = workspaceCreatedAtBySlug.get(c.workspaceSlug) ?? now
     const row = channelRow(c, cId, createdAt)
     channelRows.push(row)
-    channelIdByKey.set(channelKey(c.customerSlug, c.slug), row.id)
+    channelIdByKey.set(channelKey(c.workspaceSlug, c.slug), row.id)
   }
   await upsertBatched(db, channels, channelRows)
 
   log({ kind: 'phase', message: 'Upserting AlertRules' })
   const alertRuleRows: ReturnType<typeof alertRuleRow>[] = []
   for (const r of alertRuleSpecs) {
-    const cId = customerIdBySlug.get(r.customerSlug)
+    const cId = workspaceIdBySlug.get(r.workspaceSlug)
     if (!cId) continue
-    const jId = r.jobSlug ? (jobIdBySlug.get(jobKey(r.customerSlug, r.jobSlug)) ?? null) : null
+    const jId = r.jobSlug ? (jobIdBySlug.get(jobKey(r.workspaceSlug, r.jobSlug)) ?? null) : null
     const channelIds = r.channelSlugs.flatMap((slug) => {
-      const id = channelIdByKey.get(channelKey(r.customerSlug, slug))
+      const id = channelIdByKey.get(channelKey(r.workspaceSlug, slug))
       return id ? [id] : []
     })
-    const createdAt = customerCreatedAtBySlug.get(r.customerSlug) ?? now
+    const createdAt = workspaceCreatedAtBySlug.get(r.workspaceSlug) ?? now
     alertRuleRows.push(alertRuleRow(r, cId, jId, channelIds, createdAt))
   }
   await upsertBatched(db, alertRules, alertRuleRows)
@@ -144,21 +144,21 @@ export async function seedDemoData(db: Database, options: SeedOptions): Promise<
   const windowEnd = now
   const windowStart = new Date(windowEnd.getTime() - profile.historyDays * 86400_000)
 
-  const customerTimezoneBySlug = new Map(customerSpecs.map((c) => [c.slug, c.timezone]))
+  const workspaceTimezoneBySlug = new Map(workspaceSpecs.map((c) => [c.slug, c.timezone]))
 
   const generated = await Promise.all(
     jobSpecs.map(async (spec) => {
-      const jobId = jobIdBySlug.get(jobKey(spec.customerSlug, spec.slug))
-      const customerId = customerIdBySlug.get(spec.customerSlug)
-      if (!jobId || !customerId) return { runs: 0, attempts: 0 }
-      const customerTimezone = customerTimezoneBySlug.get(spec.customerSlug) ?? 'America/Phoenix'
+      const jobId = jobIdBySlug.get(jobKey(spec.workspaceSlug, spec.slug))
+      const workspaceId = workspaceIdBySlug.get(spec.workspaceSlug)
+      if (!jobId || !workspaceId) return { runs: 0, attempts: 0 }
+      const workspaceTimezone = workspaceTimezoneBySlug.get(spec.workspaceSlug) ?? 'America/Phoenix'
       const { runs: runRows, attempts: attemptRows } = generateRunsForJob(
         {
           spec,
           jobId,
-          customerId,
-          customerSlug: spec.customerSlug,
-          customerTimezone,
+          workspaceId,
+          workspaceSlug: spec.workspaceSlug,
+          workspaceTimezone,
         },
         windowStart,
         windowEnd,
@@ -167,7 +167,7 @@ export async function seedDemoData(db: Database, options: SeedOptions): Promise<
       if (runRows.length === 0) return { runs: 0, attempts: 0 }
       await insertBatched(db, runs, runRows)
       await insertBatched(db, attempts, attemptRows)
-      log({ kind: 'progress', message: `${spec.customerSlug}/${spec.slug}`, rows: runRows.length })
+      log({ kind: 'progress', message: `${spec.workspaceSlug}/${spec.slug}`, rows: runRows.length })
       return { runs: runRows.length, attempts: attemptRows.length }
     }),
   )
@@ -178,7 +178,7 @@ export async function seedDemoData(db: Database, options: SeedOptions): Promise<
   await stampRecentAlertSignals(db, alertRuleRows, channelRows, windowEnd)
 
   return {
-    customers: customerRows.length,
+    workspaces: workspaceRows.length,
     operators: operatorRows.length,
     targets: targetRows.length,
     jobs: jobRows.length,
@@ -304,12 +304,12 @@ function filterByField<T extends Record<string, unknown>, K extends keyof T>(
   return items.filter((item) => allowSet.has(item[field] as string))
 }
 
-function targetKey(customerSlug: string, slug: string): string {
-  return `${customerSlug}/${slug}`
+function targetKey(workspaceSlug: string, slug: string): string {
+  return `${workspaceSlug}/${slug}`
 }
-function jobKey(customerSlug: string, slug: string): string {
-  return `${customerSlug}/${slug}`
+function jobKey(workspaceSlug: string, slug: string): string {
+  return `${workspaceSlug}/${slug}`
 }
-function channelKey(customerSlug: string, slug: string): string {
-  return `${customerSlug}/${slug}`
+function channelKey(workspaceSlug: string, slug: string): string {
+  return `${workspaceSlug}/${slug}`
 }

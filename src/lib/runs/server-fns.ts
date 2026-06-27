@@ -38,17 +38,17 @@ export const listRunsForJobFn = createServerFn({ method: 'GET' })
 
 export const getRunFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .inputValidator((data: { customerSlug: string; jobSlug: string; runId: string }) =>
+  .inputValidator((data: { workspaceSlug: string; jobSlug: string; runId: string }) =>
     z
       .object({
-        customerSlug: z.string().min(1),
+        workspaceSlug: z.string().min(1),
         jobSlug: z.string().min(1),
         runId: z.string().min(1),
       })
       .parse(data),
   )
   .handler(async ({ data }) =>
-    getRunDetail(createDb(env.DB), data.customerSlug, data.jobSlug, data.runId),
+    getRunDetail(createDb(env.DB), data.workspaceSlug, data.jobSlug, data.runId),
   )
 
 interface BodyPreview {

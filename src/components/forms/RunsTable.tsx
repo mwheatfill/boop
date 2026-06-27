@@ -9,26 +9,12 @@ import type { RunSummaryRow } from '@/shared/schemas/run'
 export function runsColumns(): ColumnDef<RunSummaryRow>[] {
   return [
     {
-      accessorKey: 'customerName',
-      header: 'Customer',
-      cell: ({ row }) => (
-        <Link
-          to="/customers/$customerSlug"
-          params={{ customerSlug: row.original.customerSlug }}
-          className="text-sm hover:underline"
-        >
-          {row.original.customerName}
-        </Link>
-      ),
-    },
-    {
       accessorKey: 'jobName',
       header: 'Job',
       cell: ({ row }) => (
         <Link
-          to="/customers/$customerSlug/jobs/$jobSlug"
+          to="/jobs/$jobSlug"
           params={{
-            customerSlug: row.original.customerSlug,
             jobSlug: row.original.jobSlug,
           }}
           className="font-medium text-foreground hover:underline"
@@ -67,9 +53,8 @@ export function runsColumns(): ColumnDef<RunSummaryRow>[] {
       header: '',
       cell: ({ row }) => (
         <Link
-          to="/customers/$customerSlug/jobs/$jobSlug/runs/$runId"
+          to="/jobs/$jobSlug/runs/$runId"
           params={{
-            customerSlug: row.original.customerSlug,
             jobSlug: row.original.jobSlug,
             runId: row.original.id,
           }}

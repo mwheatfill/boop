@@ -5,7 +5,7 @@ describe('RunsSearchSchema', () => {
   it('falls back to the 24h range with no input', () => {
     const result = RunsSearchSchema.parse({})
     expect(result.range).toBe('24h')
-    expect(result.customer).toBeUndefined()
+    expect(result.workspace).toBeUndefined()
     expect(result.status).toBeUndefined()
   })
 
@@ -29,9 +29,9 @@ describe('RunsSearchSchema', () => {
     expect(result.status).toEqual(['running'])
   })
 
-  it('accepts CSV customer slugs and trims whitespace', () => {
-    const result = RunsSearchSchema.parse({ customer: 'acme, beta' })
-    expect(result.customer).toEqual(['acme', 'beta'])
+  it('accepts CSV workspace slugs and trims whitespace', () => {
+    const result = RunsSearchSchema.parse({ workspace: 'acme, beta' })
+    expect(result.workspace).toEqual(['acme', 'beta'])
   })
 
   it('passes through a valid ISO datetime in from/to', () => {

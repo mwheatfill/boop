@@ -2,15 +2,15 @@ import { eq } from 'drizzle-orm'
 import { enqueueAlertBatch } from '@/lib/alert-queue/producer'
 import type { AlertQueueMessage } from '@/lib/alert-queue/types'
 import { evaluateRulesForRun } from '@/lib/alert-rules/evaluator'
-import { fetchActiveSecretPlaintext } from '@/lib/customer-secrets/commands'
 import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { attempts, customers, jobs, runs, targets } from '@/lib/db/schema'
+import { attempts, jobs, runs, targets, workspaces } from '@/lib/db/schema'
 import { logError, logInfo } from '@/lib/log'
 import { redactHeaders } from '@/lib/runs/header-redaction'
-import { mergeEffectiveVariables } from '@/shared/schemas/customer-variables'
+import { fetchActiveSecretPlaintext } from '@/lib/workspace-secrets/commands'
 import type { TriggerSource } from '@/shared/schemas/run'
+import { mergeEffectiveVariables } from '@/shared/schemas/workspace-variables'
 import { claimJob, releaseJob } from './claim'
 import {
   ClaimFailedError,
@@ -44,12 +44,12 @@ export interface DispatchDeps {
 async function evaluateAndEnqueueAlerts(
   db: Database,
   alertQueue: Queue<AlertQueueMessage>,
-  customerId: string,
+  workspaceId: string,
   jobId: string,
   runId: string,
 ): Promise<void> {
   try {
-    const firing = await evaluateRulesForRun({ db, customerId, jobId, runId })
+    const firing = await evaluateRulesForRun({ db, workspaceId, jobId, runId })
     if (firing.length === 0) {
       logInfo('alert.evaluated', { jobId, runId, firingCount: 0 })
       return
@@ -76,7 +76,7 @@ async function evaluateAndEnqueueAlerts(
 }
 
 type Job = typeof jobs.$inferSelect
-type Customer = typeof customers.$inferSelect
+type Workspace = typeof workspaces.$inferSelect
 type Target = typeof targets.$inferSelect
 type FailureKind = NonNullable<(typeof attempts.$inferSelect)['failureKind']>
 type Outcome = NonNullable<(typeof runs.$inferSelect)['outcome']>
@@ -106,17 +106,17 @@ function outcomeFor(lastError: unknown): Outcome {
 
 async function readJoined(db: Database, jobId: string) {
   const row = await db
-    .select({ job: jobs, customer: customers, target: targets })
+    .select({ job: jobs, workspace: workspaces, target: targets })
     .from(jobs)
-    .innerJoin(customers, eq(customers.id, jobs.customerId))
+    .innerJoin(workspaces, eq(workspaces.id, jobs.workspaceId))
     .innerJoin(targets, eq(targets.id, jobs.targetId))
     .where(eq(jobs.id, jobId))
     .limit(1)
   return row[0] ?? null
 }
 
-function effectiveTimezone(job: Job, customer: Customer) {
-  return job.triggerTimezone ?? customer.timezone
+function effectiveTimezone(job: Job, workspace: Workspace) {
+  return job.triggerTimezone ?? workspace.timezone
 }
 
 function parseHeaders(rendered: string): Record<string, string> {
@@ -291,10 +291,10 @@ export async function runDispatch(
       if (preCreatedRunId) await cancelPreCreatedRun(db, preCreatedRunId, 'not_found')
       throw new JobNotDispatchableError(jobId, 'not_found')
     }
-    const { job, customer, target } = joined
-    if (customer.status === 'archived') {
-      if (preCreatedRunId) await cancelPreCreatedRun(db, preCreatedRunId, 'customer_archived')
-      throw new JobNotDispatchableError(jobId, 'customer_archived')
+    const { job, workspace, target } = joined
+    if (workspace.status === 'archived') {
+      if (preCreatedRunId) await cancelPreCreatedRun(db, preCreatedRunId, 'workspace_archived')
+      throw new JobNotDispatchableError(jobId, 'workspace_archived')
     }
     if (job.status === 'paused' || job.status === 'archived') {
       if (preCreatedRunId) await cancelPreCreatedRun(db, preCreatedRunId, `job_${job.status}`)
@@ -313,7 +313,7 @@ export async function runDispatch(
       await db.insert(runs).values({
         id: runId,
         jobId: job.id,
-        customerId: customer.id,
+        workspaceId: workspace.id,
         scheduledAt,
         startedAt,
         status: 'running',
@@ -327,14 +327,14 @@ export async function runDispatch(
       const renderCtx = {
         runId,
         attemptNumber: 1,
-        customerName: customer.name,
-        customerTimezone: effectiveTimezone(job, customer),
+        workspaceName: workspace.name,
+        workspaceTimezone: effectiveTimezone(job, workspace),
         now: startedAt,
-        variables: mergeEffectiveVariables(customer.variables, job.variables),
+        variables: mergeEffectiveVariables(workspace.variables, job.variables),
         ...(kek
           ? {
               secretResolver: (name: string) =>
-                fetchActiveSecretPlaintext({ db, kek }, customer.id, name),
+                fetchActiveSecretPlaintext({ db, kek }, workspace.id, name),
             }
           : {}),
       }
@@ -360,8 +360,8 @@ export async function runDispatch(
       const attemptNumber = attemptIndex + 1
       const attemptId = newId('att')
       const attemptStartedAt = new Date()
-      const requestKey = r2KeyFor(customer.id, runId, attemptNumber, 'request')
-      const responseKey = r2KeyFor(customer.id, runId, attemptNumber, 'response')
+      const requestKey = r2KeyFor(workspace.id, runId, attemptNumber, 'request')
+      const responseKey = r2KeyFor(workspace.id, runId, attemptNumber, 'response')
 
       await Promise.all([
         db.insert(attempts).values({
@@ -455,7 +455,7 @@ export async function runDispatch(
     })
 
     if (alertQueue) {
-      await evaluateAndEnqueueAlerts(db, alertQueue, customer.id, job.id, runId)
+      await evaluateAndEnqueueAlerts(db, alertQueue, workspace.id, job.id, runId)
     }
 
     if (lastError !== null && isRetryableDispatchError(lastError)) {
@@ -472,7 +472,7 @@ export async function dispatchRun(
   scheduledAt: Date,
   triggerSource: TriggerSource = 'cron',
 ): Promise<void> {
-  // KEK is optional; without it customer-secret substitution is skipped.
+  // KEK is optional; without it workspace-secret substitution is skipped.
   let kek: string | undefined
   try {
     kek = await env.BOOP_SECRETS_KEK?.get()

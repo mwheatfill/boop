@@ -4,15 +4,12 @@ import { z } from './openapi'
 export const CHANNEL_KINDS = ['teams', 'email', 'webhook'] as const
 export type ChannelKind = (typeof CHANNEL_KINDS)[number]
 
-export const CHANNEL_SCOPES = ['workspace', 'customer'] as const
-export type ChannelScope = (typeof CHANNEL_SCOPES)[number]
-
 export const WEBHOOK_METHODS = ['POST', 'PUT'] as const
 export const TEST_ALERT_STATUSES = ['pending', 'delivered', 'failed'] as const
 
-export const EMAIL_DEFAULT_SUBJECT = '[boop] {{ customer_name }} - {{ job_name }} {{ outcome }}'
+export const EMAIL_DEFAULT_SUBJECT = '[boop] {{ workspace_name }} - {{ job_name }} {{ outcome }}'
 export const EMAIL_DEFAULT_BODY = [
-  'Job {{ job_name }} ({{ customer_name }}) {{ outcome }}.',
+  'Job {{ job_name }} ({{ workspace_name }}) {{ outcome }}.',
   '',
   'Started: {{ started_at }}',
   'Completed: {{ completed_at }}',
@@ -60,8 +57,7 @@ export type ChannelConfig = z.infer<typeof ChannelConfigSchema>
 export const ChannelSchema = z
   .object({
     id: z.string().meta({ example: 'chn_abc123' }),
-    scope: z.enum(CHANNEL_SCOPES),
-    customerId: z.string().nullable().meta({ example: 'cust_abc123' }),
+    workspaceId: z.string().meta({ example: 'wsp_abc123' }),
     kind: z.enum(CHANNEL_KINDS),
     name: z.string().meta({ example: 'SwitchThink ops Teams' }),
     slug: z.string().meta({ example: 'switchthink-ops-teams' }),
@@ -76,8 +72,7 @@ export const ChannelSchema = z
   })
   .meta({
     id: 'Channel',
-    description:
-      'A reusable outbound destination for alerts. Scope is workspace (cross-Customer, customerId null) or customer (owned by one Customer).',
+    description: 'A reusable outbound destination for alerts, belonging to one Workspace.',
   })
 
 export type Channel = z.infer<typeof ChannelSchema>

@@ -1,9 +1,9 @@
 import { Plus } from 'lucide-react'
 import type {
-  CustomerOption,
   JobFormApi,
   JobModalUiAction,
   TemplateApplyOptions,
+  WorkspaceOption,
 } from '@/components/forms/JobModal'
 import {
   KeyValueListEditor,
@@ -25,41 +25,41 @@ import type { JobTemplate } from '@/shared/schemas/job-template'
 import type { Target } from '@/shared/schemas/target'
 
 const BODY_HELP_TEXT =
-  'LiquidJS. Available: {{ run_id }}, {{ attempt_number }}, {{ customer_name }}, {{ customer_timezone }}, {{ now }}, plus operator-defined variables. {% boop_secret "name" %} pulls a Customer secret at fire time.'
+  'LiquidJS. Available: {{ run_id }}, {{ attempt_number }}, {{ workspace_name }}, {{ workspace_timezone }}, {{ now }}, plus operator-defined variables. {% boop_secret "name" %} pulls a Workspace secret at fire time.'
 
 function buildVariableRows(
-  customerVars: Record<string, string>,
+  workspaceVars: Record<string, string>,
   jobVars: Record<string, string>,
 ): KeyValueRow[] {
-  const fromCustomer = Object.keys(customerVars)
+  const fromWorkspace = Object.keys(workspaceVars)
     .sort()
     .map<KeyValueRow>((name) => {
-      const customerValue = customerVars[name] ?? ''
+      const workspaceValue = workspaceVars[name] ?? ''
       if (Object.hasOwn(jobVars, name)) {
         return {
           name,
           value: jobVars[name] ?? '',
           source: 'override',
-          inherited: { from: 'customer', value: customerValue },
+          inherited: { from: 'workspace', value: workspaceValue },
         }
       }
-      return { name, value: customerValue, source: 'customer' }
+      return { name, value: workspaceValue, source: 'workspace' }
     })
   const jobOnly = Object.keys(jobVars)
-    .filter((k) => !Object.hasOwn(customerVars, k))
+    .filter((k) => !Object.hasOwn(workspaceVars, k))
     .sort()
     .map<KeyValueRow>((name) => ({ name, value: jobVars[name] ?? '', source: 'job' }))
-  return [...fromCustomer, ...jobOnly]
+  return [...fromWorkspace, ...jobOnly]
 }
 
 function buildAutocompleteVariables(
-  customerVars: Record<string, string>,
+  workspaceVars: Record<string, string>,
   jobVars: Record<string, string>,
-): Array<{ name: string; value: string; source: 'customer' | 'job' }> {
-  return Object.entries({ ...customerVars, ...jobVars }).map(([name, value]) => ({
+): Array<{ name: string; value: string; source: 'workspace' | 'job' }> {
+  return Object.entries({ ...workspaceVars, ...jobVars }).map(([name, value]) => ({
     name,
     value,
-    source: Object.hasOwn(jobVars, name) ? 'job' : 'customer',
+    source: Object.hasOwn(jobVars, name) ? 'job' : 'workspace',
   }))
 }
 
@@ -124,16 +124,16 @@ export function JobTemplateChooser({
   variant,
   view,
   templates,
-  customerSlug,
-  selectedCustomer,
+  workspaceSlug,
+  selectedWorkspace,
   dispatchUi,
   applyTemplate,
 }: {
   variant: 'create' | 'edit'
   view: 'form' | 'templates'
   templates: JobTemplate[]
-  customerSlug: string
-  selectedCustomer: CustomerOption | null
+  workspaceSlug: string
+  selectedWorkspace: WorkspaceOption | null
   dispatchUi: (action: JobModalUiAction) => void
   applyTemplate: (options: TemplateApplyOptions) => void
 }) {
@@ -163,12 +163,12 @@ export function JobTemplateChooser({
           compact
           templates={templates}
           onSelect={(template) => {
-            const templateCustomerSlug = customerSlug || selectedCustomer?.slug
-            if (!templateCustomerSlug) return
+            const templateWorkspaceSlug = workspaceSlug || selectedWorkspace?.slug
+            if (!templateWorkspaceSlug) return
             applyTemplate({
               template,
-              customerSlug: templateCustomerSlug,
-              fallbackTimezone: selectedCustomer?.timezone ?? 'UTC',
+              workspaceSlug: templateWorkspaceSlug,
+              fallbackTimezone: selectedWorkspace?.timezone ?? 'UTC',
             })
           }}
         />
@@ -181,12 +181,11 @@ export function JobFormSections({
   form,
   variant,
   initialJob,
-  isAdmin,
-  customers,
-  customerRecents,
-  customerSlug,
-  selectedCustomer,
-  customerCreateAffordance,
+  workspaces,
+  workspaceRecents,
+  workspaceSlug,
+  selectedWorkspace,
+  workspaceCreateAffordance,
   targets,
   targetRecents,
   selectedTarget,
@@ -202,12 +201,11 @@ export function JobFormSections({
   form: JobFormApi
   variant: 'create' | 'edit'
   initialJob: Job | undefined
-  isAdmin: boolean
-  customers: CustomerOption[]
-  customerRecents: CustomerOption[]
-  customerSlug: string
-  selectedCustomer: CustomerOption | null
-  customerCreateAffordance: CreateAffordance
+  workspaces: WorkspaceOption[]
+  workspaceRecents: WorkspaceOption[]
+  workspaceSlug: string
+  selectedWorkspace: WorkspaceOption | null
+  workspaceCreateAffordance: CreateAffordance
   targets: Target[]
   targetRecents: Target[]
   selectedTarget: Target | null
@@ -226,12 +224,11 @@ export function JobFormSections({
       <JobEntityPills
         form={form}
         variant={variant}
-        isAdmin={isAdmin}
-        customers={customers}
-        customerRecents={customerRecents}
-        customerSlug={customerSlug}
-        selectedCustomer={selectedCustomer}
-        customerCreateAffordance={customerCreateAffordance}
+        workspaces={workspaces}
+        workspaceRecents={workspaceRecents}
+        workspaceSlug={workspaceSlug}
+        selectedWorkspace={selectedWorkspace}
+        workspaceCreateAffordance={workspaceCreateAffordance}
         targets={targets}
         targetRecents={targetRecents}
         selectedTarget={selectedTarget}
@@ -246,15 +243,15 @@ export function JobFormSections({
         form={form}
         variant={variant}
         initialJob={initialJob}
-        customerSlug={customerSlug}
-        selectedCustomer={selectedCustomer}
+        workspaceSlug={workspaceSlug}
+        selectedWorkspace={selectedWorkspace}
         triggerKind={triggerKind}
         cronExpression={cronExpression}
         intervalSeconds={intervalSeconds}
         triggerTimezone={triggerTimezone}
       />
-      <JobVariablesSection form={form} selectedCustomer={selectedCustomer} />
-      <JobBodySection form={form} selectedCustomer={selectedCustomer} secretNames={secretNames} />
+      <JobVariablesSection form={form} selectedWorkspace={selectedWorkspace} />
+      <JobBodySection form={form} selectedWorkspace={selectedWorkspace} secretNames={secretNames} />
     </>
   )
 }
@@ -263,8 +260,8 @@ function JobTargetPlaceholder({ targetPlaceholder }: { targetPlaceholder: string
   if (!targetPlaceholder) return null
   return (
     <p className="rounded-md border border-info/30 bg-info/10 px-3 py-2 text-sm text-info">
-      This workspace template expects a Target for `{targetPlaceholder}`. Pick the matching Customer
-      Target before creating the Job.
+      This workspace template expects a Target for `{targetPlaceholder}`. Pick the matching
+      Workspace Target before creating the Job.
     </p>
   )
 }
@@ -272,12 +269,11 @@ function JobTargetPlaceholder({ targetPlaceholder }: { targetPlaceholder: string
 function JobEntityPills({
   form,
   variant,
-  isAdmin,
-  customers,
-  customerRecents,
-  customerSlug,
-  selectedCustomer,
-  customerCreateAffordance,
+  workspaces,
+  workspaceRecents,
+  workspaceSlug,
+  selectedWorkspace,
+  workspaceCreateAffordance,
   targets,
   targetRecents,
   selectedTarget,
@@ -290,12 +286,11 @@ function JobEntityPills({
 }: {
   form: JobFormApi
   variant: 'create' | 'edit'
-  isAdmin: boolean
-  customers: CustomerOption[]
-  customerRecents: CustomerOption[]
-  customerSlug: string
-  selectedCustomer: CustomerOption | null
-  customerCreateAffordance: CreateAffordance
+  workspaces: WorkspaceOption[]
+  workspaceRecents: WorkspaceOption[]
+  workspaceSlug: string
+  selectedWorkspace: WorkspaceOption | null
+  workspaceCreateAffordance: CreateAffordance
   targets: Target[]
   targetRecents: Target[]
   selectedTarget: Target | null
@@ -308,32 +303,33 @@ function JobEntityPills({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <SearchableCombobox<CustomerOption>
-        label="Customer"
-        required
-        disabled={variant === 'edit'}
-        items={customers}
-        recents={customerRecents}
-        value={selectedCustomer}
-        onValueChange={(next) => {
-          if (!next) return
-          form.setFieldValue('customerSlug', next.slug)
-          form.setFieldValue('triggerTimezone', next.timezone)
-          form.setFieldValue('targetSlug', '')
-        }}
-        getId={(c) => c.slug}
-        getLabel={(c) => c.name}
-        getSecondary={(c) => c.slug}
-        searchKeywords={(c) => [c.slug]}
-        createAffordance={customerCreateAffordance}
-      />
-      {targets.length === 0 && customerSlug ? (
+      {workspaces.length > 1 ? (
+        <SearchableCombobox<WorkspaceOption>
+          label="Workspace"
+          required
+          disabled={variant === 'edit'}
+          items={workspaces}
+          recents={workspaceRecents}
+          value={selectedWorkspace}
+          onValueChange={(next) => {
+            if (!next) return
+            form.setFieldValue('workspaceSlug', next.slug)
+            form.setFieldValue('triggerTimezone', next.timezone)
+            form.setFieldValue('targetSlug', '')
+          }}
+          getId={(c) => c.slug}
+          getLabel={(c) => c.name}
+          getSecondary={(c) => c.slug}
+          searchKeywords={(c) => [c.slug]}
+          createAffordance={workspaceCreateAffordance}
+        />
+      ) : null}
+      {targets.length === 0 && workspaceSlug ? (
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => dispatchUi({ type: 'target-create-opened' })}
-          disabled={!isAdmin}
           className="rounded-full"
         >
           <Plus aria-hidden /> New Target
@@ -342,7 +338,7 @@ function JobEntityPills({
         <SearchableCombobox<Target>
           label="Target"
           required
-          disabled={!customerSlug}
+          disabled={!workspaceSlug}
           items={targets}
           recents={targetRecents}
           value={selectedTarget}
@@ -369,13 +365,15 @@ function JobEntityPills({
       />
       <form.Subscribe selector={(s) => s.values.variables}>
         {(vars) => {
-          const customerKeys = Object.keys(selectedCustomer?.variables ?? {}).length
+          const workspaceKeys = Object.keys(selectedWorkspace?.variables ?? {}).length
           const jobKeys = Object.keys(vars).length
           return (
             <PillButton
               label="Variables"
-              value={customerKeys + jobKeys === 0 ? 'None' : `${customerKeys + jobKeys} effective`}
-              state={customerKeys + jobKeys === 0 ? 'empty' : 'filled'}
+              value={
+                workspaceKeys + jobKeys === 0 ? 'None' : `${workspaceKeys + jobKeys} effective`
+              }
+              state={workspaceKeys + jobKeys === 0 ? 'empty' : 'filled'}
             />
           )
         }}
@@ -397,8 +395,8 @@ function JobTriggerSection({
   form,
   variant,
   initialJob,
-  customerSlug,
-  selectedCustomer,
+  workspaceSlug,
+  selectedWorkspace,
   triggerKind,
   cronExpression,
   intervalSeconds,
@@ -407,8 +405,8 @@ function JobTriggerSection({
   form: JobFormApi
   variant: 'create' | 'edit'
   initialJob: Job | undefined
-  customerSlug: string
-  selectedCustomer: CustomerOption | null
+  workspaceSlug: string
+  selectedWorkspace: WorkspaceOption | null
   triggerKind: TriggerKind
   cronExpression: string
   intervalSeconds: number
@@ -424,8 +422,8 @@ function JobTriggerSection({
           form.setFieldValue('intervalSeconds', next.intervalSeconds)
           form.setFieldValue('triggerTimezone', next.triggerTimezone)
         }}
-        customerSlug={customerSlug}
-        customerTimezone={selectedCustomer?.timezone ?? 'UTC'}
+        workspaceSlug={workspaceSlug}
+        workspaceTimezone={selectedWorkspace?.timezone ?? 'UTC'}
         {...(variant === 'edit' && initialJob?.triggerKind === 'webhook'
           ? { webhookEditJobSlug: initialJob.slug }
           : {})}
@@ -436,10 +434,10 @@ function JobTriggerSection({
 
 function JobVariablesSection({
   form,
-  selectedCustomer,
+  selectedWorkspace,
 }: {
   form: JobFormApi
-  selectedCustomer: CustomerOption | null
+  selectedWorkspace: WorkspaceOption | null
 }) {
   return (
     <section
@@ -447,16 +445,16 @@ function JobVariablesSection({
       className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-3"
     >
       <p className="text-xs text-muted-foreground/70">
-        Effective variables for this Job's templates. Customer-level entries are inherited; Job
+        Effective variables for this Job's templates. Workspace-level entries are inherited; Job
         entries with the same name override.
       </p>
       <form.Field name="variables">
         {(field) => (
           <KeyValueListEditor
-            rows={buildVariableRows(selectedCustomer?.variables ?? {}, field.state.value)}
+            rows={buildVariableRows(selectedWorkspace?.variables ?? {}, field.state.value)}
             onChange={(next) => {
               const overridesAndJobOnly = next.filter(
-                (r) => r.source !== 'customer' && r.name.length > 0,
+                (r) => r.source !== 'workspace' && r.name.length > 0,
               )
               field.handleChange(rowsToVariableMap(overridesAndJobOnly))
             }}
@@ -470,11 +468,11 @@ function JobVariablesSection({
 
 function JobBodySection({
   form,
-  selectedCustomer,
+  selectedWorkspace,
   secretNames,
 }: {
   form: JobFormApi
-  selectedCustomer: CustomerOption | null
+  selectedWorkspace: WorkspaceOption | null
   secretNames: Array<{ name: string }>
 }) {
   return (
@@ -487,10 +485,10 @@ function JobBodySection({
             value={field.state.value}
             onChange={(v) => field.handleChange(v)}
             variant="body"
-            customerName={selectedCustomer?.name ?? ''}
-            customerTimezone={selectedCustomer?.timezone ?? 'UTC'}
+            workspaceName={selectedWorkspace?.name ?? ''}
+            workspaceTimezone={selectedWorkspace?.timezone ?? 'UTC'}
             variables={buildAutocompleteVariables(
-              selectedCustomer?.variables ?? {},
+              selectedWorkspace?.variables ?? {},
               form.state.values.variables,
             )}
             secrets={secretNames}

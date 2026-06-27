@@ -71,20 +71,20 @@ export const SYNTHETIC_RENDER_CONTEXT_DEFAULTS = {
 } as const
 
 export function syntheticRenderContext({
-  customerName,
-  customerTimezone,
+  workspaceName,
+  workspaceTimezone,
   variables,
   now = new Date(),
 }: {
-  customerName: string
-  customerTimezone: string
+  workspaceName: string
+  workspaceTimezone: string
   variables?: Record<string, string>
   now?: Date
 }): RenderContext {
   return {
     ...SYNTHETIC_RENDER_CONTEXT_DEFAULTS,
-    customerName,
-    customerTimezone,
+    workspaceName,
+    workspaceTimezone,
     now,
     ...(variables ? { variables } : {}),
   }

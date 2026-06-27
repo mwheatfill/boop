@@ -1,18 +1,18 @@
-import type { attempts, customers, jobs, runs, targets } from '@/lib/db/schema'
+import type { attempts, jobs, runs, targets, workspaces } from '@/lib/db/schema'
 import type { AlertContext } from '@/shared/schemas/alert-context'
 import type { AlertRuleKind } from '@/shared/schemas/alert-rule'
 
 type RunRow = typeof runs.$inferSelect
 type AttemptRow = typeof attempts.$inferSelect
 type JobRow = typeof jobs.$inferSelect
-type CustomerRow = typeof customers.$inferSelect
+type WorkspaceRow = typeof workspaces.$inferSelect
 type TargetRow = typeof targets.$inferSelect
 
 interface BuildAlertContextInput {
   run: RunRow
   attempts: readonly AttemptRow[]
   job: JobRow
-  customer: CustomerRow
+  workspace: WorkspaceRow
   target: TargetRow
   ruleName: string
   ruleKind: AlertRuleKind
@@ -20,12 +20,12 @@ interface BuildAlertContextInput {
   test?: boolean
 }
 
-function runUrl(origin: string, customerSlug: string, jobSlug: string, runId: string): string {
-  return `${origin}/customers/${customerSlug}/jobs/${jobSlug}/runs/${runId}`
+function runUrl(origin: string, jobSlug: string, runId: string): string {
+  return `${origin}/jobs/${jobSlug}/runs/${runId}`
 }
 
-function jobUrl(origin: string, customerSlug: string, jobSlug: string): string {
-  return `${origin}/customers/${customerSlug}/jobs/${jobSlug}`
+function jobUrl(origin: string, jobSlug: string): string {
+  return `${origin}/jobs/${jobSlug}`
 }
 
 function durationMsOf(run: RunRow): number {
@@ -47,7 +47,7 @@ export function buildAlertContext({
   run,
   attempts,
   job,
-  customer,
+  workspace,
   target,
   ruleName,
   ruleKind,
@@ -56,14 +56,14 @@ export function buildAlertContext({
 }: BuildAlertContextInput): AlertContext {
   return {
     kind: 'run',
-    customer_name: customer.name,
-    customer_slug: customer.slug,
+    workspace_name: workspace.name,
+    workspace_slug: workspace.slug,
     job_name: job.name,
     job_slug: job.slug,
     target_name: target.name,
     target_url: target.url,
     run_id: run.id,
-    run_url: runUrl(appOrigin, customer.slug, job.slug, run.id),
+    run_url: runUrl(appOrigin, job.slug, run.id),
     outcome: run.outcome ?? 'unknown',
     started_at: run.startedAt?.toISOString() ?? '',
     completed_at: run.completedAt?.toISOString() ?? '',
@@ -79,7 +79,7 @@ export function buildAlertContext({
 
 interface BuildMissedAlertContextInput {
   job: JobRow
-  customer: CustomerRow
+  workspace: WorkspaceRow
   ruleName: string
   appOrigin: string
   lastRunAt: string | null
@@ -94,7 +94,7 @@ function scheduleOf(job: JobRow): string {
 
 export function buildMissedAlertContext({
   job,
-  customer,
+  workspace,
   ruleName,
   appOrigin,
   lastRunAt,
@@ -102,11 +102,11 @@ export function buildMissedAlertContext({
 }: BuildMissedAlertContextInput): AlertContext {
   return {
     kind: 'missed',
-    customer_name: customer.name,
-    customer_slug: customer.slug,
+    workspace_name: workspace.name,
+    workspace_slug: workspace.slug,
     job_name: job.name,
     job_slug: job.slug,
-    job_url: jobUrl(appOrigin, customer.slug, job.slug),
+    job_url: jobUrl(appOrigin, job.slug),
     rule_name: ruleName,
     rule_kind: 'missed_schedule',
     last_run_at: lastRunAt,
@@ -122,14 +122,14 @@ const TEST_ISO = '2026-05-12T00:00:00.000Z'
 export function buildSyntheticTestContext(
   channelName: string,
   channelSlug: string,
-  customerName: string,
-  customerSlug: string,
+  workspaceName: string,
+  workspaceSlug: string,
   appOrigin: string,
 ): AlertContext {
   return {
     kind: 'run',
-    customer_name: customerName,
-    customer_slug: customerSlug,
+    workspace_name: workspaceName,
+    workspace_slug: workspaceSlug,
     job_name: `boop test alert (${channelName})`,
     job_slug: `test-${channelSlug}`,
     target_name: 'boop',

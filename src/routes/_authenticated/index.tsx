@@ -1,4 +1,4 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowRight, CircleAlert, CircleCheck, Plus } from 'lucide-react'
 import { useEffect } from 'react'
@@ -10,10 +10,8 @@ import { KpiCard } from '@/components/dashboard/KpiCard'
 import { RunsAreaChart } from '@/components/dashboard/RunsAreaChart'
 import { SearchHint } from '@/components/dashboard/SearchHint'
 import { SuccessRateTile } from '@/components/dashboard/SuccessRateTile'
-import { EmptyState } from '@/components/EmptyState'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { countCustomersFn, listCustomersFn } from '@/lib/customers/server-fns'
 import { dashboardSummaryQueryOptions } from '@/lib/dashboard/query-options'
 import { relativeAgo, relativeIn } from '@/lib/format'
 import type {
@@ -22,29 +20,13 @@ import type {
   UpcomingFireRow,
 } from '@/shared/schemas/dashboard'
 
-const customerCountQueryOptions = queryOptions({
-  queryKey: ['customers', 'count'],
-  queryFn: () => countCustomersFn(),
-})
-
-const customersListQueryOptions = queryOptions({
-  queryKey: ['customers', { includeArchived: false }],
-  queryFn: () => listCustomersFn({ data: { includeArchived: false } }),
-})
-
 const searchSchema = z.object({
   unauthorized: z.string().optional(),
 })
 
 export const Route = createFileRoute('/_authenticated/')({
   validateSearch: searchSchema,
-  loader: async ({ context }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(customerCountQueryOptions),
-      context.queryClient.ensureQueryData(dashboardSummaryQueryOptions),
-      context.queryClient.ensureQueryData(customersListQueryOptions),
-    ])
-  },
+  loader: ({ context }) => context.queryClient.ensureQueryData(dashboardSummaryQueryOptions),
   component: DashboardPage,
 })
 
@@ -57,9 +39,7 @@ function formatDuration(ms: number | null): string {
 
 function DashboardPage() {
   const search = Route.useSearch()
-  const { data: customerCount } = useSuspenseQuery(customerCountQueryOptions)
   const { data: summary } = useSuspenseQuery(dashboardSummaryQueryOptions)
-  const { data: customers } = useSuspenseQuery(customersListQueryOptions)
 
   useEffect(() => {
     if (search.unauthorized) {
@@ -69,33 +49,15 @@ function DashboardPage() {
     }
   }, [search.unauthorized])
 
-  if (customerCount === 0) {
-    return (
-      <EmptyState
-        title="Welcome to boop."
-        description="Create your first Customer to get started."
-        action={
-          <Button render={<Link to="/customers/new" />}>
-            <Plus aria-hidden /> New Customer
-          </Button>
-        }
-      />
-    )
-  }
-
-  const hasCustomers = customers.length > 0
-
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Operations</h1>
         <div className="flex items-center gap-3">
           <SearchHint />
-          {hasCustomers ? (
-            <Button render={<Link to="/jobs/new" mask={{ to: '/' }} />}>
-              <Plus aria-hidden /> New Job
-            </Button>
-          ) : null}
+          <Button render={<Link to="/jobs/new" mask={{ to: '/' }} />}>
+            <Plus aria-hidden /> New Job
+          </Button>
           <ContentChrome />
         </div>
       </header>
@@ -180,7 +142,7 @@ function NeedsAttentionList({ rows }: { rows: NeedsAttentionRow[] }) {
     <ul className="flex flex-col rounded-md border border-border bg-card">
       {rows.map((r) => (
         <li
-          key={`${r.customerSlug}-${r.jobSlug}`}
+          key={`${r.workspaceSlug}-${r.jobSlug}`}
           className="group flex items-center gap-3 border-b border-border/40 px-3 py-2 last:border-b-0"
         >
           <span
@@ -192,12 +154,10 @@ function NeedsAttentionList({ rows }: { rows: NeedsAttentionRow[] }) {
             }
           />
           <Link
-            to="/customers/$customerSlug/jobs/$jobSlug"
-            params={{ customerSlug: r.customerSlug, jobSlug: r.jobSlug }}
+            to="/jobs/$jobSlug"
+            params={{ jobSlug: r.jobSlug }}
             className="flex-1 truncate text-sm hover:underline"
           >
-            <span className="text-muted-foreground">{r.customerName}</span>
-            <span className="mx-1.5 text-muted-foreground/50">·</span>
             <span className="font-medium">{r.jobName}</span>
           </Link>
           <span className="text-xs text-muted-foreground">
@@ -207,7 +167,7 @@ function NeedsAttentionList({ rows }: { rows: NeedsAttentionRow[] }) {
                 ? relativeAgo(r.lastFailureAt)
                 : 'failing'}
           </span>
-          <JobRowActions customerSlug={r.customerSlug} jobSlug={r.jobSlug} status={r.status} />
+          <JobRowActions workspaceSlug={r.workspaceSlug} jobSlug={r.jobSlug} status={r.status} />
         </li>
       ))}
     </ul>
@@ -222,17 +182,15 @@ function UpcomingFiresList({ rows }: { rows: UpcomingFireRow[] }) {
     <ul className="flex flex-col">
       {rows.map((r) => (
         <li
-          key={`${r.customerSlug}-${r.jobSlug}`}
+          key={`${r.workspaceSlug}-${r.jobSlug}`}
           className="flex items-center justify-between gap-2 border-b border-border/40 py-1.5 text-sm last:border-b-0"
         >
           <Link
-            to="/customers/$customerSlug/jobs/$jobSlug"
-            params={{ customerSlug: r.customerSlug, jobSlug: r.jobSlug }}
+            to="/jobs/$jobSlug"
+            params={{ jobSlug: r.jobSlug }}
             className="flex-1 truncate hover:underline"
             title={r.triggerSummary}
           >
-            <span className="text-muted-foreground">{r.customerName}</span>
-            <span className="mx-1.5 text-muted-foreground/50">·</span>
             <span>{r.jobName}</span>
           </Link>
           <span className="font-mono text-xs text-muted-foreground">
@@ -262,8 +220,6 @@ function RecentFailuresList({ rows }: { rows: RecentFailureRow[] }) {
           <span aria-hidden className="inline-block size-2 rounded-full bg-destructive" />
           <span className="flex min-w-0 flex-1 items-center gap-2">
             <span className="min-w-0 truncate">
-              <span className="text-muted-foreground">{r.customerName}</span>
-              <span className="mx-1.5 text-muted-foreground/50">·</span>
               <span className="font-medium">{r.jobName}</span>
             </span>
             <Badge variant="destructive">{r.outcome}</Badge>
@@ -272,9 +228,8 @@ function RecentFailuresList({ rows }: { rows: RecentFailureRow[] }) {
             {r.completedAt ? relativeAgo(r.completedAt) : '—'}
           </span>
           <Link
-            to="/customers/$customerSlug/jobs/$jobSlug/runs/$runId"
+            to="/jobs/$jobSlug/runs/$runId"
             params={{
-              customerSlug: r.customerSlug,
               jobSlug: r.jobSlug,
               runId: r.runId,
             }}

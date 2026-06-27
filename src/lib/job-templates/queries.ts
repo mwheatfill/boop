@@ -1,13 +1,13 @@
-import { and, asc, eq, or, type SQL, sql } from 'drizzle-orm'
+import { and, asc, eq, isNull, or, type SQL, sql } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
-import { customers, jobTemplates } from '@/lib/db/schema'
+import { jobTemplates, workspaces } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
 import type { JobTemplate } from '@/shared/schemas/job-template'
 
 type TemplateRow = typeof jobTemplates.$inferSelect
 
 interface JoinedTemplateRow extends TemplateRow {
-  customer: typeof customers.$inferSelect | null
+  workspace: typeof workspaces.$inferSelect | null
 }
 
 function toTemplate(row: JoinedTemplateRow): JobTemplate {
@@ -15,10 +15,9 @@ function toTemplate(row: JoinedTemplateRow): JobTemplate {
     id: row.id,
     name: row.name,
     slug: row.slug,
-    scope: row.scope,
-    customerId: row.customerId,
-    customerSlug: row.customer?.slug ?? null,
-    customerName: row.customer?.name ?? null,
+    workspaceId: row.workspaceId,
+    workspaceSlug: row.workspace?.slug ?? null,
+    workspaceName: row.workspace?.name ?? null,
     tag: row.tag,
     icon: row.icon,
     description: row.description,
@@ -40,28 +39,28 @@ function toTemplate(row: JoinedTemplateRow): JobTemplate {
 
 async function selectTemplates(db: Database, where?: SQL): Promise<JobTemplate[]> {
   const base = db
-    .select({ template: jobTemplates, customer: customers })
+    .select({ template: jobTemplates, workspace: workspaces })
     .from(jobTemplates)
-    .leftJoin(customers, eq(customers.id, jobTemplates.customerId))
+    .leftJoin(workspaces, eq(workspaces.id, jobTemplates.workspaceId))
   const rows = where
     ? await base.where(where).orderBy(asc(jobTemplates.builtIn), asc(jobTemplates.name))
     : await base.orderBy(asc(jobTemplates.builtIn), asc(jobTemplates.name))
-  return rows.map((r) => toTemplate({ ...r.template, customer: r.customer }))
+  return rows.map((r) => toTemplate({ ...r.template, workspace: r.workspace }))
 }
 
 export async function listVisibleTemplates(
   db: Database,
-  options: { customerSlug?: string; includeArchived?: boolean } = {},
+  options: { workspaceSlug?: string; includeArchived?: boolean } = {},
 ): Promise<JobTemplate[]> {
   const conditions: SQL[] = []
   if (!options.includeArchived) conditions.push(eq(jobTemplates.status, 'active'))
-  if (options.customerSlug) {
+  if (options.workspaceSlug) {
     conditions.push(
-      or(eq(jobTemplates.scope, 'workspace'), eq(customers.slug, options.customerSlug)) ??
+      or(isNull(jobTemplates.workspaceId), eq(workspaces.slug, options.workspaceSlug)) ??
         sql`1 = 0`,
     )
   } else {
-    conditions.push(eq(jobTemplates.scope, 'workspace'))
+    conditions.push(isNull(jobTemplates.workspaceId))
   }
   return selectTemplates(db, conditions.length > 0 ? and(...conditions) : undefined)
 }
@@ -75,18 +74,12 @@ export async function getTemplateById(db: Database, id: string): Promise<JobTemp
 
 export async function getTemplateBySlug(
   db: Database,
-  scope: 'workspace' | 'customer',
   slug: string,
-  customerSlug?: string,
+  workspaceSlug?: string,
 ): Promise<JobTemplate> {
-  const conditions =
-    scope === 'workspace'
-      ? and(eq(jobTemplates.scope, 'workspace'), eq(jobTemplates.slug, slug))
-      : and(
-          eq(jobTemplates.scope, 'customer'),
-          eq(jobTemplates.slug, slug),
-          eq(customers.slug, customerSlug ?? ''),
-        )
+  const conditions = workspaceSlug
+    ? and(eq(jobTemplates.slug, slug), eq(workspaces.slug, workspaceSlug))
+    : and(eq(jobTemplates.slug, slug), isNull(jobTemplates.workspaceId))
   const rows = await selectTemplates(db, conditions)
   const row = rows[0]
   if (!row) throw new NotFoundError('Job template', slug)
