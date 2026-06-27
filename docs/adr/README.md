@@ -37,6 +37,7 @@ Ordered foundation → data → auth → AI → product surface → meta.
 | [025](025-workspace-scope-on-channels-and-alert-rules.md) | Superseded | Workspace scope on Channels + AlertRules; additive override hierarchy (the customer tier is removed by ADR-027) |
 | [026](026-cloudflare-access-with-entra-oidc.md) | Accepted | Cloudflare Access (fronted by Entra OIDC) is boop's auth implementation (supersedes ADR-006's choice for boop) |
 | [027](027-domain-simplification-workspace-consolidation.md) | Proposed | Domain simplification (Workspace replaces Customer as the single org tier, one Workspace in v1, flat URLs, no switcher, multi deferred; inline Targets; unified Schedule); supersedes ADR-025 and the URL grammar of ADR-018 |
+| [028](028-private-tunnels.md) | Proposed | Private Tunnels (Tunnel as a Workspace entity; provider-owned Cloudflare provisioning via saga; Access Service Token auth; two-layer rolled-up health on the Heartbeat); rescopes and supersedes issue #50 |
 
 ## How to add an ADR
 

@@ -76,8 +76,16 @@ An Operator with elevated role. Can manage Channels and global configuration; ca
 _Avoid_: Owner, Superuser
 
 **Target**:
-A named, reusable HTTP destination owned by a Workspace. Carries URL, method, authentication, and reachability (public or via Cloudflare Tunnel). One Target is referenced by zero or more Jobs. Targets are picked-or-created inline from the Job form and render inline on the Job; Operators may create them.
+A named, reusable HTTP destination owned by a Workspace. Carries URL, method, authentication, and reachability (`public`, or `tunnel` referencing a **Tunnel**). One Target is referenced by zero or more Jobs. Targets are picked-or-created inline from the Job form and render inline on the Job; Operators may create them.
 _Avoid_: Endpoint (collides with API routes), Destination (collides with alert destinations), Hook URL
+
+**Tunnel**:
+A Workspace-owned Cloudflare Tunnel that lets boop reach a private-network origin without exposing it to the public internet. boop provisions, operates, and decommissions it through the Cloudflare API (Model B: SwitchThink's Cloudflare account owns every Tunnel; the customer runs only the Connector install command, never touching Cloudflare). A Target with `reachability = 'tunnel'` references one Tunnel; one Tunnel fronts zero or more Targets (one connector, many routes). Health is a single rolled-up status over three signals: Cloudflare connector status, boop's end-to-end verify, and recent Run outcomes for the Tunnel's Targets. UI surface: "Private Tunnels". Per [ADR-028](docs/adr/028-private-tunnels.md).
+_Avoid_: Customer site, VPN, Proxy
+
+**Connector**:
+The `cloudflared` process the customer runs on a host inside their private network; it makes the outbound-only connection to Cloudflare that a Tunnel rides. One Connector per host (reuse a Tunnel by adding routes, not a Connector per Target); additional Connectors on other hosts are replicas for high availability. Its status (`Healthy`, `Degraded`, `Down`, `Inactive`) is the first of a Tunnel's three health signals and reflects only the Connector-to-Cloudflare link, not whether the origin is reachable.
+_Avoid_: Agent, Daemon, Tunnel (a Connector runs a Tunnel; they are not the same)
 
 **Hot window**:
 The recency horizon for which Runs and Attempts live in D1. Default is 30 days. Older records are archived to R2 and queried through a cold-path interface. Per-Workspace override is supported when a Workspace requires longer hot retention.
@@ -109,6 +117,9 @@ _Avoid_: Error type, Cause
 - A **Job** has exactly one **Trigger** (schedule or webhook)
 - A **Job** references exactly one **Target**; a **Target** is referenced by zero or more **Jobs**
 - A **Target** belongs to exactly one **Workspace**
+- A **Target** with `reachability = 'tunnel'` references exactly one **Tunnel**; a **Tunnel** fronts zero or more **Targets**
+- A **Tunnel** belongs to exactly one **Workspace** (additive `workspace_id`; multiple Tunnels per Workspace, one per private network or site)
+- A **Tunnel** is served by one or more **Connectors** (additional Connectors are replicas for high availability)
 - A **Job** produces zero or more **Runs**
 - A **Run** has one or more **Attempts** (one per retry)
 - A **Run** belongs to exactly one **Job** (and transitively, one **Workspace**)
