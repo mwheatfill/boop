@@ -17,7 +17,7 @@ jobs:
       pull-requests: write
       issues: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
         # Composite action handles pnpm + node + install. See
         # .github/actions/setup/action.yml. Checkout has to run first
@@ -92,7 +92,7 @@ jobs:
     environment:
       name: dev
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
 
       - name: Build
