@@ -6,6 +6,7 @@ import { DateTime } from '@/components/DateTime'
 import { EmptyState } from '@/components/EmptyState'
 import { TunnelEditModal } from '@/components/forms/TunnelEditModal'
 import { TargetHealthBadge } from '@/components/targets/TargetHealthBadge'
+import { TargetVerifyButton } from '@/components/targets/TargetVerifyButton'
 import { TunnelActions } from '@/components/tunnels/TunnelActions'
 import { TunnelStateBadge } from '@/components/tunnels/TunnelStateBadge'
 import { targetsForTunnelQueryOptions } from '@/lib/targets/query-options'
@@ -132,7 +133,10 @@ function TunnelDetailPage() {
                     {target.internalOrigin ?? target.url}
                   </span>
                 </div>
-                {target.health ? <TargetHealthBadge health={target.health} /> : null}
+                <div className="flex items-center gap-3">
+                  {target.health ? <TargetHealthBadge health={target.health} /> : null}
+                  <TargetVerifyButton targetId={target.id} />
+                </div>
               </li>
             ))}
           </ul>

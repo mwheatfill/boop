@@ -45,6 +45,39 @@ export async function verifyTunnelConnection(
   }
 }
 
+export interface RunTargetVerifyDeps {
+  db: Database
+  kek: string
+  fetchImpl?: typeof fetch
+}
+
+// Probes one specific Target end-to-end (HEAD through its public URL with the
+// tunnel's Access headers), so an operator can check a single Target on demand
+// rather than the tunnel's representative one.
+export async function runTargetVerify(
+  deps: RunTargetVerifyDeps,
+  targetId: string,
+): Promise<TunnelVerifyResult> {
+  const { db, kek } = deps
+  const fetchImpl = deps.fetchImpl ?? fetch
+  const target = (await db.select().from(targets).where(eq(targets.id, targetId)).limit(1))[0]
+  if (!target) throw new NotFoundError('Target', targetId)
+  try {
+    const headers = await buildAccessHeaders(
+      { db, kek },
+      {
+        reachability: target.reachability as 'public' | 'tunnel',
+        tunnelId: target.tunnelId,
+        workspaceId: target.workspaceId,
+      },
+    )
+    return verifyTunnelConnection(fetchImpl, target.url, headers)
+  } catch (err) {
+    if (!(err instanceof TunnelCredentialError)) throw err
+    return { ok: false, outcome: 'unknown', detail: err.message }
+  }
+}
+
 export interface RunTunnelVerifyDeps {
   db: Database
   kek: string

@@ -4,7 +4,7 @@ import { newId } from '@/lib/db/ids'
 import { targets, tunnels, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { createSecret } from '@/lib/workspace-secrets/commands'
-import { runTunnelVerify, verifyTunnelConnection } from './verify'
+import { runTargetVerify, runTunnelVerify, verifyTunnelConnection } from './verify'
 
 const KEK = btoa('\0'.repeat(32))
 type Db = ReturnType<typeof createTestDb>
@@ -109,5 +109,62 @@ describe('runTunnelVerify', () => {
     })
     const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
     expect(row?.lastVerifyOutcome).toBe('unknown')
+  })
+})
+
+async function seedTargetOnTunnel(db: Db, workspaceId: string, tunnelId: string) {
+  const id = newId('tgt')
+  await db.insert(targets).values({
+    id,
+    workspaceId,
+    name: 'API',
+    slug: 'api',
+    url: 'https://api.t.tunnels.test/health',
+    method: 'GET',
+    reachability: 'tunnel',
+    tunnelId,
+    internalOrigin: 'http://10.0.0.1:8080',
+  })
+  return id
+}
+
+describe('runTargetVerify', () => {
+  it('probes the specific Target with its tunnel Access headers', async () => {
+    const db = createTestDb()
+    const { workspaceId, tunnelId } = await seedTunnel(db)
+    const targetId = await seedTargetOnTunnel(db, workspaceId, tunnelId)
+    await createSecret({ db, kek: KEK }, workspaceId, { name: 'cid', plaintext: 'CID' })
+    await createSecret({ db, kek: KEK }, workspaceId, { name: 'csec', plaintext: 'CSEC' })
+
+    let sentHeaders: Record<string, string> = {}
+    const fetchImpl = (async (_url: string, init?: RequestInit) => {
+      sentHeaders = (init?.headers ?? {}) as Record<string, string>
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const result = await runTargetVerify({ db, kek: KEK, fetchImpl }, targetId)
+    expect(result).toMatchObject({ ok: true, outcome: 'ok' })
+    expect(sentHeaders['CF-Access-Client-Id']).toBe('CID')
+    expect(sentHeaders['CF-Access-Client-Secret']).toBe('CSEC')
+  })
+
+  it('maps an Access rejection to forbidden', async () => {
+    const db = createTestDb()
+    const { workspaceId, tunnelId } = await seedTunnel(db)
+    const targetId = await seedTargetOnTunnel(db, workspaceId, tunnelId)
+    await createSecret({ db, kek: KEK }, workspaceId, { name: 'cid', plaintext: 'CID' })
+    await createSecret({ db, kek: KEK }, workspaceId, { name: 'csec', plaintext: 'CSEC' })
+
+    const result = await runTargetVerify({ db, kek: KEK, fetchImpl: fetchReturning(403) }, targetId)
+    expect(result.outcome).toBe('forbidden')
+  })
+
+  it('returns unknown when the Access credentials are missing', async () => {
+    const db = createTestDb()
+    const { workspaceId, tunnelId } = await seedTunnel(db)
+    const targetId = await seedTargetOnTunnel(db, workspaceId, tunnelId)
+    const result = await runTargetVerify({ db, kek: KEK, fetchImpl: fetchReturning(200) }, targetId)
+    expect(result.ok).toBe(false)
+    expect(result.outcome).toBe('unknown')
   })
 })

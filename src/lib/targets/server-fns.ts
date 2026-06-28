@@ -6,6 +6,7 @@ import { createDb } from '@/lib/db/client'
 import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
 import { getProviderConfig } from '@/lib/tunnels/provider'
 import { syncTunnelIngress } from '@/lib/tunnels/provision'
+import { runTargetVerify } from '@/lib/tunnels/verify'
 import { z } from '@/shared/schemas/openapi'
 import type { Target } from '@/shared/schemas/target'
 import { TargetCreateInput, TargetUpdateInput } from '@/shared/schemas/target'
@@ -54,6 +55,17 @@ export const listTargetsForTunnelFn = createServerFn({ method: 'GET' })
     z.object({ tunnelId: z.string().min(1) }).parse(data),
   )
   .handler(async ({ data }) => listTargetsForTunnel(createDb(env.DB), data.tunnelId))
+
+export const verifyTargetFn = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
+  .inputValidator((data: { targetId: string }) =>
+    z.object({ targetId: z.string().min(1) }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    const db = createDb(env.DB)
+    const kek = (await env.BOOP_SECRETS_KEK?.get()) ?? ''
+    return runTargetVerify({ db, kek }, data.targetId)
+  })
 
 export const getTargetFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
