@@ -346,7 +346,8 @@ export function JobModal({
 
   const selectedWorkspace =
     workspaces.find((c) => c.slug === workspaceSlug) ?? initialWorkspace ?? null
-  const selectedTarget = targets.find((t) => t.slug === form.state.values.targetSlug) ?? null
+  const targetSlug = useStore(form.store, (s) => s.values.targetSlug)
+  const selectedTarget = targets.find((t) => t.slug === targetSlug) ?? null
 
   const applyTemplate = useCallback(
     ({ template, workspaceSlug, fallbackTimezone }: TemplateApplyOptions) => {
