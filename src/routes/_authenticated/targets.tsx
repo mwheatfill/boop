@@ -39,9 +39,18 @@ const targetColumns: ColumnDef<Target>[] = [
     header: 'Name',
     cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span>,
   },
-  { accessorKey: 'slug', header: 'Slug' },
   { accessorKey: 'method', header: 'Method' },
-  { accessorKey: 'url', header: 'URL' },
+  {
+    accessorKey: 'url',
+    header: 'Address',
+    cell: ({ row }) => (
+      <span className="font-mono text-xs">
+        {row.original.reachability === 'tunnel'
+          ? (row.original.internalOrigin ?? row.original.url)
+          : row.original.url}
+      </span>
+    ),
+  },
   { accessorKey: 'reachability', header: 'Reachability' },
   {
     accessorKey: 'health',

@@ -434,6 +434,18 @@ export function TargetModal(props: TargetModalProps) {
               )}
             </form.Field>
 
+            {editTarget?.reachability === 'tunnel' ? (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Public URL</span>
+                <code className="break-all font-mono text-xs text-foreground">
+                  {editTarget.url}
+                </code>
+                <p className="text-xs text-muted-foreground">
+                  boop calls this; the tunnel forwards it to the address above.
+                </p>
+              </div>
+            ) : null}
+
             {isHttpsAddress ? (
               <form.Field name="originNoTlsVerify">
                 {(field) => (
