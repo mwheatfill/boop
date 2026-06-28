@@ -4,6 +4,8 @@ const DEFAULT_SENSITIVE_KEYS = [
   'set-cookie',
   'x-api-key',
   'proxy-authorization',
+  'cf-access-client-id',
+  'cf-access-client-secret',
 ] as const
 
 const REDACTED = '[redacted]'

@@ -359,7 +359,8 @@
                   "network",
                   "http_4xx",
                   "http_5xx",
-                  "non_2xx_other"
+                  "non_2xx_other",
+                  "tunnel_credential_missing"
                 ]
               },
               {
@@ -1239,7 +1240,8 @@
                   "network",
                   "http_4xx",
                   "http_5xx",
-                  "non_2xx_other"
+                  "non_2xx_other",
+                  "tunnel_credential_missing"
                 ]
               },
               {
@@ -3430,7 +3432,8 @@
                   "network",
                   "http_4xx",
                   "http_5xx",
-                  "non_2xx_other"
+                  "non_2xx_other",
+                  "tunnel_credential_missing"
                 ]
               },
               {

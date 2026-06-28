@@ -8,6 +8,7 @@ export const FAILURE_KINDS = [
   'http_4xx',
   'http_5xx',
   'non_2xx_other',
+  'tunnel_credential_missing',
 ] as const
 export const TRIGGER_SOURCES = ['cron', 'interval', 'webhook', 'manual'] as const
 export const DISPLAY_OUTCOMES = [

@@ -68,14 +68,30 @@ describe('updateTarget', () => {
       method: 'GET',
       authKind: 'bearer',
       authConfig: 'token-stub',
-      reachability: 'tunnel',
+      reachability: 'public',
     })
     expect(updated.name).toBe('Renamed API')
     expect(updated.url).toBe('https://api.acme.com/v2/healthz')
     expect(updated.method).toBe('GET')
     expect(updated.authKind).toBe('bearer')
     expect(updated.authConfig).toBe('token-stub')
-    expect(updated.reachability).toBe('tunnel')
+    expect(updated.reachability).toBe('public')
+  })
+
+  it('rejects tunnel reachability without a tunnel assigned', async () => {
+    const db = createTestDb()
+    await createWorkspace(db, workspaceInput)
+    await createTarget(db, 'acme', targetInput)
+    await expect(
+      updateTarget(db, 'acme', 'primary-api', {
+        name: 'API',
+        url: 'https://api.acme.com/healthz',
+        method: 'GET',
+        authKind: 'none',
+        authConfig: null,
+        reachability: 'tunnel',
+      }),
+    ).rejects.toBeInstanceOf(FieldValidationError)
   })
 
   it('throws NotFoundError when the target slug does not exist for the workspace', async () => {

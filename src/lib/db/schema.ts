@@ -11,7 +11,14 @@ const JOB_STATUSES = ['active', 'paused', 'archived'] as const
 const TRIGGER_KINDS = ['cron', 'interval', 'webhook'] as const
 const RUN_STATUSES = ['scheduled', 'running', 'completed', 'canceled'] as const
 const RUN_OUTCOMES = ['success', 'failure', 'timeout'] as const
-const FAILURE_KINDS = ['timeout', 'network', 'http_4xx', 'http_5xx', 'non_2xx_other'] as const
+const FAILURE_KINDS = [
+  'timeout',
+  'network',
+  'http_4xx',
+  'http_5xx',
+  'non_2xx_other',
+  'tunnel_credential_missing',
+] as const
 const CHANNEL_KINDS = ['teams', 'pagerduty', 'autotask', 'email', 'webhook'] as const
 const ALERT_RULE_KINDS = [
   'first_failure',

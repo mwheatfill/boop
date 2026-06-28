@@ -13,6 +13,17 @@ import { normalizeSlug, resolveWorkspaceId } from '@/lib/workspaces/resolve'
 import type { Target, TargetCreateInput, TargetUpdateInput } from '@/shared/schemas/target'
 import { getTargetBySlug } from './queries'
 
+function tunnelIdFor(input: {
+  reachability: string
+  tunnelId?: string | null | undefined
+}): string | null {
+  if (input.reachability !== 'tunnel') return null
+  if (!input.tunnelId) {
+    throw new FieldValidationError({ tunnelId: ['Select a tunnel for tunnel reachability'] })
+  }
+  return input.tunnelId
+}
+
 export async function createTarget(
   db: Database,
   workspaceSlug: string,
@@ -32,6 +43,7 @@ export async function createTarget(
       authKind: input.authKind,
       authConfig: input.authConfig ?? null,
       reachability: input.reachability,
+      tunnelId: tunnelIdFor(input),
     })
   } catch (err) {
     if (isUniqueConstraintViolation(err, 'targets.slug')) {
@@ -60,6 +72,7 @@ export async function updateTarget(
       authKind: input.authKind,
       authConfig: input.authConfig ?? null,
       reachability: input.reachability,
+      tunnelId: tunnelIdFor(input),
       updatedAt: new Date(),
     })
     .where(and(eq(targets.workspaceId, workspaceId), eq(targets.slug, targetSlug)))

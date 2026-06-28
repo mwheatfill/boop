@@ -6,8 +6,9 @@ import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
 import { attempts, jobs, runs, targets, workspaces } from '@/lib/db/schema'
-import { logError, logInfo } from '@/lib/log'
+import { logError, logInfo, logWarn } from '@/lib/log'
 import { redactHeaders } from '@/lib/runs/header-redaction'
+import { buildAccessHeaders, TunnelCredentialError } from '@/lib/tunnels/access-headers'
 import { fetchActiveSecretPlaintext } from '@/lib/workspace-secrets/commands'
 import type { TriggerSource } from '@/shared/schemas/run'
 import { mergeEffectiveVariables } from '@/shared/schemas/workspace-variables'
@@ -132,6 +133,21 @@ function parseHeaders(rendered: string): Record<string, string> {
   }
 }
 
+// Case-insensitive merge where override wins. HTTP header names are
+// case-insensitive, so a template header must override an Access default even
+// when their casing differs (otherwise fetch() comma-combines the duplicates).
+function mergeHeaders(
+  base: Record<string, string>,
+  override: Record<string, string>,
+): Record<string, string> {
+  const overrideKeys = new Set(Object.keys(override).map((k) => k.toLowerCase()))
+  const merged: Record<string, string> = {}
+  for (const [key, value] of Object.entries(base)) {
+    if (!overrideKeys.has(key.toLowerCase())) merged[key] = value
+  }
+  return { ...merged, ...override }
+}
+
 interface AttemptOutcome {
   httpStatus: number | null
   failureKind: FailureKind | null
@@ -217,9 +233,11 @@ async function performAttempt(
   renderedHeaders: string,
   responseKey: string,
   bodyReadTimeoutMs: number,
+  accessHeaders: Record<string, string>,
 ): Promise<AttemptOutcome> {
   const hasBody = target.method !== 'GET' && target.method !== 'HEAD'
-  const rawHeaders = parseHeaders(renderedHeaders)
+  // Access headers are the base; template-rendered headers win on key conflict.
+  const rawHeaders = mergeHeaders(accessHeaders, parseHeaders(renderedHeaders))
   const redactedHeaders = redactHeaders(rawHeaders)
   try {
     const response = await fetch(target.url, {
@@ -351,6 +369,36 @@ export async function runDispatch(
       throw new RenderError(err)
     }
 
+    let accessHeaders: Record<string, string>
+    try {
+      accessHeaders = await buildAccessHeaders({ db, kek: kek ?? '' }, target)
+    } catch (err) {
+      if (!(err instanceof TunnelCredentialError)) throw err
+      const failedAt = new Date()
+      await db.insert(attempts).values({
+        id: newId('att'),
+        runId,
+        attemptNumber: 1,
+        startedAt: failedAt,
+        completedAt: failedAt,
+        failureKind: 'tunnel_credential_missing',
+      })
+      await db
+        .update(runs)
+        .set({
+          status: 'completed',
+          outcome: 'failure',
+          completedAt: failedAt,
+          updatedAt: failedAt,
+        })
+        .where(eq(runs.id, runId))
+      logWarn('dispatch.tunnel_credential_missing', { jobId, runId, targetId: target.id })
+      if (alertQueue) {
+        await evaluateAndEnqueueAlerts(db, alertQueue, workspace.id, job.id, runId)
+      }
+      return
+    }
+
     let lastError: TargetTimeoutError | TargetNetworkError | TargetHttpError | null = null
     let lastHttpStatus: number | null = null
     let lastFailureKind: FailureKind | null = null
@@ -381,6 +429,7 @@ export async function runDispatch(
         renderedHeaders,
         responseKey,
         bodyReadTimeoutMs,
+        accessHeaders,
       )
       const attemptCompletedAt = new Date()
       await db
