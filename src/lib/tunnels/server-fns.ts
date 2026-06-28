@@ -7,7 +7,13 @@ import { getDefaultWorkspace } from '@/lib/workspaces/queries'
 import { z } from '@/shared/schemas/openapi'
 import { TunnelCreateInput } from '@/shared/schemas/tunnel'
 import { getProviderConfig, type ProviderEnv } from './provider'
-import { decommissionTunnel, getTunnelInstall, provisionTunnel, updateTunnel } from './provision'
+import {
+  decommissionTunnel,
+  getTunnelInstall,
+  provisionTunnel,
+  rotateTunnelCredentials,
+  updateTunnel,
+} from './provision'
 import { getTunnelBySlug, listTunnels } from './queries'
 import { runTunnelVerify } from './verify'
 
@@ -88,6 +94,17 @@ export const decommissionTunnelFn = createServerFn({ method: 'POST' })
     const db = createDb(env.DB)
     const provider = getProviderConfig(providerEnv())
     await decommissionTunnel({ db, cf: provider.cf, zoneId: provider.zoneId }, data.tunnelId)
+    return { ok: true as const }
+  })
+
+export const rotateTunnelCredentialsFn = createServerFn({ method: 'POST' })
+  .middleware([adminMiddleware])
+  .inputValidator((data) => tunnelIdInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = createDb(env.DB)
+    const kek = await requireKek()
+    const provider = getProviderConfig(providerEnv())
+    await rotateTunnelCredentials({ db, cf: provider.cf, kek }, data.tunnelId)
     return { ok: true as const }
   })
 

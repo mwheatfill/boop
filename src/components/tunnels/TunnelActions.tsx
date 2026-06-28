@@ -27,7 +27,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { decommissionTunnelFn, getTunnelInstallFn, verifyTunnelFn } from '@/lib/tunnels/server-fns'
+import {
+  decommissionTunnelFn,
+  getTunnelInstallFn,
+  rotateTunnelCredentialsFn,
+  verifyTunnelFn,
+} from '@/lib/tunnels/server-fns'
 import type { Tunnel } from '@/shared/schemas/tunnel'
 
 interface Install {
@@ -67,6 +72,15 @@ export function TunnelActions({
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Could not load command'),
   })
 
+  const rotate = useMutation({
+    mutationFn: () => rotateTunnelCredentialsFn({ data: { tunnelId: tunnel.id } }),
+    onSuccess: () => {
+      toast.success('Access credentials rotated')
+      void invalidate()
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Rotate failed'),
+  })
+
   const remove = useMutation({
     mutationFn: () => decommissionTunnelFn({ data: { tunnelId: tunnel.id } }),
     onSuccess: () => {
@@ -103,6 +117,9 @@ export function TunnelActions({
           <DropdownMenuContent align="end">
             <DropdownMenuItem disabled={showInstall.isPending} onClick={() => showInstall.mutate()}>
               Install command…
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={rotate.isPending} onClick={() => rotate.mutate()}>
+              Rotate credentials
             </DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={() => setConfirming(true)}>
               Remove…

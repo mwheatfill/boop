@@ -98,6 +98,20 @@ describe('createCloudflareApi', () => {
     })
   })
 
+  it('rotates a service token via the rotate endpoint', async () => {
+    const { api, call } = harness([
+      ok({ id: 'st1', client_id: 'cid.access', client_secret: 'new' }),
+    ])
+    await expect(api.rotateServiceToken('st1')).resolves.toEqual({
+      clientId: 'cid.access',
+      clientSecret: 'new',
+    })
+    expect(call()).toMatchObject({
+      method: 'POST',
+      url: 'https://api.cloudflare.com/client/v4/accounts/acct1/access/service_tokens/st1/rotate',
+    })
+  })
+
   it('creates a non_identity service-token policy', async () => {
     const { api, call } = harness([ok({ id: 'pol1' })])
     await expect(api.createAccessPolicy('acme', 'st1')).resolves.toEqual({ id: 'pol1' })

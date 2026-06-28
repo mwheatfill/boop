@@ -17,6 +17,7 @@ function stubCf(): CloudflareApi {
     putTunnelIngress: noop,
     deleteTunnel: noop,
     createServiceToken: vi.fn(async () => ({ id: 's', clientId: 'c', clientSecret: 'x' })),
+    rotateServiceToken: vi.fn(async () => ({ clientId: 'c', clientSecret: 'x' })),
     deleteServiceToken: noop,
     createAccessPolicy: vi.fn(async () => ({ id: 'p' })),
     deleteAccessPolicy: noop,

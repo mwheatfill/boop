@@ -7,7 +7,7 @@ import { newId } from '@/lib/db/ids'
 import { targets, tunnels } from '@/lib/db/schema'
 import { ArchiveBlockedError, NotFoundError } from '@/lib/errors'
 import { logError, logInfo } from '@/lib/log'
-import { createSecret, revokeSecret } from '@/lib/workspace-secrets/commands'
+import { createSecret, revokeSecret, rotateSecret } from '@/lib/workspace-secrets/commands'
 
 export interface ProvisionTunnelDeps {
   db: Database
@@ -156,6 +156,36 @@ export async function updateTunnel(
     .set({ name: input.name, updatedAt: now() })
     .where(eq(tunnels.id, tunnelId))
   logInfo('tunnel.updated', { workspaceId: row.workspaceId, slug: row.slug })
+}
+
+export interface RotateTunnelCredentialsDeps {
+  db: Database
+  cf: CloudflareApi
+  kek: string
+  now?: () => Date
+}
+
+// Rotates the tunnel's Access Service Token at Cloudflare and stores the fresh
+// credentials, so a tunnel whose stored secret drifted from Cloudflare (revoked,
+// rotated out-of-band) can re-authenticate without re-provisioning. The connector
+// token is separate, so the on-prem connector keeps running untouched.
+export async function rotateTunnelCredentials(
+  deps: RotateTunnelCredentialsDeps,
+  tunnelId: string,
+): Promise<void> {
+  const { db, cf, kek } = deps
+  const now = deps.now ?? (() => new Date())
+  const tunnel = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
+  if (!tunnel) throw new NotFoundError('Tunnel', tunnelId)
+
+  const rotated = await cf.rotateServiceToken(tunnel.cfServiceTokenId)
+  await rotateSecret({ db, kek, now }, tunnel.workspaceId, tunnel.clientIdSecretName, {
+    plaintext: rotated.clientId,
+  })
+  await rotateSecret({ db, kek, now }, tunnel.workspaceId, tunnel.clientSecretSecretName, {
+    plaintext: rotated.clientSecret,
+  })
+  logInfo('tunnel.credentials_rotated', { tunnelId, workspaceId: tunnel.workspaceId })
 }
 
 // Rebuilds the tunnel's Cloudflare ingress from every active private Target that

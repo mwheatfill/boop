@@ -6,8 +6,13 @@ import { newId } from '@/lib/db/ids'
 import { targets, tunnels, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { ArchiveBlockedError } from '@/lib/errors'
-import { listActiveSecrets } from '@/lib/workspace-secrets/commands'
-import { decommissionTunnel, provisionTunnel, syncTunnelIngress } from './provision'
+import { fetchActiveSecretPlaintext, listActiveSecrets } from '@/lib/workspace-secrets/commands'
+import {
+  decommissionTunnel,
+  provisionTunnel,
+  rotateTunnelCredentials,
+  syncTunnelIngress,
+} from './provision'
 
 const KEK = btoa('\0'.repeat(32))
 const BASE = 'tunnels.test'
@@ -20,6 +25,7 @@ function stubCf(overrides: Partial<CloudflareApi> = {}): CloudflareApi {
     getTunnelStatus: vi.fn(async () => 'healthy' as const),
     deleteTunnel: vi.fn(async () => {}),
     createServiceToken: vi.fn(async () => ({ id: 'st', clientId: 'cid', clientSecret: 'csec' })),
+    rotateServiceToken: vi.fn(async () => ({ clientId: 'cid2', clientSecret: 'csec2' })),
     deleteServiceToken: vi.fn(async () => {}),
     createAccessPolicy: vi.fn(async () => ({ id: 'pol' })),
     deleteAccessPolicy: vi.fn(async () => {}),
@@ -247,5 +253,33 @@ describe('syncTunnelIngress', () => {
     expect(cf.putTunnelIngress).toHaveBeenCalledWith('cf_tnl', [
       { hostname: 'api.acme-hq.tunnels.test', service: 'http://10.0.1.5:8080' },
     ])
+  })
+})
+
+describe('rotateTunnelCredentials', () => {
+  it('rotates the Cloudflare service token and stores the fresh secrets', async () => {
+    const db = createTestDb()
+    const workspaceId = await seedWorkspace(db)
+    const cf = stubCf()
+    const { id } = await provisionTunnel(
+      { db, cf, kek: KEK, zoneId: 'z1', hostnameBase: BASE },
+      input(workspaceId),
+    )
+
+    await rotateTunnelCredentials({ db, cf, kek: KEK }, id)
+
+    expect(cf.rotateServiceToken).toHaveBeenCalledWith('st')
+    const clientId = await fetchActiveSecretPlaintext(
+      { db, kek: KEK },
+      workspaceId,
+      'cf_access_acme-hq_client_id',
+    )
+    const clientSecret = await fetchActiveSecretPlaintext(
+      { db, kek: KEK },
+      workspaceId,
+      'cf_access_acme-hq_client_secret',
+    )
+    expect(clientId).toBe('cid2')
+    expect(clientSecret).toBe('csec2')
   })
 })

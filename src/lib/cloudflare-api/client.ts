@@ -55,6 +55,7 @@ export interface CloudflareApi {
   getTunnelStatus(tunnelId: string): Promise<ConnectorStatus>
   deleteTunnel(tunnelId: string): Promise<void>
   createServiceToken(name: string): Promise<{ id: string; clientId: string; clientSecret: string }>
+  rotateServiceToken(tokenId: string): Promise<{ clientId: string; clientSecret: string }>
   deleteServiceToken(tokenId: string): Promise<void>
   createAccessPolicy(name: string, serviceTokenId: string): Promise<{ id: string }>
   deleteAccessPolicy(policyId: string): Promise<void>
@@ -160,6 +161,14 @@ export function createCloudflareApi(options: CloudflareApiOptions): CloudflareAp
         { name },
       )
       return { id: result.id, clientId: result.client_id, clientSecret: result.client_secret }
+    },
+
+    async rotateServiceToken(tokenId) {
+      const result = await request<{ client_id: string; client_secret: string }>(
+        'POST',
+        account(`/access/service_tokens/${tokenId}/rotate`),
+      )
+      return { clientId: result.client_id, clientSecret: result.client_secret }
     },
 
     async deleteServiceToken(tokenId) {
