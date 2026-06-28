@@ -128,8 +128,6 @@ export async function runScheduled({
 // missing provider token never breaks the heartbeat.
 async function maybeRefreshTunnelHealth(env: ScheduledEnv): Promise<void> {
   try {
-    const kek = await env.BOOP_SECRETS_KEK?.get()
-    if (!kek) return
     const db = createDb(env.DB)
     const provider = getProviderConfig({
       apiToken: env.CF_PROVIDER_API_TOKEN ?? '',
@@ -137,7 +135,7 @@ async function maybeRefreshTunnelHealth(env: ScheduledEnv): Promise<void> {
       zoneId: env.CF_PROVIDER_ZONE_ID ?? '',
       hostnameBase: env.CF_TUNNEL_HOSTNAME_BASE ?? '',
     })
-    await refreshTunnelHealth({ db, cf: provider.cf, kek, zoneId: provider.zoneId })
+    await refreshTunnelHealth({ db, cf: provider.cf, zoneId: provider.zoneId })
   } catch (err) {
     // Not configured is the normal unconfigured state, not a problem worth a
     // per-minute warning. Only unexpected errors are logged.

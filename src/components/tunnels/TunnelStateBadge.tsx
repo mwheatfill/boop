@@ -7,7 +7,7 @@ type Variant = NonNullable<VariantProps<typeof badgeVariants>['variant']>
 
 const config: Record<TunnelState, { variant: Variant; label: string; Icon: typeof CircleCheck }> = {
   provisioning: { variant: 'secondary', label: 'Setting up…', Icon: CircleDashed },
-  install_pending: { variant: 'warning', label: 'Install the connector', Icon: Download },
+  install_pending: { variant: 'info', label: 'Install the connector', Icon: Download },
   operational: { variant: 'success', label: 'Operational', Icon: CircleCheck },
   attention: { variant: 'destructive', label: 'Needs attention', Icon: CircleAlert },
 }
