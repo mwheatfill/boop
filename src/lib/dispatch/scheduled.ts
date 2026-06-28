@@ -5,11 +5,9 @@ import { evaluateMissedSchedules } from '@/lib/alert-rules/missed-schedule'
 import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
 import { jobs, workspaces } from '@/lib/db/schema'
-import { NotFoundError } from '@/lib/errors'
 import { logError, logInfo, logWarn } from '@/lib/log'
 import { refreshTunnelHealth } from '@/lib/tunnels/health-check'
 import { getProviderConfig, TunnelProvisioningNotConfiguredError } from '@/lib/tunnels/provider'
-import { getDefaultWorkspace } from '@/lib/workspaces/queries'
 
 const STALE_CLAIM_MS = 300_000
 
@@ -25,6 +23,7 @@ export interface ScheduledEnv {
   DISPATCH_QUEUE: Queue<DispatchMessage>
   ALERT_QUEUE?: Queue<AlertQueueMessage>
   BOOP_SECRETS_KEK?: SecretsStoreSecret
+  CF_PROVIDER_API_TOKEN?: string
   CF_PROVIDER_ACCOUNT_ID?: string
   CF_PROVIDER_ZONE_ID?: string
   CF_TUNNEL_HOSTNAME_BASE?: string
@@ -132,22 +131,17 @@ async function maybeRefreshTunnelHealth(env: ScheduledEnv): Promise<void> {
     const kek = await env.BOOP_SECRETS_KEK?.get()
     if (!kek) return
     const db = createDb(env.DB)
-    const workspace = await getDefaultWorkspace(db)
-    const provider = await getProviderConfig({
-      db,
-      kek,
-      workspaceId: workspace.id,
-      vars: {
-        accountId: env.CF_PROVIDER_ACCOUNT_ID ?? '',
-        zoneId: env.CF_PROVIDER_ZONE_ID ?? '',
-        hostnameBase: env.CF_TUNNEL_HOSTNAME_BASE ?? '',
-      },
+    const provider = getProviderConfig({
+      apiToken: env.CF_PROVIDER_API_TOKEN ?? '',
+      accountId: env.CF_PROVIDER_ACCOUNT_ID ?? '',
+      zoneId: env.CF_PROVIDER_ZONE_ID ?? '',
+      hostnameBase: env.CF_TUNNEL_HOSTNAME_BASE ?? '',
     })
     await refreshTunnelHealth({ db, cf: provider.cf, kek })
   } catch (err) {
-    // Not configured / no workspace yet is the normal unconfigured state, not a
-    // problem worth a per-minute warning. Only unexpected errors are logged.
-    if (err instanceof TunnelProvisioningNotConfiguredError || err instanceof NotFoundError) return
+    // Not configured is the normal unconfigured state, not a problem worth a
+    // per-minute warning. Only unexpected errors are logged.
+    if (err instanceof TunnelProvisioningNotConfiguredError) return
     logWarn('tunnel.health_refresh_skipped', {
       reason: err instanceof Error ? err.message : 'unknown',
     })

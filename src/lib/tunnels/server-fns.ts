@@ -6,7 +6,7 @@ import { createDb } from '@/lib/db/client'
 import { getDefaultWorkspace } from '@/lib/workspaces/queries'
 import { z } from '@/shared/schemas/openapi'
 import { TunnelCreateInput } from '@/shared/schemas/tunnel'
-import { getProviderConfig, type ProviderVars } from './provider'
+import { getProviderConfig, type ProviderEnv } from './provider'
 import { decommissionTunnel, provisionTunnel } from './provision'
 import { listTunnels } from './queries'
 import { runTunnelVerify } from './verify'
@@ -19,8 +19,9 @@ async function requireKek(): Promise<string> {
   return kek
 }
 
-function providerVars(): ProviderVars {
+function providerEnv(): ProviderEnv {
   return {
+    apiToken: env.CF_PROVIDER_API_TOKEN,
     accountId: env.CF_PROVIDER_ACCOUNT_ID,
     zoneId: env.CF_PROVIDER_ZONE_ID,
     hostnameBase: env.CF_TUNNEL_HOSTNAME_BASE,
@@ -42,12 +43,7 @@ export const provisionTunnelFn = createServerFn({ method: 'POST' })
     const db = createDb(env.DB)
     const kek = await requireKek()
     const workspace = await getDefaultWorkspace(db)
-    const provider = await getProviderConfig({
-      db,
-      kek,
-      workspaceId: workspace.id,
-      vars: providerVars(),
-    })
+    const provider = getProviderConfig(providerEnv())
     return provisionTunnel(
       { db, cf: provider.cf, kek, zoneId: provider.zoneId, hostnameBase: provider.hostnameBase },
       {
@@ -64,14 +60,7 @@ export const decommissionTunnelFn = createServerFn({ method: 'POST' })
   .inputValidator((data) => tunnelIdInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
-    const kek = await requireKek()
-    const workspace = await getDefaultWorkspace(db)
-    const provider = await getProviderConfig({
-      db,
-      kek,
-      workspaceId: workspace.id,
-      vars: providerVars(),
-    })
+    const provider = getProviderConfig(providerEnv())
     await decommissionTunnel({ db, cf: provider.cf, zoneId: provider.zoneId }, data.tunnelId)
     return { ok: true as const }
   })
