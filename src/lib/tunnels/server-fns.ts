@@ -7,11 +7,16 @@ import { getDefaultWorkspace } from '@/lib/workspaces/queries'
 import { z } from '@/shared/schemas/openapi'
 import { TunnelCreateInput } from '@/shared/schemas/tunnel'
 import { getProviderConfig, type ProviderEnv } from './provider'
-import { decommissionTunnel, provisionTunnel } from './provision'
-import { listTunnels } from './queries'
+import { decommissionTunnel, getTunnelInstall, provisionTunnel, updateTunnel } from './provision'
+import { getTunnelBySlug, listTunnels } from './queries'
 import { runTunnelVerify } from './verify'
 
 const tunnelIdInput = z.object({ tunnelId: z.string().min(1) })
+const tunnelUpdateInput = z.object({
+  tunnelId: z.string().min(1),
+  name: TunnelCreateInput.shape.name,
+  internalOrigin: TunnelCreateInput.shape.internalOrigin,
+})
 
 async function requireKek(): Promise<string> {
   const kek = await env.BOOP_SECRETS_KEK.get()
@@ -34,6 +39,37 @@ export const listTunnelsFn = createServerFn({ method: 'GET' })
     const db = createDb(env.DB)
     const workspace = await getDefaultWorkspace(db)
     return listTunnels(db, workspace.id)
+  })
+
+export const getTunnelFn = createServerFn({ method: 'GET' })
+  .middleware([authMiddleware])
+  .inputValidator((data) => z.object({ slug: z.string().min(1) }).parse(data))
+  .handler(async ({ data }) => {
+    const db = createDb(env.DB)
+    const workspace = await getDefaultWorkspace(db)
+    return getTunnelBySlug(db, workspace.id, data.slug)
+  })
+
+export const updateTunnelFn = createServerFn({ method: 'POST' })
+  .middleware([adminMiddleware])
+  .inputValidator((data) => tunnelUpdateInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = createDb(env.DB)
+    const provider = getProviderConfig(providerEnv())
+    await updateTunnel({ db, cf: provider.cf }, data.tunnelId, {
+      name: data.name,
+      internalOrigin: data.internalOrigin,
+    })
+    return { ok: true as const }
+  })
+
+export const getTunnelInstallFn = createServerFn({ method: 'POST' })
+  .middleware([adminMiddleware])
+  .inputValidator((data) => tunnelIdInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = createDb(env.DB)
+    const provider = getProviderConfig(providerEnv())
+    return getTunnelInstall({ db, cf: provider.cf }, data.tunnelId)
   })
 
 export const provisionTunnelFn = createServerFn({ method: 'POST' })

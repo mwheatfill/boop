@@ -123,6 +123,47 @@ export async function provisionTunnel(
   }
 }
 
+export interface UpdateTunnelDeps {
+  db: Database
+  cf: CloudflareApi
+  now?: () => Date
+}
+
+// Name is a boop-side label (DB only); changing the internal origin re-points the
+// connector by rewriting the tunnel's ingress on Cloudflare. Slug/hostname are
+// immutable (they anchor DNS and the Access app).
+export async function updateTunnel(
+  deps: UpdateTunnelDeps,
+  tunnelId: string,
+  input: { name: string; internalOrigin: string },
+): Promise<void> {
+  const { db, cf } = deps
+  const now = deps.now ?? (() => new Date())
+  const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
+  if (!row) throw new NotFoundError('Tunnel', tunnelId)
+
+  if (input.internalOrigin !== row.internalOrigin) {
+    await cf.putTunnelConfiguration(row.cfTunnelId, row.hostname, input.internalOrigin)
+  }
+  await db
+    .update(tunnels)
+    .set({ name: input.name, internalOrigin: input.internalOrigin, updatedAt: now() })
+    .where(eq(tunnels.id, tunnelId))
+  logInfo('tunnel.updated', { workspaceId: row.workspaceId, slug: row.slug })
+}
+
+// Re-fetches the cloudflared install token so the connector command can be shown
+// again (token is never stored; the install command must not disappear).
+export async function getTunnelInstall(
+  deps: { db: Database; cf: CloudflareApi },
+  tunnelId: string,
+): Promise<{ hostname: string; installToken: string }> {
+  const row = (await deps.db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
+  if (!row) throw new NotFoundError('Tunnel', tunnelId)
+  const installToken = await deps.cf.getTunnelToken(row.cfTunnelId)
+  return { hostname: row.hostname, installToken }
+}
+
 export interface DecommissionTunnelDeps {
   db: Database
   cf: CloudflareApi

@@ -85,7 +85,13 @@ export async function getTunnelBySlug(
     await db
       .select()
       .from(tunnels)
-      .where(and(eq(tunnels.workspaceId, workspaceId), eq(tunnels.slug, slug)))
+      .where(
+        and(
+          eq(tunnels.workspaceId, workspaceId),
+          eq(tunnels.slug, slug),
+          eq(tunnels.status, 'active'),
+        ),
+      )
       .limit(1)
   )[0]
   if (!row) throw new NotFoundError('Tunnel', slug)

@@ -23,7 +23,18 @@ function tunnelColumns(isAdmin: boolean): ColumnDef<Tunnel>[] {
     {
       accessorKey: 'name',
       header: 'Name',
-      cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span>,
+      cell: ({ row }) =>
+        isAdmin ? (
+          <Link
+            to="/tunnels/$tunnelSlug"
+            params={{ tunnelSlug: row.original.slug }}
+            className="font-medium text-foreground hover:underline"
+          >
+            {row.original.name}
+          </Link>
+        ) : (
+          <span className="font-medium text-foreground">{row.original.name}</span>
+        ),
     },
     {
       accessorKey: 'hostname',

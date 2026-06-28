@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { TunnelInstallCommands } from '@/components/tunnels/TunnelInstallCommands'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,12 +13,25 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { decommissionTunnelFn, verifyTunnelFn } from '@/lib/tunnels/server-fns'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { decommissionTunnelFn, getTunnelInstallFn, verifyTunnelFn } from '@/lib/tunnels/server-fns'
 import type { Tunnel } from '@/shared/schemas/tunnel'
+
+interface Install {
+  hostname: string
+  installToken: string
+}
 
 export function TunnelRowActions({ tunnel, isAdmin }: { tunnel: Tunnel; isAdmin: boolean }) {
   const queryClient = useQueryClient()
   const [confirming, setConfirming] = useState(false)
+  const [install, setInstall] = useState<Install | null>(null)
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['tunnels'] })
 
   const verify = useMutation({
@@ -28,6 +42,12 @@ export function TunnelRowActions({ tunnel, isAdmin }: { tunnel: Tunnel; isAdmin:
       void invalidate()
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Verify failed'),
+  })
+
+  const showInstall = useMutation({
+    mutationFn: () => getTunnelInstallFn({ data: { tunnelId: tunnel.id } }),
+    onSuccess: (data) => setInstall(data),
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Could not load command'),
   })
 
   const remove = useMutation({
@@ -51,10 +71,40 @@ export function TunnelRowActions({ tunnel, isAdmin }: { tunnel: Tunnel; isAdmin:
         {verify.isPending ? 'Verifying' : 'Verify'}
       </Button>
       {isAdmin ? (
+        <Button
+          variant="ghost"
+          size="xs"
+          disabled={showInstall.isPending}
+          onClick={() => showInstall.mutate()}
+        >
+          {showInstall.isPending ? 'Loading' : 'Install command'}
+        </Button>
+      ) : null}
+      {isAdmin ? (
         <Button variant="ghost" size="xs" onClick={() => setConfirming(true)}>
           Remove
         </Button>
       ) : null}
+
+      <Dialog open={install !== null} onOpenChange={(next) => !next && setInstall(null)}>
+        <DialogContent size="wide">
+          <DialogHeader>
+            <DialogTitle>Install the connector</DialogTitle>
+            <DialogDescription>
+              Run one of these on a host inside the private network for {tunnel.name}.
+            </DialogDescription>
+          </DialogHeader>
+          {install ? (
+            <div className="flex flex-col gap-4">
+              <TunnelInstallCommands
+                hostname={install.hostname}
+                installToken={install.installToken}
+              />
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>

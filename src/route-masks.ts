@@ -30,6 +30,12 @@ export const routeMasks = [
   }),
   createRouteMask({
     routeTree,
+    from: '/tunnels/$tunnelSlug',
+    to: '/tunnels',
+    unmaskOnReload: true,
+  }),
+  createRouteMask({
+    routeTree,
     from: '/targets/$targetSlug',
     to: '/targets',
     unmaskOnReload: true,
