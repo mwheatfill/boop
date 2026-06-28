@@ -28,7 +28,7 @@ export function TunnelEditModal({ tunnel, onClose }: { tunnel: Tunnel; onClose: 
       open
       onClose={onClose}
       title={`Edit ${tunnel.name}`}
-      description="The name is a label. Internal origins live on each Private Target; the slug and hostname are fixed."
+      description="Rename this tunnel. The address and hostname don't change."
       dirty={dirty}
       primaryAction={{
         label: 'Save changes',

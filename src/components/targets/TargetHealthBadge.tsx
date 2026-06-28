@@ -7,10 +7,10 @@ type Variant = NonNullable<VariantProps<typeof badgeVariants>['variant']>
 
 const config: Record<TargetHealth, { variant: Variant; label: string; Icon: typeof CircleCheck }> =
   {
-    operational: { variant: 'success', label: 'Operational', Icon: CircleCheck },
-    origin_unreachable: { variant: 'destructive', label: 'Origin unreachable', Icon: Unplug },
+    operational: { variant: 'success', label: 'Healthy', Icon: CircleCheck },
+    origin_unreachable: { variant: 'destructive', label: 'Unreachable', Icon: Unplug },
     tunnel_offline: { variant: 'secondary', label: 'Tunnel offline', Icon: CircleOff },
-    auth_error: { variant: 'warning', label: 'Auth error', Icon: ShieldAlert },
+    auth_error: { variant: 'warning', label: 'Auth failed', Icon: ShieldAlert },
     checking: { variant: 'outline', label: 'Checking…', Icon: CircleDashed },
   }
 

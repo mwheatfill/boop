@@ -4,10 +4,10 @@ import type { TargetHealth } from '@/shared/schemas/target'
 import { TargetHealthBadge } from './TargetHealthBadge'
 
 const cases: Array<[TargetHealth, string]> = [
-  ['operational', 'Operational'],
-  ['origin_unreachable', 'Origin unreachable'],
+  ['operational', 'Healthy'],
+  ['origin_unreachable', 'Unreachable'],
   ['tunnel_offline', 'Tunnel offline'],
-  ['auth_error', 'Auth error'],
+  ['auth_error', 'Auth failed'],
   ['checking', 'Checking…'],
 ]
 

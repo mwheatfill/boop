@@ -31,8 +31,6 @@ interface TargetFormValues {
   reachability: (typeof TARGET_REACHABILITIES)[number]
   tunnelId: string
   internalOrigin: string
-  originHostHeader: string
-  originServerName: string
   originNoTlsVerify: boolean
 }
 
@@ -70,8 +68,6 @@ export function TargetModal(props: TargetModalProps) {
           reachability: props.initialTarget.reachability,
           tunnelId: props.initialTarget.tunnelId ?? '',
           internalOrigin: props.initialTarget.internalOrigin ?? '',
-          originHostHeader: props.initialTarget.originHostHeader ?? '',
-          originServerName: props.initialTarget.originServerName ?? '',
           originNoTlsVerify: props.initialTarget.originNoTlsVerify,
         }
       : {
@@ -84,8 +80,6 @@ export function TargetModal(props: TargetModalProps) {
           reachability: 'public',
           tunnelId: '',
           internalOrigin: '',
-          originHostHeader: '',
-          originServerName: '',
           originNoTlsVerify: false,
         }
 
@@ -109,8 +103,6 @@ export function TargetModal(props: TargetModalProps) {
                 reachability: 'tunnel' as const,
                 tunnelId: value.tunnelId,
                 internalOrigin: value.internalOrigin,
-                originHostHeader: value.originHostHeader || null,
-                originServerName: value.originServerName || null,
                 originNoTlsVerify: value.originNoTlsVerify,
               }
             : {
@@ -163,6 +155,8 @@ export function TargetModal(props: TargetModalProps) {
   const authKind = useStore(form.store, (s) => s.values.authKind)
   const reachability = useStore(form.store, (s) => s.values.reachability)
   const tunnelId = useStore(form.store, (s) => s.values.tunnelId)
+  const internalOrigin = useStore(form.store, (s) => s.values.internalOrigin)
+  const isHttpsAddress = internalOrigin.trim().toLowerCase().startsWith('https://')
   const formError = useStore(form.store, (s) => s.errorMap.onSubmit)
   const { data: tunnels = [], isLoading: tunnelsLoading } = useQuery(tunnelsQueryOptions)
 
@@ -370,7 +364,7 @@ export function TargetModal(props: TargetModalProps) {
               {(field) => (
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground">
-                    Internal origin
+                    Address
                   </label>
                   <Input
                     id={field.name}
@@ -380,75 +374,31 @@ export function TargetModal(props: TargetModalProps) {
                     onChange={(e) => field.handleChange(e.currentTarget.value)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    The on-prem address the connector forwards to (IIS host:port). boop builds the
-                    public URL from the tunnel.
+                    Where the service runs on your network.
                   </p>
                 </div>
               )}
             </form.Field>
 
-            <form.Field name="originHostHeader">
-              {(field) => (
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground">
-                    Host header (optional)
-                  </label>
-                  <Input
-                    id={field.name}
-                    value={field.state.value}
-                    placeholder="api.internal.corp"
-                    className="font-mono text-sm"
-                    onChange={(e) => field.handleChange(e.currentTarget.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Sent as the <code className="font-mono">Host</code> header to the origin. Set
-                    this to the IIS site's hostname if it uses host-header bindings; leave blank to
-                    forward as-is.
-                  </p>
-                </div>
-              )}
-            </form.Field>
-
-            <form.Field name="originServerName">
-              {(field) => (
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground">
-                    TLS server name (optional)
-                  </label>
-                  <Input
-                    id={field.name}
-                    value={field.state.value}
-                    placeholder="api.internal.corp"
-                    className="font-mono text-sm"
-                    onChange={(e) => field.handleChange(e.currentTarget.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    For an HTTPS origin, the hostname on its certificate. Only needed when the
-                    internal origin is <code className="font-mono">https://</code> with a cert that
-                    doesn't match the address.
-                  </p>
-                </div>
-              )}
-            </form.Field>
-
-            <form.Field name="originNoTlsVerify">
-              {(field) => (
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-medium">Skip TLS verification</span>
-                    <span className="text-xs text-muted-foreground">
-                      Accept the origin's certificate without verifying it. Last resort for internal
-                      self-signed HTTPS origins.
-                    </span>
+            {isHttpsAddress ? (
+              <form.Field name="originNoTlsVerify">
+                {(field) => (
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium">Allow self-signed certificate</span>
+                      <span className="text-xs text-muted-foreground">
+                        Turn on if the server uses its own certificate.
+                      </span>
+                    </div>
+                    <Switch
+                      checked={field.state.value}
+                      onCheckedChange={(v) => field.handleChange(v)}
+                      aria-label="Allow self-signed certificate"
+                    />
                   </div>
-                  <Switch
-                    checked={field.state.value}
-                    onCheckedChange={(v) => field.handleChange(v)}
-                    aria-label="Skip TLS verification"
-                  />
-                </div>
-              )}
-            </form.Field>
+                )}
+              </form.Field>
+            ) : null}
           </div>
         ) : null}
 

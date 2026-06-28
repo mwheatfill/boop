@@ -188,12 +188,25 @@ export async function rotateTunnelCredentials(
   logInfo('tunnel.credentials_rotated', { tunnelId, workspaceId: tunnel.workspaceId })
 }
 
+// The origin should answer to the address it lives at, so the Host header and TLS
+// name default to that address; the stored columns stay as an override seam.
 function buildOriginRequest(t: typeof targets.$inferSelect): OriginRequest | null {
-  const originRequest: OriginRequest = {}
-  if (t.originHostHeader) originRequest.httpHostHeader = t.originHostHeader
-  if (t.originServerName) originRequest.originServerName = t.originServerName
+  if (!t.internalOrigin) return t.originNoTlsVerify ? { noTLSVerify: true } : null
+  let host = ''
+  let hostname = ''
+  let isHttps = false
+  try {
+    const url = new URL(t.internalOrigin)
+    host = url.host
+    hostname = url.hostname
+    isHttps = url.protocol === 'https:'
+  } catch {
+    return t.originNoTlsVerify ? { noTLSVerify: true } : null
+  }
+  const originRequest: OriginRequest = { httpHostHeader: t.originHostHeader ?? host }
+  if (isHttps) originRequest.originServerName = t.originServerName ?? hostname
   if (t.originNoTlsVerify) originRequest.noTLSVerify = true
-  return Object.keys(originRequest).length > 0 ? originRequest : null
+  return originRequest
 }
 
 // Rebuilds the tunnel's Cloudflare ingress from every active private Target that

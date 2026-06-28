@@ -74,7 +74,7 @@ function TunnelDetailPage() {
 
       <section className="grid gap-3 sm:grid-cols-3">
         <div className="flex flex-col gap-1">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Connector</p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Connection</p>
           <p className="text-sm">
             {tunnel.connectorStatus ? CONNECTOR_LABEL[tunnel.connectorStatus] : 'Not connected'}
           </p>
@@ -84,10 +84,12 @@ function TunnelDetailPage() {
         </div>
         <div className="flex flex-col gap-1">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Certificate</p>
-          <p className="text-sm">{tunnel.certStatus ? CERT_LABEL[tunnel.certStatus] : '—'}</p>
+          <p className="text-sm">
+            {tunnel.certStatus ? CERT_LABEL[tunnel.certStatus] : 'Not issued'}
+          </p>
         </div>
         <div className="flex flex-col gap-1">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Last verify</p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Last checked</p>
           <p className="text-sm">
             {tunnel.lastVerifyOutcome ? VERIFY_LABEL[tunnel.lastVerifyOutcome] : 'Never'}
           </p>
@@ -99,17 +101,16 @@ function TunnelDetailPage() {
 
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-medium">Private Targets</h2>
+          <h2 className="text-lg font-medium">Targets</h2>
           <p className="text-sm text-muted-foreground">
-            Targets that ride this tunnel. Each shows its end-to-end health, so you can see the
-            blast radius before you touch the tunnel.
+            Targets that use this tunnel, with their current health.
           </p>
         </div>
         {ridingTargets.length === 0 ? (
           <EmptyState
             icon={Waypoints}
-            title="No Targets ride this tunnel yet."
-            description="Create a Target with Tunnel reachability and pick this tunnel to route it here."
+            title="No targets use this tunnel yet."
+            description="Add a target and choose this tunnel."
           />
         ) : (
           <ul className="divide-y divide-border border-y border-border">

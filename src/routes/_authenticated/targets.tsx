@@ -47,11 +47,7 @@ const targetColumns: ColumnDef<Target>[] = [
     accessorKey: 'health',
     header: 'Health',
     cell: ({ row }) =>
-      row.original.health ? (
-        <TargetHealthBadge health={row.original.health} />
-      ) : (
-        <span className="text-muted-foreground">—</span>
-      ),
+      row.original.health ? <TargetHealthBadge health={row.original.health} /> : null,
   },
   {
     accessorKey: 'status',
