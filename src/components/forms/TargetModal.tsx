@@ -1,18 +1,34 @@
 import { useForm, useStore } from '@tanstack/react-form'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { EntityModal } from '@/components/forms/EntityModal'
 import { PillButton } from '@/components/forms/PillPicker'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
-import { createTargetFn, updateTargetFn } from '@/lib/targets/server-fns'
+import {
+  archiveTargetFn,
+  createTargetFn,
+  restoreTargetFn,
+  updateTargetFn,
+} from '@/lib/targets/server-fns'
 import { tunnelsQueryOptions } from '@/lib/tunnels/query-options'
 import {
   TARGET_AUTH_KINDS,
@@ -164,6 +180,44 @@ export function TargetModal(props: TargetModalProps) {
   const [authOpen, setAuthOpen] = useState(false)
   const [reachOpen, setReachOpen] = useState(false)
   const [tunnelOpen, setTunnelOpen] = useState(false)
+  const [confirmArchive, setConfirmArchive] = useState(false)
+  const [archiveError, setArchiveError] = useState<string | null>(null)
+
+  const editTarget = props.variant === 'edit' ? props.initialTarget : null
+
+  const afterLifecycle = async (message: string) => {
+    await queryClient.invalidateQueries({
+      queryKey: ['workspaces', props.workspaceSlug, 'targets'],
+    })
+    toast.success(message)
+    await navigate({ to: '/targets' })
+  }
+
+  const archive = useMutation({
+    mutationFn: () =>
+      archiveTargetFn({
+        data: { workspaceSlug: props.workspaceSlug, targetSlug: editTarget?.slug ?? '' },
+      }),
+    onSuccess: async (result) => {
+      if (!result.ok) {
+        setConfirmArchive(false)
+        setArchiveError(result.message ?? 'Active Jobs still use this Target.')
+        return
+      }
+      setConfirmArchive(false)
+      await afterLifecycle('Target archived')
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Archive failed'),
+  })
+
+  const restore = useMutation({
+    mutationFn: () =>
+      restoreTargetFn({
+        data: { workspaceSlug: props.workspaceSlug, targetSlug: editTarget?.slug ?? '' },
+      }),
+    onSuccess: () => afterLifecycle('Target restored'),
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Restore failed'),
+  })
 
   return (
     <EntityModal
@@ -429,7 +483,70 @@ export function TargetModal(props: TargetModalProps) {
         ) : null}
 
         {formError ? <p className="text-sm text-destructive">{String(formError)}</p> : null}
+
+        {editTarget ? (
+          <div className="flex flex-col gap-2 border-t border-border pt-3">
+            {editTarget.status === 'archived' ? (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs text-muted-foreground">This Target is archived.</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={restore.isPending}
+                  onClick={() => restore.mutate()}
+                >
+                  {restore.isPending ? 'Restoring…' : 'Restore'}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs text-muted-foreground">
+                  Archived Targets are hidden, not deleted.
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive"
+                  onClick={() => {
+                    setArchiveError(null)
+                    setConfirmArchive(true)
+                  }}
+                >
+                  Archive
+                </Button>
+              </div>
+            )}
+            {archiveError ? <p className="text-xs text-destructive">{archiveError}</p> : null}
+          </div>
+        ) : null}
       </form>
+
+      <AlertDialog open={confirmArchive} onOpenChange={setConfirmArchive}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive {editTarget?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              It's hidden from the list and you can restore it later. Active Jobs that use it block
+              this.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={archive.isPending}
+              onClick={(e) => {
+                e.preventDefault()
+                archive.mutate()
+              }}
+            >
+              {archive.isPending ? 'Archiving…' : 'Archive'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </EntityModal>
   )
 }
