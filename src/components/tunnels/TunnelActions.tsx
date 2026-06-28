@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { MoreHorizontal, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { TunnelInstallCommands } from '@/components/tunnels/TunnelInstallCommands'
@@ -20,6 +21,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { decommissionTunnelFn, getTunnelInstallFn, verifyTunnelFn } from '@/lib/tunnels/server-fns'
 import type { Tunnel } from '@/shared/schemas/tunnel'
 
@@ -28,7 +35,17 @@ interface Install {
   installToken: string
 }
 
-export function TunnelRowActions({ tunnel, isAdmin }: { tunnel: Tunnel; isAdmin: boolean }) {
+export function TunnelActions({
+  tunnel,
+  isAdmin,
+  onEdit,
+  onRemoved,
+}: {
+  tunnel: Tunnel
+  isAdmin: boolean
+  onEdit: () => void
+  onRemoved: () => void
+}) {
   const queryClient = useQueryClient()
   const [confirming, setConfirming] = useState(false)
   const [install, setInstall] = useState<Install | null>(null)
@@ -56,34 +73,42 @@ export function TunnelRowActions({ tunnel, isAdmin }: { tunnel: Tunnel; isAdmin:
       toast.success(`Removed ${tunnel.name}`)
       setConfirming(false)
       void invalidate()
+      onRemoved()
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Remove failed'),
   })
 
   return (
-    <div className="flex items-center justify-end gap-2">
+    <div className="flex items-center gap-2">
       <Button
         variant="outline"
-        size="xs"
+        size="sm"
         disabled={verify.isPending}
         onClick={() => verify.mutate()}
       >
-        {verify.isPending ? 'Verifying' : 'Verify'}
+        {verify.isPending ? 'Verifying…' : 'Verify'}
       </Button>
       {isAdmin ? (
-        <Button
-          variant="ghost"
-          size="xs"
-          disabled={showInstall.isPending}
-          onClick={() => showInstall.mutate()}
-        >
-          {showInstall.isPending ? 'Loading' : 'Install command'}
+        <Button variant="outline" size="sm" onClick={onEdit}>
+          <Pencil aria-hidden /> Edit
         </Button>
       ) : null}
       {isAdmin ? (
-        <Button variant="ghost" size="xs" onClick={() => setConfirming(true)}>
-          Remove
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={<Button variant="outline" size="icon-sm" aria-label="More actions" />}
+          >
+            <MoreHorizontal aria-hidden />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem disabled={showInstall.isPending} onClick={() => showInstall.mutate()}>
+              Install command…
+            </DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onClick={() => setConfirming(true)}>
+              Remove…
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ) : null}
 
       <Dialog open={install !== null} onOpenChange={(next) => !next && setInstall(null)}>

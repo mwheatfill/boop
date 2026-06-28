@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { StatusBadge } from '@/components/StatusBadge'
+import { TargetHealthBadge } from '@/components/targets/TargetHealthBadge'
 import { Button } from '@/components/ui/button'
 import { listTargetsForWorkspaceFn } from '@/lib/targets/server-fns'
 import { defaultWorkspaceQueryOptions } from '@/lib/workspaces/query-options'
@@ -54,6 +55,16 @@ function targetColumns(isAdmin: boolean): ColumnDef<Target>[] {
     { accessorKey: 'method', header: 'Method' },
     { accessorKey: 'url', header: 'URL' },
     { accessorKey: 'reachability', header: 'Reachability' },
+    {
+      accessorKey: 'health',
+      header: 'Health',
+      cell: ({ row }) =>
+        row.original.health ? (
+          <TargetHealthBadge health={row.original.health} />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
     {
       accessorKey: 'status',
       header: 'Status',

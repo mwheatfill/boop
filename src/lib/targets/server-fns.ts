@@ -10,7 +10,7 @@ import { z } from '@/shared/schemas/openapi'
 import type { Target } from '@/shared/schemas/target'
 import { TargetCreateInput, TargetUpdateInput } from '@/shared/schemas/target'
 import { archiveTarget, createTarget, restoreTarget, updateTarget } from './commands'
-import { getTargetBySlug, listTargetsForWorkspace } from './queries'
+import { getTargetBySlug, listTargetsForTunnel, listTargetsForWorkspace } from './queries'
 
 const slugPair = z.object({
   workspaceSlug: z.string().min(1),
@@ -47,6 +47,13 @@ export const listTargetsForWorkspaceFn = createServerFn({ method: 'GET' })
       data.includeArchived ? { includeArchived: true } : {},
     ),
   )
+
+export const listTargetsForTunnelFn = createServerFn({ method: 'GET' })
+  .middleware([authMiddleware])
+  .inputValidator((data: { tunnelId: string }) =>
+    z.object({ tunnelId: z.string().min(1) }).parse(data),
+  )
+  .handler(async ({ data }) => listTargetsForTunnel(createDb(env.DB), data.tunnelId))
 
 export const getTargetFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])

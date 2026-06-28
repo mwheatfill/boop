@@ -4,7 +4,6 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Plus, Waypoints } from 'lucide-react'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
-import { TunnelRowActions } from '@/components/tunnels/TunnelRowActions'
 import { TunnelStateBadge } from '@/components/tunnels/TunnelStateBadge'
 import { Button } from '@/components/ui/button'
 import { tunnelsQueryOptions } from '@/lib/tunnels/query-options'
@@ -17,45 +16,28 @@ export const Route = createFileRoute('/_authenticated/tunnels')({
   component: TunnelsPage,
 })
 
-function tunnelColumns(isAdmin: boolean): ColumnDef<Tunnel>[] {
-  return [
-    {
-      accessorKey: 'name',
-      header: 'Name',
-      cell: ({ row }) =>
-        isAdmin ? (
-          <Link
-            to="/tunnels/$tunnelSlug"
-            params={{ tunnelSlug: row.original.slug }}
-            className="font-medium text-foreground hover:underline"
-          >
-            {row.original.name}
-          </Link>
-        ) : (
-          <span className="font-medium text-foreground">{row.original.name}</span>
-        ),
-    },
-    {
-      accessorKey: 'hostname',
-      header: 'Hostname',
-      cell: ({ row }) => <span className="font-mono text-xs">{row.original.hostname}</span>,
-    },
-    {
-      accessorKey: 'state',
-      header: 'Status',
-      cell: ({ row }) => <TunnelStateBadge state={row.original.state} />,
-    },
-    {
-      id: 'actions',
-      header: () => <span className="sr-only">Actions</span>,
-      cell: ({ row }) => <TunnelRowActions tunnel={row.original} isAdmin={isAdmin} />,
-    },
-  ]
-}
+const columns: ColumnDef<Tunnel>[] = [
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span>,
+  },
+  {
+    accessorKey: 'hostname',
+    header: 'Hostname',
+    cell: ({ row }) => <span className="font-mono text-xs">{row.original.hostname}</span>,
+  },
+  {
+    accessorKey: 'state',
+    header: 'Status',
+    cell: ({ row }) => <TunnelStateBadge state={row.original.state} />,
+  },
+]
 
 function TunnelsPage() {
   const { currentUser } = Route.useRouteContext()
   const isAdmin = currentUser.role === 'admin'
+  const navigate = Route.useNavigate()
   const { data: tunnels } = useSuspenseQuery(tunnelsQueryOptions)
 
   return (
@@ -91,7 +73,13 @@ function TunnelsPage() {
           }
         />
       ) : (
-        <DataTable columns={tunnelColumns(isAdmin)} data={tunnels} />
+        <DataTable
+          columns={columns}
+          data={tunnels}
+          onRowClick={(tunnel) =>
+            navigate({ to: '/tunnels/$tunnelSlug', params: { tunnelSlug: tunnel.slug } })
+          }
+        />
       )}
     </div>
   )

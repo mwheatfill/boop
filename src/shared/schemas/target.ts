@@ -4,6 +4,16 @@ import { z } from './openapi'
 export const TARGET_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'] as const
 export const TARGET_AUTH_KINDS = ['none', 'bearer', 'basic', 'header'] as const
 export const TARGET_REACHABILITIES = ['public', 'tunnel'] as const
+// Derived per-Target reachability health for tunnel Targets (ADR-028). Null for
+// public Targets, which have no tunnel path to assess.
+export const TARGET_HEALTHS = [
+  'operational',
+  'origin_unreachable',
+  'tunnel_offline',
+  'auth_error',
+  'checking',
+] as const
+export type TargetHealth = (typeof TARGET_HEALTHS)[number]
 
 const urlField = z.url('Must be a valid URL').max(2048)
 const originField = z
@@ -24,6 +34,7 @@ export const TargetSchema = z
     reachability: z.enum(TARGET_REACHABILITIES),
     tunnelId: z.string().nullable(),
     internalOrigin: z.string().nullable(),
+    health: z.enum(TARGET_HEALTHS).nullable(),
     status: z.enum(['active', 'archived']),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),

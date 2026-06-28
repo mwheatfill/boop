@@ -11,6 +11,7 @@ export const TUNNEL_VERIFY_OUTCOMES = [
   'network',
   'unknown',
 ] as const
+export type TunnelVerifyOutcome = (typeof TUNNEL_VERIFY_OUTCOMES)[number]
 // Certificate-pack status, collapsed (active / still issuing / stuck).
 export const TUNNEL_CERT_STATUSES = ['active', 'pending', 'error'] as const
 // The operator-facing tunnel lifecycle state, derived from connector + cert status.

@@ -2001,6 +2001,23 @@
               }
             ]
           },
+          "health": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "operational",
+                  "origin_unreachable",
+                  "tunnel_offline",
+                  "auth_error",
+                  "checking"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -2031,6 +2048,7 @@
           "reachability",
           "tunnelId",
           "internalOrigin",
+          "health",
           "status",
           "createdAt",
           "updatedAt"
