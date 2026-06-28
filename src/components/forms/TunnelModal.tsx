@@ -1,11 +1,14 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { CircleCheck, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { EntityModal } from '@/components/forms/EntityModal'
 import { TunnelInstallCommands } from '@/components/tunnels/TunnelInstallCommands'
+import { TunnelStateBadge } from '@/components/tunnels/TunnelStateBadge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { slugify } from '@/lib/slug/slugify'
+import { tunnelQueryOptions } from '@/lib/tunnels/query-options'
 import { provisionTunnelFn } from '@/lib/tunnels/server-fns'
 
 interface Provisioned {
@@ -27,16 +30,41 @@ export function TunnelModal({ onClose }: { onClose: () => void }) {
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Provisioning failed'),
   })
 
+  // After provisioning, poll the tunnel so the operator sees it flip to
+  // Operational on its own once the connector connects (no manual refresh).
+  const { data: live } = useQuery({
+    ...tunnelQueryOptions(slugify(name)),
+    enabled: result !== null,
+    refetchInterval: (q) => (q.state.data?.state === 'operational' ? false : 4000),
+  })
+
   if (result) {
+    const operational = live?.state === 'operational'
     return (
       <EntityModal
         open
         onClose={onClose}
         size="wide"
         title="Install the connector"
-        description="Run one of these on a host inside the private network. The tunnel comes online within a minute, then shows as Operational."
-        primaryAction={{ label: 'Done', onClick: onClose }}
+        description="Run one of these on a host inside the private network. This flips to Operational on its own once the connector connects."
+        primaryAction={{ label: operational ? 'Done' : 'Close', onClick: onClose }}
       >
+        <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
+          {operational ? (
+            <>
+              <CircleCheck data-icon="inline-start" className="size-4 text-success" aria-hidden />
+              <span className="text-foreground">Connected. The tunnel is operational.</span>
+            </>
+          ) : (
+            <>
+              <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
+              <span className="text-muted-foreground">
+                Waiting for the connector to come online…
+              </span>
+              {live ? <TunnelStateBadge state={live.state} /> : null}
+            </>
+          )}
+        </div>
         <TunnelInstallCommands hostname={result.hostname} installToken={result.installToken} />
       </EntityModal>
     )
