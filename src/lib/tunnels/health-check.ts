@@ -12,6 +12,7 @@ export interface RefreshTunnelHealthDeps {
   db: Database
   cf: CloudflareApi
   kek: string
+  zoneId: string
   now?: () => Date
   fetchImpl?: typeof fetch
 }
@@ -46,7 +47,7 @@ async function hasRecentSuccessfulRun(
 export async function refreshTunnelHealth(
   deps: RefreshTunnelHealthDeps,
 ): Promise<{ checked: number; verified: number }> {
-  const { db, cf, kek } = deps
+  const { db, cf, kek, zoneId } = deps
   const now = deps.now ?? (() => new Date())
   const fetchImpl = deps.fetchImpl ?? fetch
 
@@ -63,6 +64,17 @@ export async function refreshTunnelHealth(
         .where(eq(tunnels.id, tunnel.id))
     } catch {
       logWarn('tunnel.connector_poll_failed', { tunnelId: tunnel.id })
+    }
+
+    // Poll the cert every cycle (cheap) so a later renewal failure or expiry
+    // surfaces, not just the initial issuance.
+    if (tunnel.cfCertPackId) {
+      try {
+        const certStatus = await cf.getCertStatus(zoneId, tunnel.cfCertPackId)
+        await db.update(tunnels).set({ certStatus, updatedAt: at }).where(eq(tunnels.id, tunnel.id))
+      } catch {
+        logWarn('tunnel.cert_poll_failed', { tunnelId: tunnel.id })
+      }
     }
 
     const stale =

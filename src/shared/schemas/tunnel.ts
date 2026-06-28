@@ -11,13 +11,14 @@ export const TUNNEL_VERIFY_OUTCOMES = [
   'network',
   'unknown',
 ] as const
-// The rolled-up status boop shows, fused from connector status + last verify + recent Run outcomes.
-export const TUNNEL_HEALTH = [
-  'operational',
-  'degraded',
-  'down',
-  'not_connected',
-  'unverified',
+// Certificate-pack status, collapsed (active / still issuing / stuck).
+export const TUNNEL_CERT_STATUSES = ['active', 'pending', 'error'] as const
+// The operator-facing tunnel lifecycle state, derived from connector + cert status.
+export const TUNNEL_STATES = [
+  'provisioning', // boop creating resources / certificate issuing
+  'install_pending', // ready; connector not yet connected (operator runs the install command)
+  'operational', // connector connected + certificate active
+  'attention', // connector degraded/down, or certificate error
 ] as const
 
 export const TunnelSchema = z
@@ -29,9 +30,10 @@ export const TunnelSchema = z
     hostname: z.string().meta({ example: 'acme-hq.tunnels.stlabs.org' }),
     connectorStatus: z.enum(TUNNEL_CONNECTOR_STATUSES).nullable(),
     connectorCheckedAt: z.iso.datetime().nullable(),
+    certStatus: z.enum(TUNNEL_CERT_STATUSES).nullable(),
     lastVerifyOutcome: z.enum(TUNNEL_VERIFY_OUTCOMES).nullable(),
     lastVerifiedAt: z.iso.datetime().nullable(),
-    health: z.enum(TUNNEL_HEALTH),
+    state: z.enum(TUNNEL_STATES),
     status: z.enum(['active', 'archived']),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),

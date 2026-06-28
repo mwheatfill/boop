@@ -3,10 +3,9 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Plus, Waypoints } from 'lucide-react'
 import { DataTable } from '@/components/DataTable'
-import { DateTime } from '@/components/DateTime'
 import { EmptyState } from '@/components/EmptyState'
-import { TunnelHealthBadge } from '@/components/tunnels/TunnelHealthBadge'
 import { TunnelRowActions } from '@/components/tunnels/TunnelRowActions'
+import { TunnelStateBadge } from '@/components/tunnels/TunnelStateBadge'
 import { Button } from '@/components/ui/button'
 import { tunnelsQueryOptions } from '@/lib/tunnels/query-options'
 import type { Tunnel } from '@/shared/schemas/tunnel'
@@ -42,23 +41,9 @@ function tunnelColumns(isAdmin: boolean): ColumnDef<Tunnel>[] {
       cell: ({ row }) => <span className="font-mono text-xs">{row.original.hostname}</span>,
     },
     {
-      accessorKey: 'health',
-      header: 'Health',
-      cell: ({ row }) => <TunnelHealthBadge health={row.original.health} />,
-    },
-    {
-      accessorKey: 'connectorStatus',
-      header: 'Connector',
-      cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground">
-          {row.original.connectorStatus ?? 'Pending'}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'lastVerifiedAt',
-      header: 'Last verified',
-      cell: ({ row }) => <DateTime value={row.original.lastVerifiedAt} fallback="Never" />,
+      accessorKey: 'state',
+      header: 'Status',
+      cell: ({ row }) => <TunnelStateBadge state={row.original.state} />,
     },
     {
       id: 'actions',

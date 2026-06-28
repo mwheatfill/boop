@@ -2262,6 +2262,21 @@
               }
             ]
           },
+          "certStatus": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "pending",
+                  "error"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "lastVerifyOutcome": {
             "anyOf": [
               {
@@ -2291,14 +2306,13 @@
               }
             ]
           },
-          "health": {
+          "state": {
             "type": "string",
             "enum": [
+              "provisioning",
+              "install_pending",
               "operational",
-              "degraded",
-              "down",
-              "not_connected",
-              "unverified"
+              "attention"
             ]
           },
           "status": {
@@ -2327,9 +2341,10 @@
           "hostname",
           "connectorStatus",
           "connectorCheckedAt",
+          "certStatus",
           "lastVerifyOutcome",
           "lastVerifiedAt",
-          "health",
+          "state",
           "status",
           "createdAt",
           "updatedAt"

@@ -26,6 +26,9 @@ function stubCf(): CloudflareApi {
     deleteAccessApp: noop,
     createDnsRecord: vi.fn(async () => ({ id: 'd' })),
     deleteDnsRecord: noop,
+    orderCertPack: vi.fn(async () => ({ id: 'cert' })),
+    getCertStatus: vi.fn(async () => 'active' as const),
+    deleteCertPack: noop,
   }
 }
 
@@ -45,6 +48,8 @@ async function seed(db: Db) {
     cfAccessAppId: 'app',
     cfAccessPolicyId: 'pol',
     cfServiceTokenId: 'st',
+    cfCertPackId: 'cert',
+    certStatus: 'pending',
     clientIdSecretName: 'cid',
     clientSecretSecretName: 'csec',
   })
@@ -103,19 +108,33 @@ describe('refreshTunnelHealth', () => {
   it('polls connector status and verifies when stale with no recent Run', async () => {
     const db = createTestDb()
     const { tunnelId } = await seed(db)
-    const result = await refreshTunnelHealth({ db, cf: stubCf(), kek: KEK, fetchImpl: okFetch })
+    const result = await refreshTunnelHealth({
+      db,
+      cf: stubCf(),
+      kek: KEK,
+      zoneId: 'z1',
+      fetchImpl: okFetch,
+    })
     expect(result).toEqual({ checked: 1, verified: 1 })
     const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
     expect(row?.connectorStatus).toBe('healthy')
     expect(row?.connectorCheckedAt).not.toBeNull()
     expect(row?.lastVerifyOutcome).toBe('ok')
+    // The cert pack is still issuing, so its status is polled and written.
+    expect(row?.certStatus).toBe('active')
   })
 
   it('skips the verify when a recent Run already exercised the origin', async () => {
     const db = createTestDb()
     const { workspaceId, tunnelId } = await seed(db)
     await seedRecentRun(db, workspaceId, tunnelId)
-    const result = await refreshTunnelHealth({ db, cf: stubCf(), kek: KEK, fetchImpl: okFetch })
+    const result = await refreshTunnelHealth({
+      db,
+      cf: stubCf(),
+      kek: KEK,
+      zoneId: 'z1',
+      fetchImpl: okFetch,
+    })
     expect(result).toEqual({ checked: 1, verified: 0 })
     const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
     expect(row?.connectorStatus).toBe('healthy')

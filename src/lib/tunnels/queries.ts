@@ -1,37 +1,15 @@
-import { and, asc, count, eq, gte, isNotNull, sql } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
+import type { CertStatus } from '@/lib/cloudflare-api/client'
 import type { Database } from '@/lib/db/client'
-import { jobs, runs, targets, tunnels } from '@/lib/db/schema'
+import { tunnels } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
 import type { Tunnel } from '@/shared/schemas/tunnel'
-import { getTunnelHealth, type TunnelHealth } from './health'
-
-const RECENT_RUN_WINDOW_MS = 60 * 60 * 1000
+import { getTunnelState } from './health'
 
 type TunnelRow = typeof tunnels.$inferSelect
 
-async function recentRunStats(
-  db: Database,
-  tunnelId: string,
-  since: Date,
-): Promise<{ total: number; failures: number }> {
-  const [agg] = await db
-    .select({
-      total: count(),
-      failures: sql<number>`sum(case when ${runs.outcome} != 'success' then 1 else 0 end)`,
-    })
-    .from(runs)
-    .innerJoin(jobs, eq(runs.jobId, jobs.id))
-    .innerJoin(targets, eq(jobs.targetId, targets.id))
-    .where(
-      and(eq(targets.tunnelId, tunnelId), isNotNull(runs.outcome), gte(runs.completedAt, since)),
-    )
-  return {
-    total: agg?.total ?? 0,
-    failures: Number(agg?.failures ?? 0),
-  }
-}
-
-function toTunnel(row: TunnelRow, health: TunnelHealth): Tunnel {
+function toTunnel(row: TunnelRow): Tunnel {
+  const certStatus = (row.certStatus ?? null) as CertStatus | null
   return {
     id: row.id,
     workspaceId: row.workspaceId,
@@ -40,45 +18,29 @@ function toTunnel(row: TunnelRow, health: TunnelHealth): Tunnel {
     hostname: row.hostname,
     connectorStatus: row.connectorStatus ?? null,
     connectorCheckedAt: row.connectorCheckedAt ? row.connectorCheckedAt.toISOString() : null,
+    certStatus,
     lastVerifyOutcome: row.lastVerifyOutcome ?? null,
     lastVerifiedAt: row.lastVerifiedAt ? row.lastVerifiedAt.toISOString() : null,
-    health,
+    state: getTunnelState({ connectorStatus: row.connectorStatus ?? null, certStatus }),
     status: row.status as Tunnel['status'],
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
 }
 
-async function withHealth(db: Database, row: TunnelRow, since: Date): Promise<Tunnel> {
-  const stats = await recentRunStats(db, row.id, since)
-  const health = getTunnelHealth({
-    connectorStatus: row.connectorStatus ?? null,
-    lastVerifyOutcome: row.lastVerifyOutcome ?? null,
-    recentRunTotal: stats.total,
-    recentRunFailures: stats.failures,
-  })
-  return toTunnel(row, health)
-}
-
-export async function listTunnels(
-  db: Database,
-  workspaceId: string,
-  now: () => Date = () => new Date(),
-): Promise<Tunnel[]> {
+export async function listTunnels(db: Database, workspaceId: string): Promise<Tunnel[]> {
   const rows = await db
     .select()
     .from(tunnels)
     .where(and(eq(tunnels.workspaceId, workspaceId), eq(tunnels.status, 'active')))
     .orderBy(asc(tunnels.name))
-  const since = new Date(now().getTime() - RECENT_RUN_WINDOW_MS)
-  return Promise.all(rows.map((row) => withHealth(db, row, since)))
+  return rows.map(toTunnel)
 }
 
 export async function getTunnelBySlug(
   db: Database,
   workspaceId: string,
   slug: string,
-  now: () => Date = () => new Date(),
 ): Promise<Tunnel> {
   const row = (
     await db
@@ -94,6 +56,5 @@ export async function getTunnelBySlug(
       .limit(1)
   )[0]
   if (!row) throw new NotFoundError('Tunnel', slug)
-  const since = new Date(now().getTime() - RECENT_RUN_WINDOW_MS)
-  return withHealth(db, row, since)
+  return toTunnel(row)
 }

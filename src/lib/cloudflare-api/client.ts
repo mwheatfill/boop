@@ -30,6 +30,21 @@ function normalizeConnectorStatus(raw: unknown): ConnectorStatus {
     : 'inactive'
 }
 
+export type CertStatus = 'active' | 'pending' | 'error'
+
+// Cloudflare cert-pack statuses collapse to three boop cares about: live, still
+// issuing, or stuck. Unknowns are treated as pending (transient by default).
+function normalizeCertStatus(raw: unknown): CertStatus {
+  if (raw === 'active') return 'active'
+  if (
+    typeof raw === 'string' &&
+    (raw === 'expired' || raw === 'deleted' || raw.endsWith('_timed_out'))
+  ) {
+    return 'error'
+  }
+  return 'pending'
+}
+
 export interface CloudflareApi {
   createTunnel(name: string): Promise<{ id: string }>
   getTunnelToken(tunnelId: string): Promise<string>
@@ -47,6 +62,9 @@ export interface CloudflareApi {
   deleteAccessApp(appId: string): Promise<void>
   createDnsRecord(zoneId: string, name: string, content: string): Promise<{ id: string }>
   deleteDnsRecord(zoneId: string, recordId: string): Promise<void>
+  orderCertPack(zoneId: string, hosts: string[]): Promise<{ id: string }>
+  getCertStatus(zoneId: string, certPackId: string): Promise<CertStatus>
+  deleteCertPack(zoneId: string, certPackId: string): Promise<void>
 }
 
 export function createCloudflareApi(options: CloudflareApiOptions): CloudflareApi {
@@ -187,6 +205,33 @@ export function createCloudflareApi(options: CloudflareApiOptions): CloudflareAp
 
     async deleteDnsRecord(zoneId, recordId) {
       await request('DELETE', `/zones/${zoneId}/dns_records/${recordId}`)
+    },
+
+    async orderCertPack(zoneId, hosts) {
+      const result = await request<{ id: string }>(
+        'POST',
+        `/zones/${zoneId}/ssl/certificate_packs/order`,
+        {
+          type: 'advanced',
+          hosts,
+          validation_method: 'txt',
+          validity_days: 90,
+          certificate_authority: 'google',
+        },
+      )
+      return { id: result.id }
+    },
+
+    async getCertStatus(zoneId, certPackId) {
+      const result = await request<{ status?: string }>(
+        'GET',
+        `/zones/${zoneId}/ssl/certificate_packs/${certPackId}`,
+      )
+      return normalizeCertStatus(result.status)
+    },
+
+    async deleteCertPack(zoneId, certPackId) {
+      await request('DELETE', `/zones/${zoneId}/ssl/certificate_packs/${certPackId}`)
     },
   }
 }

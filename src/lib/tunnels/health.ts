@@ -1,37 +1,20 @@
-import type { ConnectorStatus } from '@/lib/cloudflare-api/client'
+import type { CertStatus, ConnectorStatus } from '@/lib/cloudflare-api/client'
 
-export type TunnelHealth = 'operational' | 'degraded' | 'down' | 'not_connected' | 'unverified'
+export type TunnelState = 'provisioning' | 'install_pending' | 'operational' | 'attention'
 
-export type VerifyOutcome = 'ok' | 'unauthorized' | 'forbidden' | 'network' | 'unknown'
-
-export interface TunnelHealthInputs {
+export interface TunnelStateInputs {
   connectorStatus: ConnectorStatus | null
-  lastVerifyOutcome: VerifyOutcome | null
-  // Terminal Runs against this tunnel's Targets in the recent window.
-  recentRunTotal: number
-  recentRunFailures: number
+  certStatus: CertStatus | null
 }
 
-// The rolled-up status, fused from three signals (ADR-028). The connector layer
-// is the floor: a tunnel that is not connected or down cannot be operational.
-// When the connector is healthy, the origin layer decides, because a healthy
-// connector says nothing about whether cloudflared can reach the origin: real
-// Run outcomes are the strongest signal, then the explicit verify, else unknown.
-export function getTunnelHealth(inputs: TunnelHealthInputs): TunnelHealth {
-  const { connectorStatus, lastVerifyOutcome, recentRunTotal, recentRunFailures } = inputs
-
-  if (connectorStatus === null || connectorStatus === 'inactive') return 'not_connected'
-  if (connectorStatus === 'down') return 'down'
-  if (connectorStatus === 'degraded') return 'degraded'
-
-  // connectorStatus === 'healthy': decide on the origin-reachability layer.
-  // Recent Runs are decisive when present: any failure means the origin is not
-  // reliably reachable despite a healthy connector. Otherwise fall back to the
-  // explicit verify, then to unverified.
-  if (recentRunTotal > 0) {
-    return recentRunFailures === 0 ? 'operational' : 'degraded'
-  }
-  if (lastVerifyOutcome === 'ok') return 'operational'
-  if (lastVerifyOutcome !== null) return 'degraded'
-  return 'unverified'
+// The operator-facing tunnel state (ADR-028). Installing the connector is
+// independent of the cert, so an un-connected tunnel reads "install the
+// connector" even while the cert is still issuing (they act in parallel). The
+// brief "provisioning" state is only the window where the connector is up but
+// the cert hasn't gone active yet. Origin reachability is a per-Target concern.
+export function getTunnelState({ connectorStatus, certStatus }: TunnelStateInputs): TunnelState {
+  if (certStatus === 'error') return 'attention'
+  if (connectorStatus === 'down' || connectorStatus === 'degraded') return 'attention'
+  if (connectorStatus === 'healthy') return certStatus === 'active' ? 'operational' : 'provisioning'
+  return 'install_pending'
 }

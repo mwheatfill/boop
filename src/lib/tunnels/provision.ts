@@ -93,6 +93,12 @@ export async function provisionTunnel(
     const dns = await cf.createDnsRecord(zoneId, wildcard, `${tunnel.id}.cfargotunnel.com`)
     compensations.push(() => cf.deleteDnsRecord(zoneId, dns.id))
 
+    // One wildcard advanced cert per tunnel; Universal SSL doesn't cover the
+    // multi-level hostname. Must include the zone apex per the ACM API.
+    const apex = deps.hostnameBase.split('.').slice(-2).join('.')
+    const cert = await cf.orderCertPack(zoneId, [apex, wildcard])
+    compensations.push(() => cf.deleteCertPack(zoneId, cert.id))
+
     const id = newId('tnl')
     const createdAt = now()
     await db.insert(tunnels).values({
@@ -106,6 +112,8 @@ export async function provisionTunnel(
       cfAccessPolicyId: policy.id,
       cfServiceTokenId: serviceToken.id,
       cfDnsRecordId: dns.id,
+      cfCertPackId: cert.id,
+      certStatus: 'pending',
       clientIdSecretName: names.clientId,
       clientSecretSecretName: names.clientSecret,
       createdAt,
@@ -222,6 +230,9 @@ export async function decommissionTunnel(
     await ignoreMissing(() => cf.deleteAccessApp(row.cfAccessAppId))
     await ignoreMissing(() => cf.deleteAccessPolicy(row.cfAccessPolicyId))
     await ignoreMissing(() => cf.deleteServiceToken(row.cfServiceTokenId))
+    if (row.cfCertPackId) {
+      await ignoreMissing(() => cf.deleteCertPack(zoneId, row.cfCertPackId as string))
+    }
     await ignoreMissing(() => cf.deleteTunnel(row.cfTunnelId))
 
     await revokeSecret({ db, now }, row.workspaceId, row.clientIdSecretName)

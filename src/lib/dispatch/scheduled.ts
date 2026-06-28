@@ -137,7 +137,7 @@ async function maybeRefreshTunnelHealth(env: ScheduledEnv): Promise<void> {
       zoneId: env.CF_PROVIDER_ZONE_ID ?? '',
       hostnameBase: env.CF_TUNNEL_HOSTNAME_BASE ?? '',
     })
-    await refreshTunnelHealth({ db, cf: provider.cf, kek })
+    await refreshTunnelHealth({ db, cf: provider.cf, kek, zoneId: provider.zoneId })
   } catch (err) {
     // Not configured is the normal unconfigured state, not a problem worth a
     // per-minute warning. Only unexpected errors are logged.

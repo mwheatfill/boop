@@ -27,6 +27,9 @@ function stubCf(overrides: Partial<CloudflareApi> = {}): CloudflareApi {
     deleteAccessApp: vi.fn(async () => {}),
     createDnsRecord: vi.fn(async () => ({ id: 'dns' })),
     deleteDnsRecord: vi.fn(async () => {}),
+    orderCertPack: vi.fn(async () => ({ id: 'cert' })),
+    getCertStatus: vi.fn(async () => 'pending' as const),
+    deleteCertPack: vi.fn(async () => {}),
     ...overrides,
   }
 }
@@ -65,6 +68,8 @@ describe('provisionTunnel', () => {
       '*.acme-hq.tunnels.test',
       'cf_tnl.cfargotunnel.com',
     )
+    // One wildcard advanced cert per tunnel, scoped to the zone apex + wildcard host.
+    expect(cf.orderCertPack).toHaveBeenCalledWith('z1', ['tunnels.test', '*.acme-hq.tunnels.test'])
     expect(cf.putTunnelIngress).not.toHaveBeenCalled()
 
     const row = (await db.select().from(tunnels).where(eq(tunnels.id, result.id)).limit(1))[0]
@@ -74,6 +79,8 @@ describe('provisionTunnel', () => {
       cfAccessPolicyId: 'pol',
       cfAccessAppId: 'app',
       cfDnsRecordId: 'dns',
+      cfCertPackId: 'cert',
+      certStatus: 'pending',
       clientIdSecretName: 'cf_access_acme-hq_client_id',
       clientSecretSecretName: 'cf_access_acme-hq_client_secret',
       status: 'active',
@@ -102,8 +109,9 @@ describe('provisionTunnel', () => {
     expect(cf.deleteAccessPolicy).toHaveBeenCalledWith('pol')
     expect(cf.deleteServiceToken).toHaveBeenCalledWith('st')
     expect(cf.deleteTunnel).toHaveBeenCalledWith('cf_tnl')
-    // DNS was never created, so it is never deleted.
+    // DNS and the cert pack were never created, so they are never deleted.
     expect(cf.deleteDnsRecord).not.toHaveBeenCalled()
+    expect(cf.deleteCertPack).not.toHaveBeenCalled()
 
     const rows = await db.select().from(tunnels)
     expect(rows).toHaveLength(0)
@@ -126,6 +134,7 @@ describe('decommissionTunnel', () => {
       cfAccessPolicyId: 'pol',
       cfServiceTokenId: 'st',
       cfDnsRecordId: 'dns',
+      cfCertPackId: 'cert',
       clientIdSecretName: 'cf_access_acme-hq_client_id',
       clientSecretSecretName: 'cf_access_acme-hq_client_secret',
     })
@@ -144,6 +153,7 @@ describe('decommissionTunnel', () => {
     expect(cf.deleteAccessApp).toHaveBeenCalledWith('app')
     expect(cf.deleteAccessPolicy).toHaveBeenCalledWith('pol')
     expect(cf.deleteServiceToken).toHaveBeenCalledWith('st')
+    expect(cf.deleteCertPack).toHaveBeenCalledWith('z1', 'cert')
     expect(cf.deleteTunnel).toHaveBeenCalledWith('cf_tnl')
 
     const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]

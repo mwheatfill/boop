@@ -1,59 +1,43 @@
 import { describe, expect, it } from 'vitest'
-import { getTunnelHealth, type TunnelHealthInputs } from './health'
+import { getTunnelState, type TunnelStateInputs } from './health'
 
-const base: TunnelHealthInputs = {
+const base: TunnelStateInputs = {
   connectorStatus: 'healthy',
-  lastVerifyOutcome: null,
-  recentRunTotal: 0,
-  recentRunFailures: 0,
+  certStatus: 'active',
 }
 
-describe('getTunnelHealth', () => {
-  it('reports not_connected when the connector has never connected', () => {
-    expect(getTunnelHealth({ ...base, connectorStatus: null })).toBe('not_connected')
-    expect(getTunnelHealth({ ...base, connectorStatus: 'inactive' })).toBe('not_connected')
+describe('getTunnelState', () => {
+  it('needs attention when the certificate is stuck, whatever the connector', () => {
+    expect(getTunnelState({ ...base, certStatus: 'error' })).toBe('attention')
+    expect(getTunnelState({ connectorStatus: null, certStatus: 'error' })).toBe('attention')
+    expect(getTunnelState({ connectorStatus: 'down', certStatus: 'error' })).toBe('attention')
   })
 
-  it('mirrors a down or degraded connector', () => {
-    expect(getTunnelHealth({ ...base, connectorStatus: 'down' })).toBe('down')
-    expect(getTunnelHealth({ ...base, connectorStatus: 'degraded' })).toBe('degraded')
+  it('is provisioning only when the connector is up but the cert is still issuing', () => {
+    expect(getTunnelState({ ...base, certStatus: 'pending' })).toBe('provisioning')
+    expect(getTunnelState({ ...base, certStatus: null })).toBe('provisioning')
   })
 
-  it('is operational when the connector is healthy and recent Runs all succeed', () => {
-    expect(getTunnelHealth({ ...base, recentRunTotal: 5, recentRunFailures: 0 })).toBe(
-      'operational',
+  it('prompts to install the connector while the cert is still issuing (act in parallel)', () => {
+    expect(getTunnelState({ connectorStatus: 'inactive', certStatus: 'pending' })).toBe(
+      'install_pending',
     )
+    expect(getTunnelState({ connectorStatus: null, certStatus: null })).toBe('install_pending')
   })
 
-  it('is degraded when the connector is healthy but every recent Run fails (origin unreachable)', () => {
-    expect(getTunnelHealth({ ...base, recentRunTotal: 4, recentRunFailures: 4 })).toBe('degraded')
+  it('needs attention when the cert is active but the connector is down or degraded', () => {
+    expect(getTunnelState({ ...base, connectorStatus: 'down' })).toBe('attention')
+    expect(getTunnelState({ ...base, connectorStatus: 'degraded' })).toBe('attention')
   })
 
-  it('lets succeeding Runs override a stale failed verify', () => {
-    expect(
-      getTunnelHealth({
-        ...base,
-        lastVerifyOutcome: 'network',
-        recentRunTotal: 3,
-        recentRunFailures: 0,
-      }),
-    ).toBe('operational')
+  it('is operational when the cert is active and the connector is healthy', () => {
+    expect(getTunnelState({ connectorStatus: 'healthy', certStatus: 'active' })).toBe('operational')
   })
 
-  it('is operational on a healthy connector with a passing verify and no Runs', () => {
-    expect(getTunnelHealth({ ...base, lastVerifyOutcome: 'ok' })).toBe('operational')
-  })
-
-  it('is degraded on a healthy connector with a failing verify', () => {
-    expect(getTunnelHealth({ ...base, lastVerifyOutcome: 'unauthorized' })).toBe('degraded')
-    expect(getTunnelHealth({ ...base, lastVerifyOutcome: 'forbidden' })).toBe('degraded')
-  })
-
-  it('is unverified on a healthy connector with no verify and no Runs', () => {
-    expect(getTunnelHealth(base)).toBe('unverified')
-  })
-
-  it('is degraded on a healthy connector with any recent Run failures', () => {
-    expect(getTunnelHealth({ ...base, recentRunTotal: 4, recentRunFailures: 2 })).toBe('degraded')
+  it('is install_pending when the cert is active but the connector has not connected', () => {
+    expect(getTunnelState({ connectorStatus: 'inactive', certStatus: 'active' })).toBe(
+      'install_pending',
+    )
+    expect(getTunnelState({ connectorStatus: null, certStatus: 'active' })).toBe('install_pending')
   })
 })
