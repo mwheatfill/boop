@@ -1,0 +1,68 @@
+import { env } from 'cloudflare:workers'
+import { createServerFn } from '@tanstack/react-start'
+import { adminMiddleware } from '@/lib/auth/admin-middleware'
+import { authMiddleware } from '@/lib/auth/auth-middleware'
+import { createDb } from '@/lib/db/client'
+import { getDefaultWorkspace } from '@/lib/workspaces/queries'
+import { z } from '@/shared/schemas/openapi'
+import { TunnelCreateInput } from '@/shared/schemas/tunnel'
+import { getProviderConfig } from './provider'
+import { decommissionTunnel, provisionTunnel } from './provision'
+import { listTunnels } from './queries'
+import { runTunnelVerify } from './verify'
+
+const tunnelIdInput = z.object({ tunnelId: z.string().min(1) })
+
+async function requireKek(): Promise<string> {
+  const kek = await env.BOOP_SECRETS_KEK.get()
+  if (!kek) throw new Error('BOOP_SECRETS_KEK is not configured for this environment')
+  return kek
+}
+
+export const listTunnelsFn = createServerFn({ method: 'GET' })
+  .middleware([authMiddleware])
+  .handler(async () => {
+    const db = createDb(env.DB)
+    const workspace = await getDefaultWorkspace(db)
+    return listTunnels(db, workspace.id)
+  })
+
+export const provisionTunnelFn = createServerFn({ method: 'POST' })
+  .middleware([adminMiddleware])
+  .inputValidator((data) => TunnelCreateInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = createDb(env.DB)
+    const kek = await requireKek()
+    const workspace = await getDefaultWorkspace(db)
+    const provider = await getProviderConfig({ db, kek, workspaceId: workspace.id })
+    return provisionTunnel(
+      { db, cf: provider.cf, kek, zoneId: provider.zoneId, hostnameBase: provider.hostnameBase },
+      {
+        workspaceId: workspace.id,
+        name: data.name,
+        slug: data.slug,
+        internalOrigin: data.internalOrigin,
+      },
+    )
+  })
+
+export const decommissionTunnelFn = createServerFn({ method: 'POST' })
+  .middleware([adminMiddleware])
+  .inputValidator((data) => tunnelIdInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = createDb(env.DB)
+    const kek = await requireKek()
+    const workspace = await getDefaultWorkspace(db)
+    const provider = await getProviderConfig({ db, kek, workspaceId: workspace.id })
+    await decommissionTunnel({ db, cf: provider.cf, zoneId: provider.zoneId }, data.tunnelId)
+    return { ok: true as const }
+  })
+
+export const verifyTunnelFn = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
+  .inputValidator((data) => tunnelIdInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = createDb(env.DB)
+    const kek = await requireKek()
+    return runTunnelVerify({ db, kek }, data.tunnelId)
+  })

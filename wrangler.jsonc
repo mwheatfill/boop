@@ -18,7 +18,10 @@
     "PUBLIC_ENV": "dev",
     "PUBLIC_APP_ORIGIN": "https://boop-dev.stlabs.org",
     "TEAM_DOMAIN": "https://switchthink.cloudflareaccess.com",
-    "POLICY_AUD": "b286056314c5c0c603f964cc366580c76f32b99cae6f94523a243af4b02e897f"
+    "POLICY_AUD": "b286056314c5c0c603f964cc366580c76f32b99cae6f94523a243af4b02e897f",
+    "CF_PROVIDER_ACCOUNT_ID": "1412add43dbe3b640984af5105b3a52a",
+    "CF_PROVIDER_ZONE_ID": "",
+    "CF_TUNNEL_HOSTNAME_BASE": "tunnels.stlabs.org"
   },
   // BOOP_SECRETS_KEK lives in the account Secrets Store (read via env.BOOP_SECRETS_KEK.get()).
   // TEAM_DOMAIN + POLICY_AUD are non-secret Access config and live in vars per env.
@@ -105,7 +108,10 @@
         "PUBLIC_ENV": "production",
         "PUBLIC_APP_ORIGIN": "https://boop.stlabs.org",
         "TEAM_DOMAIN": "https://switchthink.cloudflareaccess.com",
-        "POLICY_AUD": "14365b36cd81148634254fa8571cbb4b5d47195289b5a97197e717da6e8114ca"
+        "POLICY_AUD": "14365b36cd81148634254fa8571cbb4b5d47195289b5a97197e717da6e8114ca",
+        "CF_PROVIDER_ACCOUNT_ID": "1412add43dbe3b640984af5105b3a52a",
+        "CF_PROVIDER_ZONE_ID": "",
+        "CF_TUNNEL_HOSTNAME_BASE": "tunnels.stlabs.org"
       },
       "secrets_store_secrets": [
         {
