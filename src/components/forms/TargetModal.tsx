@@ -1,6 +1,6 @@
 import { useForm, useStore } from '@tanstack/react-form'
-import { useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { EntityModal } from '@/components/forms/EntityModal'
@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
 import { createTargetFn, updateTargetFn } from '@/lib/targets/server-fns'
+import { tunnelsQueryOptions } from '@/lib/tunnels/query-options'
 import {
   TARGET_AUTH_KINDS,
   TARGET_METHODS,
@@ -27,6 +28,7 @@ interface TargetFormValues {
   authKind: (typeof TARGET_AUTH_KINDS)[number]
   authConfig: string
   reachability: (typeof TARGET_REACHABILITIES)[number]
+  tunnelId: string
 }
 
 interface CreateProps {
@@ -61,6 +63,7 @@ export function TargetModal(props: TargetModalProps) {
           authKind: props.initialTarget.authKind,
           authConfig: props.initialTarget.authConfig ?? '',
           reachability: props.initialTarget.reachability,
+          tunnelId: props.initialTarget.tunnelId ?? '',
         }
       : {
           name: '',
@@ -70,12 +73,16 @@ export function TargetModal(props: TargetModalProps) {
           authKind: 'none',
           authConfig: '',
           reachability: 'public',
+          tunnelId: '',
         }
 
   const form = useForm({
     defaultValues: initial,
     validators: {
       onSubmitAsync: async ({ value }) => {
+        if (value.reachability === 'tunnel' && !value.tunnelId) {
+          return { form: 'Select a tunnel for tunnel reachability.' }
+        }
         const base = {
           name: value.name,
           url: value.url,
@@ -83,6 +90,7 @@ export function TargetModal(props: TargetModalProps) {
           authKind: value.authKind,
           ...(value.authConfig ? { authConfig: value.authConfig } : { authConfig: null }),
           reachability: value.reachability,
+          tunnelId: value.reachability === 'tunnel' ? value.tunnelId : null,
         }
 
         const result: MutationResult<Target> =
@@ -126,11 +134,14 @@ export function TargetModal(props: TargetModalProps) {
   const method = useStore(form.store, (s) => s.values.method)
   const authKind = useStore(form.store, (s) => s.values.authKind)
   const reachability = useStore(form.store, (s) => s.values.reachability)
+  const tunnelId = useStore(form.store, (s) => s.values.tunnelId)
   const formError = useStore(form.store, (s) => s.errorMap.onSubmit)
+  const { data: tunnels = [], isLoading: tunnelsLoading } = useQuery(tunnelsQueryOptions)
 
   const [methodOpen, setMethodOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
   const [reachOpen, setReachOpen] = useState(false)
+  const [tunnelOpen, setTunnelOpen] = useState(false)
 
   return (
     <EntityModal
@@ -283,6 +294,50 @@ export function TargetModal(props: TargetModalProps) {
             </PopoverContent>
           </Popover>
         </div>
+
+        {reachability === 'tunnel' ? (
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Tunnel</span>
+            {!tunnelsLoading && tunnels.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No tunnels yet. Create one on the{' '}
+                <Link to="/tunnels/new" className="underline">
+                  Tunnels page
+                </Link>
+                .
+              </p>
+            ) : (
+              <Popover open={tunnelOpen} onOpenChange={setTunnelOpen}>
+                <PopoverTrigger
+                  render={
+                    <PillButton
+                      label="Tunnel"
+                      value={tunnels.find((t) => t.id === tunnelId)?.name}
+                    />
+                  }
+                />
+                <PopoverContent className="w-56 p-1">
+                  <ul className="flex flex-col gap-px">
+                    {tunnels.map((t) => (
+                      <li key={t.id}>
+                        <button
+                          type="button"
+                          className="flex w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+                          onClick={() => {
+                            form.setFieldValue('tunnelId', t.id)
+                            setTunnelOpen(false)
+                          }}
+                        >
+                          {t.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
+        ) : null}
 
         {authKind !== 'none' ? (
           <form.Field name="authConfig">

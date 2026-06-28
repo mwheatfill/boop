@@ -9,6 +9,7 @@ import {
   Pin,
   SendHorizonal,
   Target as TargetIcon,
+  Waypoints,
 } from 'lucide-react'
 import type { ComponentType, ReactNode } from 'react'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -36,7 +37,15 @@ interface AppSidebarProps {
 
 interface NavItem {
   label: string
-  to: '/' | '/jobs' | '/runs' | '/templates' | '/targets' | '/channels' | '/alert-rules'
+  to:
+    | '/'
+    | '/jobs'
+    | '/runs'
+    | '/templates'
+    | '/targets'
+    | '/tunnels'
+    | '/channels'
+    | '/alert-rules'
   icon: ComponentType<{ 'aria-hidden'?: boolean }>
   exact?: boolean
   adminOnly?: boolean
@@ -47,6 +56,7 @@ const NAV: NavItem[] = [
   { label: 'Jobs', to: '/jobs', icon: Activity },
   { label: 'Runs', to: '/runs', icon: History },
   { label: 'Targets', to: '/targets', icon: TargetIcon },
+  { label: 'Tunnels', to: '/tunnels', icon: Waypoints },
   { label: 'Channels', to: '/channels', icon: SendHorizonal },
   { label: 'Alert Rules', to: '/alert-rules', icon: Bell },
   { label: 'Templates', to: '/templates', icon: BookTemplate },

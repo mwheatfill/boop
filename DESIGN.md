@@ -53,6 +53,8 @@ Canonical shadcn flat OKLCH tokens on `base-vega` (Base UI). Two blocks in `src/
 /runs                                                       Run history (cross-Workspace)
 /templates                                                  Job templates
 /targets?ws=$slug                                           Targets (active-Workspace-scoped)
+/tunnels                                                    Private Tunnels (list + health)
+/tunnels/new                                                Provision a tunnel
 /channels?ws=$slug                                          Channels (active-Workspace-scoped)
 /alert-rules?ws=$slug                                       AlertRules (active-Workspace-scoped)
 /workspaces                                                 Workspace list
