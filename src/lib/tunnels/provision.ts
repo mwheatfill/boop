@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { canDecommissionTunnel } from '@/lib/archive-policy/archive-policy'
-import type { CloudflareApi } from '@/lib/cloudflare-api/client'
+import type { CloudflareApi, OriginRequest } from '@/lib/cloudflare-api/client'
 import { CloudflareApiError } from '@/lib/cloudflare-api/errors'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
@@ -188,6 +188,14 @@ export async function rotateTunnelCredentials(
   logInfo('tunnel.credentials_rotated', { tunnelId, workspaceId: tunnel.workspaceId })
 }
 
+function buildOriginRequest(t: typeof targets.$inferSelect): OriginRequest | null {
+  const originRequest: OriginRequest = {}
+  if (t.originHostHeader) originRequest.httpHostHeader = t.originHostHeader
+  if (t.originServerName) originRequest.originServerName = t.originServerName
+  if (t.originNoTlsVerify) originRequest.noTLSVerify = true
+  return Object.keys(originRequest).length > 0 ? originRequest : null
+}
+
 // Rebuilds the tunnel's Cloudflare ingress from every active private Target that
 // references it: one route per Target (`<targetSlug>.<tunnelHostname>` -> origin),
 // plus the implicit catch-all. Called whenever a private Target changes.
@@ -204,10 +212,14 @@ export async function syncTunnelIngress(
     .where(and(eq(targets.tunnelId, tunnelId), eq(targets.status, 'active')))
   const routes = rows
     .filter((t): t is typeof t & { internalOrigin: string } => Boolean(t.internalOrigin))
-    .map((t) => ({
-      hostname: tunnelTargetHostname(tunnel.hostname, t.slug),
-      service: t.internalOrigin,
-    }))
+    .map((t) => {
+      const originRequest = buildOriginRequest(t)
+      return {
+        hostname: tunnelTargetHostname(tunnel.hostname, t.slug),
+        service: t.internalOrigin,
+        ...(originRequest ? { originRequest } : {}),
+      }
+    })
   await cf.putTunnelIngress(tunnel.cfTunnelId, routes)
 }
 

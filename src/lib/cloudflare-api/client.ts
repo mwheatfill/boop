@@ -32,6 +32,13 @@ function normalizeConnectorStatus(raw: unknown): ConnectorStatus {
 
 export type CertStatus = 'active' | 'pending' | 'error'
 
+// cloudflared per-route origin overrides. Field names match the Cloudflare API.
+export interface OriginRequest {
+  httpHostHeader?: string
+  originServerName?: string
+  noTLSVerify?: boolean
+}
+
 // Cloudflare cert-pack statuses collapse to three boop cares about: live, still
 // issuing, or stuck. Unknowns are treated as pending (transient by default).
 function normalizeCertStatus(raw: unknown): CertStatus {
@@ -50,7 +57,7 @@ export interface CloudflareApi {
   getTunnelToken(tunnelId: string): Promise<string>
   putTunnelIngress(
     tunnelId: string,
-    routes: Array<{ hostname: string; service: string }>,
+    routes: Array<{ hostname: string; service: string; originRequest?: OriginRequest }>,
   ): Promise<void>
   getTunnelStatus(tunnelId: string): Promise<ConnectorStatus>
   deleteTunnel(tunnelId: string): Promise<void>
@@ -138,7 +145,11 @@ export function createCloudflareApi(options: CloudflareApiOptions): CloudflareAp
       await request('PUT', account(`/cfd_tunnel/${tunnelId}/configurations`), {
         config: {
           ingress: [
-            ...routes.map((r) => ({ hostname: r.hostname, service: r.service })),
+            ...routes.map((r) => ({
+              hostname: r.hostname,
+              service: r.service,
+              ...(r.originRequest ? { originRequest: r.originRequest } : {}),
+            })),
             { service: 'http_status:404' },
           ],
         },

@@ -80,6 +80,31 @@ describe('createCloudflareApi', () => {
     })
   })
 
+  it('passes per-route originRequest overrides through to the config', async () => {
+    const { api, call } = harness([ok({})])
+    await api.putTunnelIngress('tnl_cf_1', [
+      {
+        hostname: 'api.tunnels.example',
+        service: 'https://10.0.1.5:443',
+        originRequest: { httpHostHeader: 'api.internal.corp', noTLSVerify: true },
+      },
+    ])
+    expect(call()).toMatchObject({
+      body: {
+        config: {
+          ingress: [
+            {
+              hostname: 'api.tunnels.example',
+              service: 'https://10.0.1.5:443',
+              originRequest: { httpHostHeader: 'api.internal.corp', noTLSVerify: true },
+            },
+            { service: 'http_status:404' },
+          ],
+        },
+      },
+    })
+  })
+
   it('normalizes a known connector status and falls back to inactive', async () => {
     const healthy = harness([ok({ status: 'healthy' })])
     await expect(healthy.api.getTunnelStatus('t')).resolves.toBe('healthy')

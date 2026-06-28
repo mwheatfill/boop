@@ -19,6 +19,27 @@ interface RoutingInput {
   url?: string | undefined
   tunnelId?: string | null | undefined
   internalOrigin?: string | null | undefined
+  originHostHeader?: string | null | undefined
+  originServerName?: string | null | undefined
+  originNoTlsVerify?: boolean | undefined
+}
+
+interface OriginRequestFields {
+  originHostHeader: string | null
+  originServerName: string | null
+  originNoTlsVerify: boolean
+}
+
+// originRequest overrides only apply to tunnel Targets; public Targets store nulls.
+function originRequestFields(input: RoutingInput): OriginRequestFields {
+  if (input.reachability !== 'tunnel') {
+    return { originHostHeader: null, originServerName: null, originNoTlsVerify: false }
+  }
+  return {
+    originHostHeader: input.originHostHeader?.trim() || null,
+    originServerName: input.originServerName?.trim() || null,
+    originNoTlsVerify: input.originNoTlsVerify ?? false,
+  }
 }
 
 // Resolves the persisted routing fields. Public targets carry a user URL; private
@@ -83,6 +104,7 @@ export async function createTarget(
       reachability: input.reachability,
       tunnelId: routing.tunnelId,
       internalOrigin: routing.internalOrigin,
+      ...originRequestFields(input),
     })
   } catch (err) {
     if (isUniqueConstraintViolation(err, 'targets.slug')) {
@@ -114,6 +136,7 @@ export async function updateTarget(
       reachability: input.reachability,
       tunnelId: routing.tunnelId,
       internalOrigin: routing.internalOrigin,
+      ...originRequestFields(input),
       updatedAt: new Date(),
     })
     .where(and(eq(targets.workspaceId, workspaceId), eq(targets.slug, targetSlug)))

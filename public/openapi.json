@@ -2001,6 +2001,29 @@
               }
             ]
           },
+          "originHostHeader": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "originServerName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "originNoTlsVerify": {
+            "type": "boolean"
+          },
           "health": {
             "anyOf": [
               {
@@ -2048,6 +2071,9 @@
           "reachability",
           "tunnelId",
           "internalOrigin",
+          "originHostHeader",
+          "originServerName",
+          "originNoTlsVerify",
           "health",
           "status",
           "createdAt",
@@ -2129,6 +2155,31 @@
                 "type": "null"
               }
             ]
+          },
+          "originHostHeader": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "originServerName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "originNoTlsVerify": {
+            "type": "boolean"
           },
           "slug": {
             "type": "string",
@@ -2219,6 +2270,31 @@
                 "type": "null"
               }
             ]
+          },
+          "originHostHeader": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "originServerName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "originNoTlsVerify": {
+            "type": "boolean"
           }
         },
         "required": [

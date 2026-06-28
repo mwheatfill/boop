@@ -141,6 +141,13 @@ export const targets = sqliteTable(
     tunnelId: text('tunnel_id').references(() => tunnels.id, { onDelete: 'restrict' }),
     // Private (tunnel) targets only: the on-prem address the connector forwards to.
     internalOrigin: text('internal_origin'),
+    // Private (tunnel) targets only: cloudflared originRequest overrides for the
+    // origin (e.g. an IIS host-header binding, or an internal TLS cert name).
+    originHostHeader: text('origin_host_header'),
+    originServerName: text('origin_server_name'),
+    originNoTlsVerify: integer('origin_no_tls_verify', { mode: 'boolean' })
+      .notNull()
+      .default(false),
     status: enumColumn('status', LIFECYCLE_STATUSES).notNull().default('active'),
     ...timestamps(),
   },

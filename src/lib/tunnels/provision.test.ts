@@ -233,6 +233,8 @@ describe('syncTunnelIngress', () => {
       reachability: 'tunnel',
       tunnelId,
       internalOrigin: 'http://10.0.1.5:8080',
+      originHostHeader: 'api.internal.corp',
+      originNoTlsVerify: true,
     })
     await db.insert(targets).values({
       id: newId('tgt'),
@@ -251,7 +253,11 @@ describe('syncTunnelIngress', () => {
     await syncTunnelIngress({ db, cf }, tunnelId)
 
     expect(cf.putTunnelIngress).toHaveBeenCalledWith('cf_tnl', [
-      { hostname: 'api.acme-hq.tunnels.test', service: 'http://10.0.1.5:8080' },
+      {
+        hostname: 'api.acme-hq.tunnels.test',
+        service: 'http://10.0.1.5:8080',
+        originRequest: { httpHostHeader: 'api.internal.corp', noTLSVerify: true },
+      },
     ])
   })
 })

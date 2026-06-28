@@ -34,6 +34,9 @@ export const TargetSchema = z
     reachability: z.enum(TARGET_REACHABILITIES),
     tunnelId: z.string().nullable(),
     internalOrigin: z.string().nullable(),
+    originHostHeader: z.string().nullable(),
+    originServerName: z.string().nullable(),
+    originNoTlsVerify: z.boolean(),
     health: z.enum(TARGET_HEALTHS).nullable(),
     status: z.enum(['active', 'archived']),
     createdAt: z.iso.datetime(),
@@ -57,6 +60,10 @@ const targetMutableFields = {
   reachability: z.enum(TARGET_REACHABILITIES),
   tunnelId: z.string().nullable().optional(),
   internalOrigin: originField.nullable().optional(),
+  // cloudflared originRequest overrides for private (tunnel) Targets.
+  originHostHeader: z.string().max(255).nullable().optional(),
+  originServerName: z.string().max(255).nullable().optional(),
+  originNoTlsVerify: z.boolean().optional(),
 }
 
 export const TargetCreateInput = z
