@@ -6,7 +6,7 @@ import { createDb } from '@/lib/db/client'
 import { getDefaultWorkspace } from '@/lib/workspaces/queries'
 import { z } from '@/shared/schemas/openapi'
 import { TunnelCreateInput } from '@/shared/schemas/tunnel'
-import { getProviderConfig } from './provider'
+import { getProviderConfig, type ProviderVars } from './provider'
 import { decommissionTunnel, provisionTunnel } from './provision'
 import { listTunnels } from './queries'
 import { runTunnelVerify } from './verify'
@@ -17,6 +17,14 @@ async function requireKek(): Promise<string> {
   const kek = await env.BOOP_SECRETS_KEK.get()
   if (!kek) throw new Error('BOOP_SECRETS_KEK is not configured for this environment')
   return kek
+}
+
+function providerVars(): ProviderVars {
+  return {
+    accountId: env.CF_PROVIDER_ACCOUNT_ID,
+    zoneId: env.CF_PROVIDER_ZONE_ID,
+    hostnameBase: env.CF_TUNNEL_HOSTNAME_BASE,
+  }
 }
 
 export const listTunnelsFn = createServerFn({ method: 'GET' })
@@ -34,7 +42,12 @@ export const provisionTunnelFn = createServerFn({ method: 'POST' })
     const db = createDb(env.DB)
     const kek = await requireKek()
     const workspace = await getDefaultWorkspace(db)
-    const provider = await getProviderConfig({ db, kek, workspaceId: workspace.id })
+    const provider = await getProviderConfig({
+      db,
+      kek,
+      workspaceId: workspace.id,
+      vars: providerVars(),
+    })
     return provisionTunnel(
       { db, cf: provider.cf, kek, zoneId: provider.zoneId, hostnameBase: provider.hostnameBase },
       {
@@ -53,7 +66,12 @@ export const decommissionTunnelFn = createServerFn({ method: 'POST' })
     const db = createDb(env.DB)
     const kek = await requireKek()
     const workspace = await getDefaultWorkspace(db)
-    const provider = await getProviderConfig({ db, kek, workspaceId: workspace.id })
+    const provider = await getProviderConfig({
+      db,
+      kek,
+      workspaceId: workspace.id,
+      vars: providerVars(),
+    })
     await decommissionTunnel({ db, cf: provider.cf, zoneId: provider.zoneId }, data.tunnelId)
     return { ok: true as const }
   })

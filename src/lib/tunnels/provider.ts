@@ -1,4 +1,3 @@
-import { env } from 'cloudflare:workers'
 import { type CloudflareApi, createCloudflareApi } from '@/lib/cloudflare-api/client'
 import type { Database } from '@/lib/db/client'
 import { fetchActiveSecretPlaintext, SecretNotFoundError } from '@/lib/workspace-secrets/commands'
@@ -21,14 +20,19 @@ export interface ProviderConfig {
   hostnameBase: string
 }
 
+export interface ProviderVars {
+  accountId: string
+  zoneId: string
+  hostnameBase: string
+}
+
 export async function getProviderConfig(deps: {
   db: Database
   kek: string
   workspaceId: string
+  vars: ProviderVars
 }): Promise<ProviderConfig> {
-  const accountId = env.CF_PROVIDER_ACCOUNT_ID
-  const zoneId = env.CF_PROVIDER_ZONE_ID
-  const hostnameBase = env.CF_TUNNEL_HOSTNAME_BASE
+  const { accountId, zoneId, hostnameBase } = deps.vars
   if (!accountId || !zoneId || !hostnameBase) {
     throw new TunnelProvisioningNotConfiguredError(
       'Set CF_PROVIDER_ACCOUNT_ID, CF_PROVIDER_ZONE_ID, and CF_TUNNEL_HOSTNAME_BASE.',
