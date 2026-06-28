@@ -33,45 +33,32 @@ export const Route = createFileRoute('/_authenticated/targets')({
   component: TargetsPage,
 })
 
-function targetColumns(isAdmin: boolean): ColumnDef<Target>[] {
-  return [
-    {
-      accessorKey: 'name',
-      header: 'Name',
-      cell: ({ row }) =>
-        isAdmin ? (
-          <Link
-            to="/targets/$targetSlug"
-            params={{ targetSlug: row.original.slug }}
-            className="font-medium text-foreground hover:underline"
-          >
-            {row.original.name}
-          </Link>
-        ) : (
-          <span className="font-medium text-foreground">{row.original.name}</span>
-        ),
-    },
-    { accessorKey: 'slug', header: 'Slug' },
-    { accessorKey: 'method', header: 'Method' },
-    { accessorKey: 'url', header: 'URL' },
-    { accessorKey: 'reachability', header: 'Reachability' },
-    {
-      accessorKey: 'health',
-      header: 'Health',
-      cell: ({ row }) =>
-        row.original.health ? (
-          <TargetHealthBadge health={row.original.health} />
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        ),
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
-    },
-  ]
-}
+const targetColumns: ColumnDef<Target>[] = [
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span>,
+  },
+  { accessorKey: 'slug', header: 'Slug' },
+  { accessorKey: 'method', header: 'Method' },
+  { accessorKey: 'url', header: 'URL' },
+  { accessorKey: 'reachability', header: 'Reachability' },
+  {
+    accessorKey: 'health',
+    header: 'Health',
+    cell: ({ row }) =>
+      row.original.health ? (
+        <TargetHealthBadge health={row.original.health} />
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      ),
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ row }) => <StatusBadge status={row.original.status} />,
+  },
+]
 
 function TargetsPage() {
   const { activeSlug } = Route.useLoaderData()
@@ -141,7 +128,20 @@ function TargetsList({ activeSlug }: { activeSlug: string }) {
           }
         />
       ) : (
-        <DataTable columns={targetColumns(isAdmin)} data={targets} />
+        <DataTable
+          columns={targetColumns}
+          data={targets}
+          {...(isAdmin
+            ? {
+                onRowClick: (target: Target) => {
+                  void navigate({
+                    to: '/targets/$targetSlug',
+                    params: { targetSlug: target.slug },
+                  })
+                },
+              }
+            : {})}
+        />
       )}
     </div>
   )
