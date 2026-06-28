@@ -60,6 +60,7 @@ export interface DispatchQueueEnv {
   DB: D1Database
   BODIES: R2Bucket
   ALERT_QUEUE?: Queue<AlertQueueMessage>
+  BOOP_SECRETS_KEK?: SecretsStoreSecret
 }
 
 export async function handleQueueMessage(
@@ -67,6 +68,14 @@ export async function handleQueueMessage(
   message: Message<DispatchMessage>,
 ): Promise<void> {
   const { jobId, scheduledAt, triggerSource, runId } = message.body
+  // KEK resolves a tunnel Target's Access secret; without it, tunnel Runs fail
+  // with tunnel_credential_missing.
+  let kek: string | undefined
+  try {
+    kek = await env.BOOP_SECRETS_KEK?.get()
+  } catch {
+    kek = undefined
+  }
   try {
     await runDispatch(
       {
@@ -74,6 +83,7 @@ export async function handleQueueMessage(
         bodies: env.BODIES,
         ...(runId && { preCreatedRunId: runId }),
         ...(env.ALERT_QUEUE && { alertQueue: env.ALERT_QUEUE }),
+        ...(kek ? { kek } : {}),
       },
       jobId,
       scheduledAt instanceof Date ? scheduledAt : new Date(scheduledAt),
