@@ -29,6 +29,7 @@ interface TargetFormValues {
   authConfig: string
   reachability: (typeof TARGET_REACHABILITIES)[number]
   tunnelId: string
+  internalOrigin: string
 }
 
 interface CreateProps {
@@ -64,6 +65,7 @@ export function TargetModal(props: TargetModalProps) {
           authConfig: props.initialTarget.authConfig ?? '',
           reachability: props.initialTarget.reachability,
           tunnelId: props.initialTarget.tunnelId ?? '',
+          internalOrigin: props.initialTarget.internalOrigin ?? '',
         }
       : {
           name: '',
@@ -74,6 +76,7 @@ export function TargetModal(props: TargetModalProps) {
           authConfig: '',
           reachability: 'public',
           tunnelId: '',
+          internalOrigin: '',
         }
 
   const form = useForm({
@@ -81,16 +84,28 @@ export function TargetModal(props: TargetModalProps) {
     validators: {
       onSubmitAsync: async ({ value }) => {
         if (value.reachability === 'tunnel' && !value.tunnelId) {
-          return { form: 'Select a tunnel for tunnel reachability.' }
+          return { form: 'Select a tunnel.' }
+        }
+        if (value.reachability === 'tunnel' && !value.internalOrigin) {
+          return { form: 'Enter the internal origin (e.g. http://10.0.1.50:8080).' }
         }
         const base = {
           name: value.name,
-          url: value.url,
           method: value.method,
           authKind: value.authKind,
           ...(value.authConfig ? { authConfig: value.authConfig } : { authConfig: null }),
-          reachability: value.reachability,
-          tunnelId: value.reachability === 'tunnel' ? value.tunnelId : null,
+          ...(value.reachability === 'tunnel'
+            ? {
+                reachability: 'tunnel' as const,
+                tunnelId: value.tunnelId,
+                internalOrigin: value.internalOrigin,
+              }
+            : {
+                reachability: 'public' as const,
+                url: value.url,
+                tunnelId: null,
+                internalOrigin: null,
+              }),
         }
 
         const result: MutationResult<Target> =
@@ -205,25 +220,27 @@ export function TargetModal(props: TargetModalProps) {
           )}
         </form.Field>
 
-        <form.Field name="url">
-          {(field) => (
-            <div className="flex flex-col gap-2">
-              <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground">
-                URL
-              </label>
-              <Input
-                id={field.name}
-                type="url"
-                value={field.state.value}
-                placeholder="https://api.example.com/healthz"
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-              />
-              {field.state.meta.errors[0] ? (
-                <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
-              ) : null}
-            </div>
-          )}
-        </form.Field>
+        {reachability !== 'tunnel' ? (
+          <form.Field name="url">
+            {(field) => (
+              <div className="flex flex-col gap-2">
+                <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground">
+                  URL
+                </label>
+                <Input
+                  id={field.name}
+                  type="url"
+                  value={field.state.value}
+                  placeholder="https://api.example.com/healthz"
+                  onChange={(e) => field.handleChange(e.currentTarget.value)}
+                />
+                {field.state.meta.errors[0] ? (
+                  <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
+                ) : null}
+              </div>
+            )}
+          </form.Field>
+        ) : null}
 
         <div className="flex flex-wrap items-center gap-2">
           <Popover open={methodOpen} onOpenChange={setMethodOpen}>
@@ -336,6 +353,26 @@ export function TargetModal(props: TargetModalProps) {
                 </PopoverContent>
               </Popover>
             )}
+            <form.Field name="internalOrigin">
+              {(field) => (
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor={field.name} className="text-xs font-medium text-muted-foreground">
+                    Internal origin
+                  </label>
+                  <Input
+                    id={field.name}
+                    value={field.state.value}
+                    placeholder="http://10.0.1.50:8080"
+                    className="font-mono text-sm"
+                    onChange={(e) => field.handleChange(e.currentTarget.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The on-prem address the connector forwards to (IIS host:port). boop builds the
+                    public URL from the tunnel.
+                  </p>
+                </div>
+              )}
+            </form.Field>
           </div>
         ) : null}
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { newId } from '@/lib/db/ids'
-import { jobs } from '@/lib/db/schema'
+import { jobs, tunnels } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { ArchiveBlockedError, FieldValidationError, NotFoundError } from '@/lib/errors'
 import { createWorkspace } from '@/lib/workspaces/commands'
@@ -15,6 +15,24 @@ const targetInput = {
   method: 'POST' as const,
   authKind: 'none' as const,
   reachability: 'public' as const,
+}
+
+async function seedTunnel(db: ReturnType<typeof createTestDb>, workspaceId: string) {
+  const id = newId('tnl')
+  await db.insert(tunnels).values({
+    id,
+    workspaceId,
+    name: 'HQ',
+    slug: 'hq',
+    hostname: 'hq.tunnels.test',
+    cfTunnelId: 'cf',
+    cfAccessAppId: 'app',
+    cfAccessPolicyId: 'pol',
+    cfServiceTokenId: 'st',
+    clientIdSecretName: 'cid',
+    clientSecretSecretName: 'csec',
+  })
+  return id
 }
 
 describe('createTarget', () => {
@@ -54,6 +72,67 @@ describe('createTarget', () => {
     await createTarget(db, 'acme', targetInput)
     const second = await createTarget(db, 'beta', targetInput)
     expect(second.slug).toBe('primary-api')
+  })
+
+  it('derives the url from the tunnel hostname for a tunnel target', async () => {
+    const db = createTestDb()
+    const workspace = await createWorkspace(db, workspaceInput)
+    const tunnelId = await seedTunnel(db, workspace.id)
+    const target = await createTarget(db, 'acme', {
+      name: 'Internal API',
+      slug: 'internal-api',
+      method: 'GET',
+      authKind: 'none',
+      reachability: 'tunnel',
+      tunnelId,
+      internalOrigin: 'http://10.0.1.5:8080',
+    })
+    expect(target.reachability).toBe('tunnel')
+    expect(target.tunnelId).toBe(tunnelId)
+    expect(target.internalOrigin).toBe('http://10.0.1.5:8080')
+    expect(target.url).toBe('https://internal-api.hq.tunnels.test')
+  })
+
+  it('rejects a tunnel target whose tunnel does not exist', async () => {
+    const db = createTestDb()
+    await createWorkspace(db, workspaceInput)
+    let thrown: unknown
+    try {
+      await createTarget(db, 'acme', {
+        name: 'Internal API',
+        slug: 'internal-api',
+        method: 'GET',
+        authKind: 'none',
+        reachability: 'tunnel',
+        tunnelId: 'tnl_missing',
+        internalOrigin: 'http://10.0.1.5:8080',
+      })
+    } catch (err) {
+      thrown = err
+    }
+    expect(thrown).toBeInstanceOf(FieldValidationError)
+    expect((thrown as FieldValidationError).fieldErrors).toHaveProperty('tunnelId')
+  })
+
+  it('rejects a tunnel target without an internal origin', async () => {
+    const db = createTestDb()
+    const workspace = await createWorkspace(db, workspaceInput)
+    const tunnelId = await seedTunnel(db, workspace.id)
+    let thrown: unknown
+    try {
+      await createTarget(db, 'acme', {
+        name: 'Internal API',
+        slug: 'internal-api',
+        method: 'GET',
+        authKind: 'none',
+        reachability: 'tunnel',
+        tunnelId,
+      })
+    } catch (err) {
+      thrown = err
+    }
+    expect(thrown).toBeInstanceOf(FieldValidationError)
+    expect((thrown as FieldValidationError).fieldErrors).toHaveProperty('internalOrigin')
   })
 })
 

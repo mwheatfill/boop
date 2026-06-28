@@ -91,6 +91,7 @@ const target: TargetRow = {
   authConfig: null,
   reachability: 'public',
   tunnelId: null,
+  internalOrigin: null,
   status: 'active',
   createdAt: new Date(),
   updatedAt: new Date(),

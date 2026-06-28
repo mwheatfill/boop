@@ -1,10 +1,10 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { canDecommissionTunnel } from '@/lib/archive-policy/archive-policy'
 import type { CloudflareApi } from '@/lib/cloudflare-api/client'
 import { CloudflareApiError } from '@/lib/cloudflare-api/errors'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { tunnels } from '@/lib/db/schema'
+import { targets, tunnels } from '@/lib/db/schema'
 import { ArchiveBlockedError, NotFoundError } from '@/lib/errors'
 import { logError, logInfo } from '@/lib/log'
 import { createSecret, revokeSecret } from '@/lib/workspace-secrets/commands'
@@ -23,7 +23,13 @@ export interface ProvisionTunnelInput {
   workspaceId: string
   name: string
   slug: string
-  internalOrigin: string
+}
+
+// A tunnel is one connector fronting many private Targets. It owns a wildcard
+// Access app + wildcard DNS (`*.<slug>.<base>`); each private Target adds an
+// ingress route `<targetSlug>.<slug>.<base>` -> its internal origin.
+export function tunnelTargetHostname(tunnelHostname: string, targetSlug: string): string {
+  return `${targetSlug}.${tunnelHostname}`
 }
 
 export interface ProvisionedTunnel {
@@ -80,13 +86,12 @@ export async function provisionTunnel(
     const policy = await cf.createAccessPolicy(input.name, serviceToken.id)
     compensations.push(() => cf.deleteAccessPolicy(policy.id))
 
-    const app = await cf.createAccessApp(input.name, hostname, [policy.id])
+    const wildcard = `*.${hostname}`
+    const app = await cf.createAccessApp(input.name, wildcard, [policy.id])
     compensations.push(() => cf.deleteAccessApp(app.id))
 
-    const dns = await cf.createDnsRecord(zoneId, hostname, `${tunnel.id}.cfargotunnel.com`)
+    const dns = await cf.createDnsRecord(zoneId, wildcard, `${tunnel.id}.cfargotunnel.com`)
     compensations.push(() => cf.deleteDnsRecord(zoneId, dns.id))
-
-    await cf.putTunnelConfiguration(tunnel.id, hostname, input.internalOrigin)
 
     const id = newId('tnl')
     const createdAt = now()
@@ -96,7 +101,6 @@ export async function provisionTunnel(
       name: input.name,
       slug: input.slug,
       hostname,
-      internalOrigin: input.internalOrigin,
       cfTunnelId: tunnel.id,
       cfAccessAppId: app.id,
       cfAccessPolicyId: policy.id,
@@ -125,31 +129,48 @@ export async function provisionTunnel(
 
 export interface UpdateTunnelDeps {
   db: Database
-  cf: CloudflareApi
   now?: () => Date
 }
 
-// Name is a boop-side label (DB only); changing the internal origin re-points the
-// connector by rewriting the tunnel's ingress on Cloudflare. Slug/hostname are
-// immutable (they anchor DNS and the Access app).
+// Name is a boop-side label (DB only); slug/hostname are immutable (they anchor
+// the wildcard DNS and Access app). Origins live on Targets, not the tunnel.
 export async function updateTunnel(
   deps: UpdateTunnelDeps,
   tunnelId: string,
-  input: { name: string; internalOrigin: string },
+  input: { name: string },
 ): Promise<void> {
-  const { db, cf } = deps
+  const { db } = deps
   const now = deps.now ?? (() => new Date())
   const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
   if (!row) throw new NotFoundError('Tunnel', tunnelId)
-
-  if (input.internalOrigin !== row.internalOrigin) {
-    await cf.putTunnelConfiguration(row.cfTunnelId, row.hostname, input.internalOrigin)
-  }
   await db
     .update(tunnels)
-    .set({ name: input.name, internalOrigin: input.internalOrigin, updatedAt: now() })
+    .set({ name: input.name, updatedAt: now() })
     .where(eq(tunnels.id, tunnelId))
   logInfo('tunnel.updated', { workspaceId: row.workspaceId, slug: row.slug })
+}
+
+// Rebuilds the tunnel's Cloudflare ingress from every active private Target that
+// references it: one route per Target (`<targetSlug>.<tunnelHostname>` -> origin),
+// plus the implicit catch-all. Called whenever a private Target changes.
+export async function syncTunnelIngress(
+  deps: { db: Database; cf: CloudflareApi },
+  tunnelId: string,
+): Promise<void> {
+  const { db, cf } = deps
+  const tunnel = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
+  if (!tunnel) throw new NotFoundError('Tunnel', tunnelId)
+  const rows = await db
+    .select()
+    .from(targets)
+    .where(and(eq(targets.tunnelId, tunnelId), eq(targets.status, 'active')))
+  const routes = rows
+    .filter((t): t is typeof t & { internalOrigin: string } => Boolean(t.internalOrigin))
+    .map((t) => ({
+      hostname: tunnelTargetHostname(tunnel.hostname, t.slug),
+      service: t.internalOrigin,
+    }))
+  await cf.putTunnelIngress(tunnel.cfTunnelId, routes)
 }
 
 // Re-fetches the cloudflared install token so the connector command can be shown

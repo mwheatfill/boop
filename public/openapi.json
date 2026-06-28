@@ -1991,6 +1991,16 @@
               }
             ]
           },
+          "internalOrigin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -2020,6 +2030,7 @@
           "authConfig",
           "reachability",
           "tunnelId",
+          "internalOrigin",
           "status",
           "createdAt",
           "updatedAt"
@@ -2088,6 +2099,19 @@
               }
             ]
           },
+          "internalOrigin": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048,
+                "format": "uri",
+                "example": "http://10.0.1.50:8080"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "slug": {
             "type": "string",
             "minLength": 1,
@@ -2097,7 +2121,6 @@
         },
         "required": [
           "name",
-          "url",
           "method",
           "authKind",
           "reachability",
@@ -2165,11 +2188,23 @@
                 "type": "null"
               }
             ]
+          },
+          "internalOrigin": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048,
+                "format": "uri",
+                "example": "http://10.0.1.50:8080"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "name",
-          "url",
           "method",
           "authKind",
           "reachability"
@@ -2198,10 +2233,6 @@
           "hostname": {
             "type": "string",
             "example": "acme-hq.tunnels.stlabs.org"
-          },
-          "internalOrigin": {
-            "type": "string",
-            "example": "http://10.0.1.50:8080"
           },
           "connectorStatus": {
             "anyOf": [
@@ -2294,7 +2325,6 @@
           "name",
           "slug",
           "hostname",
-          "internalOrigin",
           "connectorStatus",
           "connectorCheckedAt",
           "lastVerifyOutcome",
@@ -2320,18 +2350,11 @@
             "minLength": 1,
             "maxLength": 64,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-          },
-          "internalOrigin": {
-            "type": "string",
-            "maxLength": 2048,
-            "format": "uri",
-            "example": "http://10.0.1.50:8080"
           }
         },
         "required": [
           "name",
-          "slug",
-          "internalOrigin"
+          "slug"
         ],
         "additionalProperties": false
       },

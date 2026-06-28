@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { newId } from '@/lib/db/ids'
-import { tunnels, workspaces } from '@/lib/db/schema'
+import { targets, tunnels, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { createSecret } from '@/lib/workspace-secrets/commands'
 import { runTunnelVerify, verifyTunnelConnection } from './verify'
@@ -46,7 +46,6 @@ async function seedTunnel(db: Db) {
     name: 't',
     slug: 't',
     hostname: 't.tunnels.test',
-    internalOrigin: 'http://10.0.0.1:80',
     cfTunnelId: 'cf',
     cfAccessAppId: 'app',
     cfAccessPolicyId: 'pol',
@@ -57,10 +56,27 @@ async function seedTunnel(db: Db) {
   return { workspaceId, tunnelId }
 }
 
+// runTunnelVerify HEADs a representative active private Target's url, so the
+// verify path only runs when at least one such Target references the tunnel.
+async function seedActiveTarget(db: Db, workspaceId: string, tunnelId: string) {
+  await db.insert(targets).values({
+    id: newId('tgt'),
+    workspaceId,
+    name: 'API',
+    slug: 'api',
+    url: 'https://api.t.tunnels.test',
+    method: 'GET',
+    reachability: 'tunnel',
+    tunnelId,
+    internalOrigin: 'http://10.0.0.1:80',
+  })
+}
+
 describe('runTunnelVerify', () => {
   it('records a successful verify on the tunnel row', async () => {
     const db = createTestDb()
     const { workspaceId, tunnelId } = await seedTunnel(db)
+    await seedActiveTarget(db, workspaceId, tunnelId)
     await createSecret({ db, kek: KEK }, workspaceId, { name: 'cid', plaintext: 'CID' })
     await createSecret({ db, kek: KEK }, workspaceId, { name: 'csec', plaintext: 'CSEC' })
 
@@ -73,10 +89,24 @@ describe('runTunnelVerify', () => {
 
   it('records unknown when credentials are missing', async () => {
     const db = createTestDb()
-    const { tunnelId } = await seedTunnel(db)
+    const { workspaceId, tunnelId } = await seedTunnel(db)
+    await seedActiveTarget(db, workspaceId, tunnelId)
     // no secrets created -> buildAccessHeaders throws TunnelCredentialError
     const result = await runTunnelVerify({ db, kek: KEK, fetchImpl: fetchReturning(200) }, tunnelId)
     expect(result.outcome).toBe('unknown')
+    const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
+    expect(row?.lastVerifyOutcome).toBe('unknown')
+  })
+
+  it('records unknown when no private Target references the tunnel', async () => {
+    const db = createTestDb()
+    const { tunnelId } = await seedTunnel(db)
+    const result = await runTunnelVerify({ db, kek: KEK, fetchImpl: fetchReturning(200) }, tunnelId)
+    expect(result).toMatchObject({
+      ok: false,
+      outcome: 'unknown',
+      detail: 'No private Targets use this tunnel yet.',
+    })
     const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
     expect(row?.lastVerifyOutcome).toBe('unknown')
   })

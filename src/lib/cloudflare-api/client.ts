@@ -33,7 +33,10 @@ function normalizeConnectorStatus(raw: unknown): ConnectorStatus {
 export interface CloudflareApi {
   createTunnel(name: string): Promise<{ id: string }>
   getTunnelToken(tunnelId: string): Promise<string>
-  putTunnelConfiguration(tunnelId: string, hostname: string, service: string): Promise<void>
+  putTunnelIngress(
+    tunnelId: string,
+    routes: Array<{ hostname: string; service: string }>,
+  ): Promise<void>
   getTunnelStatus(tunnelId: string): Promise<ConnectorStatus>
   deleteTunnel(tunnelId: string): Promise<void>
   createServiceToken(name: string): Promise<{ id: string; clientId: string; clientSecret: string }>
@@ -112,10 +115,13 @@ export function createCloudflareApi(options: CloudflareApiOptions): CloudflareAp
       return request<string>('GET', account(`/cfd_tunnel/${tunnelId}/token`))
     },
 
-    async putTunnelConfiguration(tunnelId, hostname, service) {
+    async putTunnelIngress(tunnelId, routes) {
       await request('PUT', account(`/cfd_tunnel/${tunnelId}/configurations`), {
         config: {
-          ingress: [{ hostname, service }, { service: 'http_status:404' }],
+          ingress: [
+            ...routes.map((r) => ({ hostname: r.hostname, service: r.service })),
+            { service: 'http_status:404' },
+          ],
         },
       })
     },

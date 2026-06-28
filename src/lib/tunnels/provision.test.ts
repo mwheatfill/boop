@@ -7,7 +7,7 @@ import { targets, tunnels, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { ArchiveBlockedError } from '@/lib/errors'
 import { listActiveSecrets } from '@/lib/workspace-secrets/commands'
-import { decommissionTunnel, provisionTunnel } from './provision'
+import { decommissionTunnel, provisionTunnel, syncTunnelIngress } from './provision'
 
 const KEK = btoa('\0'.repeat(32))
 const BASE = 'tunnels.test'
@@ -16,7 +16,7 @@ function stubCf(overrides: Partial<CloudflareApi> = {}): CloudflareApi {
   return {
     createTunnel: vi.fn(async () => ({ id: 'cf_tnl' })),
     getTunnelToken: vi.fn(async () => 'eyToken'),
-    putTunnelConfiguration: vi.fn(async () => {}),
+    putTunnelIngress: vi.fn(async () => {}),
     getTunnelStatus: vi.fn(async () => 'healthy' as const),
     deleteTunnel: vi.fn(async () => {}),
     createServiceToken: vi.fn(async () => ({ id: 'st', clientId: 'cid', clientSecret: 'csec' })),
@@ -41,7 +41,6 @@ const input = (workspaceId: string) => ({
   workspaceId,
   name: 'Acme HQ',
   slug: 'acme-hq',
-  internalOrigin: 'http://10.0.1.5:8080',
 })
 
 describe('provisionTunnel', () => {
@@ -58,16 +57,15 @@ describe('provisionTunnel', () => {
     expect(result.hostname).toBe('acme-hq.tunnels.test')
     expect(result.installToken).toBe('eyToken')
     expect(result.id.startsWith('tnl_')).toBe(true)
+    // Provisioning claims the wildcard Access app + DNS; per-Target ingress is
+    // added later via syncTunnelIngress, so no ingress call happens at create.
+    expect(cf.createAccessApp).toHaveBeenCalledWith('Acme HQ', '*.acme-hq.tunnels.test', ['pol'])
     expect(cf.createDnsRecord).toHaveBeenCalledWith(
       'z1',
-      'acme-hq.tunnels.test',
+      '*.acme-hq.tunnels.test',
       'cf_tnl.cfargotunnel.com',
     )
-    expect(cf.putTunnelConfiguration).toHaveBeenCalledWith(
-      'cf_tnl',
-      'acme-hq.tunnels.test',
-      'http://10.0.1.5:8080',
-    )
+    expect(cf.putTunnelIngress).not.toHaveBeenCalled()
 
     const row = (await db.select().from(tunnels).where(eq(tunnels.id, result.id)).limit(1))[0]
     expect(row).toMatchObject({
@@ -123,7 +121,6 @@ describe('decommissionTunnel', () => {
       name: 'Acme HQ',
       slug: 'acme-hq',
       hostname: 'acme-hq.tunnels.test',
-      internalOrigin: 'http://10.0.1.5:8080',
       cfTunnelId: 'cf_tnl',
       cfAccessAppId: 'app',
       cfAccessPolicyId: 'pol',
@@ -188,5 +185,57 @@ describe('decommissionTunnel', () => {
       ArchiveBlockedError,
     )
     expect(cf.deleteTunnel).not.toHaveBeenCalled()
+  })
+})
+
+describe('syncTunnelIngress', () => {
+  it('rebuilds ingress from active private Targets and excludes archived ones', async () => {
+    const db = createTestDb()
+    const workspaceId = await seedWorkspace(db)
+    const tunnelId = newId('tnl')
+    await db.insert(tunnels).values({
+      id: tunnelId,
+      workspaceId,
+      name: 'Acme HQ',
+      slug: 'acme-hq',
+      hostname: 'acme-hq.tunnels.test',
+      cfTunnelId: 'cf_tnl',
+      cfAccessAppId: 'app',
+      cfAccessPolicyId: 'pol',
+      cfServiceTokenId: 'st',
+      cfDnsRecordId: 'dns',
+      clientIdSecretName: 'cid',
+      clientSecretSecretName: 'csec',
+    })
+    await db.insert(targets).values({
+      id: newId('tgt'),
+      workspaceId,
+      name: 'API',
+      slug: 'api',
+      url: 'https://api.acme-hq.tunnels.test',
+      method: 'GET',
+      reachability: 'tunnel',
+      tunnelId,
+      internalOrigin: 'http://10.0.1.5:8080',
+    })
+    await db.insert(targets).values({
+      id: newId('tgt'),
+      workspaceId,
+      name: 'Old',
+      slug: 'old',
+      url: 'https://old.acme-hq.tunnels.test',
+      method: 'GET',
+      reachability: 'tunnel',
+      tunnelId,
+      internalOrigin: 'http://10.0.1.9:8080',
+      status: 'archived',
+    })
+    const cf = stubCf()
+
+    await syncTunnelIngress({ db, cf }, tunnelId)
+
+    expect(cf.putTunnelIngress).toHaveBeenCalledWith('cf_tnl', [
+      { hostname: 'api.acme-hq.tunnels.test', service: 'http://10.0.1.5:8080' },
+    ])
   })
 })

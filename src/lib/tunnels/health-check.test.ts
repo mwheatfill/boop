@@ -16,7 +16,7 @@ function stubCf(): CloudflareApi {
     getTunnelStatus: vi.fn(async () => 'healthy' as const),
     createTunnel: vi.fn(async () => ({ id: 'x' })),
     getTunnelToken: vi.fn(async () => 't'),
-    putTunnelConfiguration: noop,
+    putTunnelIngress: noop,
     deleteTunnel: noop,
     createServiceToken: vi.fn(async () => ({ id: 's', clientId: 'c', clientSecret: 'x' })),
     deleteServiceToken: noop,
@@ -41,13 +41,24 @@ async function seed(db: Db) {
     name: 't',
     slug: 't',
     hostname: 't.tunnels.test',
-    internalOrigin: 'http://10.0.0.1:80',
     cfTunnelId: 'cf',
     cfAccessAppId: 'app',
     cfAccessPolicyId: 'pol',
     cfServiceTokenId: 'st',
     clientIdSecretName: 'cid',
     clientSecretSecretName: 'csec',
+  })
+  // An active private Target gives runTunnelVerify a representative route to HEAD.
+  await db.insert(targets).values({
+    id: newId('tgt'),
+    workspaceId,
+    name: 'API',
+    slug: 'api',
+    url: 'https://api.t.tunnels.test',
+    method: 'GET',
+    reachability: 'tunnel',
+    tunnelId,
+    internalOrigin: 'http://10.0.0.1:80',
   })
   await createSecret({ db, kek: KEK }, workspaceId, { name: 'cid', plaintext: 'CID' })
   await createSecret({ db, kek: KEK }, workspaceId, { name: 'csec', plaintext: 'CSEC' })

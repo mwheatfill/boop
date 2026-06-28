@@ -6,6 +6,10 @@ export const TARGET_AUTH_KINDS = ['none', 'bearer', 'basic', 'header'] as const
 export const TARGET_REACHABILITIES = ['public', 'tunnel'] as const
 
 const urlField = z.url('Must be a valid URL').max(2048)
+const originField = z
+  .url('Must be a valid origin URL (e.g. http://10.0.1.50:8080)')
+  .max(2048)
+  .meta({ example: 'http://10.0.1.50:8080' })
 
 export const TargetSchema = z
   .object({
@@ -19,6 +23,7 @@ export const TargetSchema = z
     authConfig: z.string().nullable(),
     reachability: z.enum(TARGET_REACHABILITIES),
     tunnelId: z.string().nullable(),
+    internalOrigin: z.string().nullable(),
     status: z.enum(['active', 'archived']),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
@@ -32,12 +37,15 @@ export type Target = z.infer<typeof TargetSchema>
 
 const targetMutableFields = {
   name: nameField,
-  url: urlField,
+  // Optional: public targets supply url; tunnel targets supply internalOrigin and
+  // boop generates the url from the chosen tunnel's hostname.
+  url: urlField.optional(),
   method: z.enum(TARGET_METHODS),
   authKind: z.enum(TARGET_AUTH_KINDS),
   authConfig: z.string().max(4096).nullable().optional(),
   reachability: z.enum(TARGET_REACHABILITIES),
   tunnelId: z.string().nullable().optional(),
+  internalOrigin: originField.nullable().optional(),
 }
 
 export const TargetCreateInput = z

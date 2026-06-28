@@ -16,14 +16,10 @@ interface Provisioned {
 export function TunnelModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient()
   const [name, setName] = useState('')
-  const [internalOrigin, setInternalOrigin] = useState('')
   const [result, setResult] = useState<Provisioned | null>(null)
 
   const provision = useMutation({
-    mutationFn: () =>
-      provisionTunnelFn({
-        data: { name: name.trim(), slug: slugify(name), internalOrigin: internalOrigin.trim() },
-      }),
+    mutationFn: () => provisionTunnelFn({ data: { name: name.trim(), slug: slugify(name) } }),
     onSuccess: (r) => {
       setResult({ hostname: r.hostname, installToken: r.installToken })
       void queryClient.invalidateQueries({ queryKey: ['tunnels'] })
@@ -46,20 +42,18 @@ export function TunnelModal({ onClose }: { onClose: () => void }) {
     )
   }
 
-  const canSubmit = name.trim().length > 0 && internalOrigin.trim().length > 0
-
   return (
     <EntityModal
       open
       onClose={onClose}
-      title="New private tunnel"
-      description="boop provisions the Cloudflare Tunnel, then gives you one command to run on the customer's network."
-      dirty={name.length > 0 || internalOrigin.length > 0}
+      title="New tunnel"
+      description="One connector per site. Install it once; then point Private Targets at this tunnel and boop wires each route."
+      dirty={name.length > 0}
       primaryAction={{
         label: 'Create tunnel',
         onClick: () => provision.mutate(),
         loading: provision.isPending,
-        disabled: !canSubmit,
+        disabled: name.trim().length === 0,
       }}
     >
       <div className="flex flex-col gap-1.5">
@@ -70,18 +64,8 @@ export function TunnelModal({ onClose }: { onClose: () => void }) {
           onChange={(e) => setName(e.currentTarget.value)}
           placeholder="Acme HQ"
         />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="tunnel-origin">Internal origin</Label>
-        <Input
-          id="tunnel-origin"
-          value={internalOrigin}
-          onChange={(e) => setInternalOrigin(e.currentTarget.value)}
-          placeholder="http://10.0.1.50:8080"
-          className="font-mono text-sm"
-        />
         <p className="text-xs text-muted-foreground">
-          The private address the tunnel forwards to, reachable from the host running cloudflared.
+          A site or network, not a single service. Internal addresses are set per Target.
         </p>
       </div>
     </EntityModal>

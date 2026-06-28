@@ -15,7 +15,6 @@ const tunnelIdInput = z.object({ tunnelId: z.string().min(1) })
 const tunnelUpdateInput = z.object({
   tunnelId: z.string().min(1),
   name: TunnelCreateInput.shape.name,
-  internalOrigin: TunnelCreateInput.shape.internalOrigin,
 })
 
 async function requireKek(): Promise<string> {
@@ -55,11 +54,7 @@ export const updateTunnelFn = createServerFn({ method: 'POST' })
   .inputValidator((data) => tunnelUpdateInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
-    const provider = getProviderConfig(providerEnv())
-    await updateTunnel({ db, cf: provider.cf }, data.tunnelId, {
-      name: data.name,
-      internalOrigin: data.internalOrigin,
-    })
+    await updateTunnel({ db }, data.tunnelId, { name: data.name })
     return { ok: true as const }
   })
 
@@ -82,12 +77,7 @@ export const provisionTunnelFn = createServerFn({ method: 'POST' })
     const provider = getProviderConfig(providerEnv())
     return provisionTunnel(
       { db, cf: provider.cf, kek, zoneId: provider.zoneId, hostnameBase: provider.hostnameBase },
-      {
-        workspaceId: workspace.id,
-        name: data.name,
-        slug: data.slug,
-        internalOrigin: data.internalOrigin,
-      },
+      { workspaceId: workspace.id, name: data.name, slug: data.slug },
     )
   })
 

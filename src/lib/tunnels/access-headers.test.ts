@@ -18,7 +18,6 @@ async function seed(db: Db) {
     name: 't',
     slug: 't',
     hostname: 't.tunnels.test',
-    internalOrigin: 'http://10.0.0.1:80',
     cfTunnelId: 'cf',
     cfAccessAppId: 'app',
     cfAccessPolicyId: 'pol',

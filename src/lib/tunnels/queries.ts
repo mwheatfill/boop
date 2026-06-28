@@ -38,7 +38,6 @@ function toTunnel(row: TunnelRow, health: TunnelHealth): Tunnel {
     name: row.name,
     slug: row.slug,
     hostname: row.hostname,
-    internalOrigin: row.internalOrigin,
     connectorStatus: row.connectorStatus ?? null,
     connectorCheckedAt: row.connectorCheckedAt ? row.connectorCheckedAt.toISOString() : null,
     lastVerifyOutcome: row.lastVerifyOutcome ?? null,

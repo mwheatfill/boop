@@ -63,9 +63,12 @@ describe('createCloudflareApi', () => {
 
   it('configures ingress with a fallback rule', async () => {
     const { api, call } = harness([ok({})])
-    await api.putTunnelConfiguration('tnl_cf_1', 'acme.tunnels.example', 'http://10.0.1.5:8080')
+    await api.putTunnelIngress('tnl_cf_1', [
+      { hostname: 'acme.tunnels.example', service: 'http://10.0.1.5:8080' },
+    ])
     expect(call()).toMatchObject({
       method: 'PUT',
+      url: 'https://api.cloudflare.com/client/v4/accounts/acct1/cfd_tunnel/tnl_cf_1/configurations',
       body: {
         config: {
           ingress: [

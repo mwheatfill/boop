@@ -21,6 +21,7 @@ function toTarget(row: typeof targets.$inferSelect): Target {
     authConfig: row.authConfig,
     reachability: row.reachability as (typeof TARGET_REACHABILITIES)[number],
     tunnelId: row.tunnelId,
+    internalOrigin: row.internalOrigin,
     status: row.status as Target['status'],
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

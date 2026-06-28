@@ -2,26 +2,63 @@ import { and, eq } from 'drizzle-orm'
 import { canArchiveTarget } from '@/lib/archive-policy/archive-policy'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { targets } from '@/lib/db/schema'
+import { targets, tunnels } from '@/lib/db/schema'
 import {
   ArchiveBlockedError,
   FieldValidationError,
   isUniqueConstraintViolation,
   NotFoundError,
 } from '@/lib/errors'
+import { tunnelTargetHostname } from '@/lib/tunnels/provision'
 import { normalizeSlug, resolveWorkspaceId } from '@/lib/workspaces/resolve'
 import type { Target, TargetCreateInput, TargetUpdateInput } from '@/shared/schemas/target'
 import { getTargetBySlug } from './queries'
 
-function tunnelIdFor(input: {
+interface RoutingInput {
   reachability: string
+  url?: string | undefined
   tunnelId?: string | null | undefined
-}): string | null {
-  if (input.reachability !== 'tunnel') return null
+  internalOrigin?: string | null | undefined
+}
+
+// Resolves the persisted routing fields. Public targets carry a user URL; private
+// targets carry an internal origin + tunnel, and boop derives the public URL from
+// the chosen tunnel's hostname (`<targetSlug>.<tunnelHostname>`).
+async function resolveRouting(
+  db: Database,
+  workspaceId: string,
+  targetSlug: string,
+  input: RoutingInput,
+): Promise<{ url: string; tunnelId: string | null; internalOrigin: string | null }> {
+  if (input.reachability !== 'tunnel') {
+    if (!input.url) throw new FieldValidationError({ url: ['URL is required'] })
+    return { url: input.url, tunnelId: null, internalOrigin: null }
+  }
   if (!input.tunnelId) {
     throw new FieldValidationError({ tunnelId: ['Select a tunnel for tunnel reachability'] })
   }
-  return input.tunnelId
+  if (!input.internalOrigin) {
+    throw new FieldValidationError({ internalOrigin: ['Enter the internal origin'] })
+  }
+  const tunnel = (
+    await db
+      .select()
+      .from(tunnels)
+      .where(
+        and(
+          eq(tunnels.id, input.tunnelId),
+          eq(tunnels.workspaceId, workspaceId),
+          eq(tunnels.status, 'active'),
+        ),
+      )
+      .limit(1)
+  )[0]
+  if (!tunnel) throw new FieldValidationError({ tunnelId: ['Tunnel not found'] })
+  return {
+    url: `https://${tunnelTargetHostname(tunnel.hostname, targetSlug)}`,
+    tunnelId: input.tunnelId,
+    internalOrigin: input.internalOrigin,
+  }
 }
 
 export async function createTarget(
@@ -31,6 +68,7 @@ export async function createTarget(
 ): Promise<Target> {
   const workspaceId = await resolveWorkspaceId(db, workspaceSlug)
   const slug = normalizeSlug(input.slug)
+  const routing = await resolveRouting(db, workspaceId, slug, input)
   const id = newId('tgt')
   try {
     await db.insert(targets).values({
@@ -38,12 +76,13 @@ export async function createTarget(
       workspaceId,
       name: input.name.trim(),
       slug,
-      url: input.url,
+      url: routing.url,
       method: input.method,
       authKind: input.authKind,
       authConfig: input.authConfig ?? null,
       reachability: input.reachability,
-      tunnelId: tunnelIdFor(input),
+      tunnelId: routing.tunnelId,
+      internalOrigin: routing.internalOrigin,
     })
   } catch (err) {
     if (isUniqueConstraintViolation(err, 'targets.slug')) {
@@ -63,16 +102,18 @@ export async function updateTarget(
   input: TargetUpdateInput,
 ): Promise<Target> {
   const workspaceId = await resolveWorkspaceId(db, workspaceSlug)
+  const routing = await resolveRouting(db, workspaceId, targetSlug, input)
   const result = await db
     .update(targets)
     .set({
       name: input.name.trim(),
-      url: input.url,
+      url: routing.url,
       method: input.method,
       authKind: input.authKind,
       authConfig: input.authConfig ?? null,
       reachability: input.reachability,
-      tunnelId: tunnelIdFor(input),
+      tunnelId: routing.tunnelId,
+      internalOrigin: routing.internalOrigin,
       updatedAt: new Date(),
     })
     .where(and(eq(targets.workspaceId, workspaceId), eq(targets.slug, targetSlug)))

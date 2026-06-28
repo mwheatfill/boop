@@ -96,7 +96,6 @@ export const tunnels = sqliteTable(
     name: text('name').notNull(),
     slug: text('slug').notNull(),
     hostname: text('hostname').notNull(),
-    internalOrigin: text('internal_origin').notNull(),
     cfTunnelId: text('cf_tunnel_id').notNull(),
     cfAccessAppId: text('cf_access_app_id').notNull(),
     cfAccessPolicyId: text('cf_access_policy_id').notNull(),
@@ -138,6 +137,8 @@ export const targets = sqliteTable(
     authConfig: text('auth_config'),
     reachability: enumColumn('reachability', TARGET_REACHABILITIES).notNull().default('public'),
     tunnelId: text('tunnel_id').references(() => tunnels.id, { onDelete: 'restrict' }),
+    // Private (tunnel) targets only: the on-prem address the connector forwards to.
+    internalOrigin: text('internal_origin'),
     status: enumColumn('status', LIFECYCLE_STATUSES).notNull().default('active'),
     ...timestamps(),
   },

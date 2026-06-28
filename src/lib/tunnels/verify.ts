@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
-import { tunnels } from '@/lib/db/schema'
+import { targets, tunnels } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
 import type { TunnelVerifyResult } from '@/shared/schemas/tunnel'
 import { buildAccessHeaders, TunnelCredentialError } from './access-headers'
@@ -64,16 +64,30 @@ export async function runTunnelVerify(
   const tunnel = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
   if (!tunnel) throw new NotFoundError('Tunnel', tunnelId)
 
+  // Verify a representative active Target route (the connector has no single
+  // origin; each private Target is its own route through this tunnel).
+  const target = (
+    await db
+      .select()
+      .from(targets)
+      .where(and(eq(targets.tunnelId, tunnelId), eq(targets.status, 'active')))
+      .limit(1)
+  )[0]
+
   let result: TunnelVerifyResult
-  try {
-    const headers = await buildAccessHeaders(
-      { db, kek },
-      { reachability: 'tunnel', tunnelId, workspaceId: tunnel.workspaceId },
-    )
-    result = await verifyTunnelConnection(fetchImpl, `https://${tunnel.hostname}`, headers)
-  } catch (err) {
-    if (!(err instanceof TunnelCredentialError)) throw err
-    result = { ok: false, outcome: 'unknown', detail: err.message }
+  if (!target) {
+    result = { ok: false, outcome: 'unknown', detail: 'No private Targets use this tunnel yet.' }
+  } else {
+    try {
+      const headers = await buildAccessHeaders(
+        { db, kek },
+        { reachability: 'tunnel', tunnelId, workspaceId: tunnel.workspaceId },
+      )
+      result = await verifyTunnelConnection(fetchImpl, target.url, headers)
+    } catch (err) {
+      if (!(err instanceof TunnelCredentialError)) throw err
+      result = { ok: false, outcome: 'unknown', detail: err.message }
+    }
   }
 
   const checkedAt = now()

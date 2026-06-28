@@ -27,7 +27,6 @@ async function seedTunnel(
     name: slug,
     slug,
     hostname: `${slug}.tunnels.test`,
-    internalOrigin: 'http://10.0.1.5:8080',
     cfTunnelId: `cf_${slug}`,
     cfAccessAppId: 'app',
     cfAccessPolicyId: 'pol',

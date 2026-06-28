@@ -20,11 +20,6 @@ export const TUNNEL_HEALTH = [
   'unverified',
 ] as const
 
-const originField = z
-  .url('Must be a valid origin URL (e.g. http://10.0.1.50:8080)')
-  .max(2048)
-  .meta({ example: 'http://10.0.1.50:8080' })
-
 export const TunnelSchema = z
   .object({
     id: z.string().meta({ example: 'tnl_abc123' }),
@@ -32,7 +27,6 @@ export const TunnelSchema = z
     name: z.string().meta({ example: 'Acme HQ' }),
     slug: z.string().meta({ example: 'acme-hq' }),
     hostname: z.string().meta({ example: 'acme-hq.tunnels.stlabs.org' }),
-    internalOrigin: z.string().meta({ example: 'http://10.0.1.50:8080' }),
     connectorStatus: z.enum(TUNNEL_CONNECTOR_STATUSES).nullable(),
     connectorCheckedAt: z.iso.datetime().nullable(),
     lastVerifyOutcome: z.enum(TUNNEL_VERIFY_OUTCOMES).nullable(),
@@ -53,7 +47,6 @@ export const TunnelCreateInput = z
   .object({
     name: nameField,
     slug: slugField,
-    internalOrigin: originField,
   })
   .meta({ id: 'TunnelCreateInput' })
 

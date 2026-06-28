@@ -10,13 +10,9 @@ import type { Tunnel } from '@/shared/schemas/tunnel'
 export function TunnelEditModal({ tunnel, onClose }: { tunnel: Tunnel; onClose: () => void }) {
   const queryClient = useQueryClient()
   const [name, setName] = useState(tunnel.name)
-  const [internalOrigin, setInternalOrigin] = useState(tunnel.internalOrigin)
 
   const save = useMutation({
-    mutationFn: () =>
-      updateTunnelFn({
-        data: { tunnelId: tunnel.id, name: name.trim(), internalOrigin: internalOrigin.trim() },
-      }),
+    mutationFn: () => updateTunnelFn({ data: { tunnelId: tunnel.id, name: name.trim() } }),
     onSuccess: async () => {
       toast.success('Saved')
       await queryClient.invalidateQueries({ queryKey: ['tunnels'] })
@@ -25,21 +21,20 @@ export function TunnelEditModal({ tunnel, onClose }: { tunnel: Tunnel; onClose: 
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Save failed'),
   })
 
-  const dirty = name !== tunnel.name || internalOrigin !== tunnel.internalOrigin
-  const canSubmit = name.trim().length > 0 && internalOrigin.trim().length > 0 && dirty
+  const dirty = name !== tunnel.name
 
   return (
     <EntityModal
       open
       onClose={onClose}
       title={`Edit ${tunnel.name}`}
-      description="Renaming is a label change. Changing the internal origin re-points the connector on Cloudflare."
+      description="The name is a label. Internal origins live on each Private Target; the slug and hostname are fixed."
       dirty={dirty}
       primaryAction={{
         label: 'Save changes',
         onClick: () => save.mutate(),
         loading: save.isPending,
-        disabled: !canSubmit,
+        disabled: name.trim().length === 0 || !dirty,
       }}
     >
       <div className="flex flex-col gap-1.5">
@@ -50,19 +45,9 @@ export function TunnelEditModal({ tunnel, onClose }: { tunnel: Tunnel; onClose: 
           onChange={(e) => setName(e.currentTarget.value)}
           placeholder="Acme HQ"
         />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="tunnel-origin">Internal origin</Label>
-        <Input
-          id="tunnel-origin"
-          value={internalOrigin}
-          onChange={(e) => setInternalOrigin(e.currentTarget.value)}
-          placeholder="http://10.0.1.50:8080"
-          className="font-mono text-sm"
-        />
         <p className="text-xs text-muted-foreground">
-          The private address the tunnel forwards to. Hostname{' '}
-          <code className="font-mono text-foreground">{tunnel.hostname}</code> can't change.
+          Hostname <code className="font-mono text-foreground">{tunnel.hostname}</code> can't
+          change.
         </p>
       </div>
     </EntityModal>
