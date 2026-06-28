@@ -75,8 +75,19 @@ async function resolveRouting(
       .limit(1)
   )[0]
   if (!tunnel) throw new FieldValidationError({ tunnelId: ['Tunnel not found'] })
+  // A Cloudflare ingress service is an origin (scheme://host:port) with no path;
+  // the path travels on the public request. So the path the operator wants to hit
+  // rides on the public URL, and the connector forwards it to the origin base.
+  let pathSuffix: string
+  try {
+    const origin = new URL(input.internalOrigin)
+    pathSuffix = origin.pathname === '/' ? '' : origin.pathname
+    pathSuffix += origin.search
+  } catch {
+    throw new FieldValidationError({ internalOrigin: ['Enter a valid address'] })
+  }
   return {
-    url: `https://${tunnelTargetHostname(tunnel.hostname, targetSlug)}`,
+    url: `https://${tunnelTargetHostname(tunnel.hostname, targetSlug)}${pathSuffix}`,
     tunnelId: input.tunnelId,
     internalOrigin: input.internalOrigin,
   }

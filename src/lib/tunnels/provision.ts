@@ -188,6 +188,16 @@ export async function rotateTunnelCredentials(
   logInfo('tunnel.credentials_rotated', { tunnelId, workspaceId: tunnel.workspaceId })
 }
 
+// A Cloudflare ingress service is an origin only (no path); strip any path the
+// operator put on the address. The path rides on the public request instead.
+function originServiceBase(internalOrigin: string): string {
+  try {
+    return new URL(internalOrigin).origin
+  } catch {
+    return internalOrigin
+  }
+}
+
 // The origin should answer to the address it lives at, so the Host header and TLS
 // name default to that address; the stored columns stay as an override seam.
 function buildOriginRequest(t: typeof targets.$inferSelect): OriginRequest | null {
@@ -229,7 +239,7 @@ export async function syncTunnelIngress(
       const originRequest = buildOriginRequest(t)
       return {
         hostname: tunnelTargetHostname(tunnel.hostname, t.slug),
-        service: t.internalOrigin,
+        service: originServiceBase(t.internalOrigin),
         ...(originRequest ? { originRequest } : {}),
       }
     })

@@ -6,6 +6,7 @@ import { newId } from '@/lib/db/ids'
 import { targets, tunnels, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { ArchiveBlockedError } from '@/lib/errors'
+import { createTarget } from '@/lib/targets/commands'
 import { fetchActiveSecretPlaintext, listActiveSecrets } from '@/lib/workspace-secrets/commands'
 import {
   decommissionTunnel,
@@ -232,7 +233,7 @@ describe('syncTunnelIngress', () => {
       method: 'GET',
       reachability: 'tunnel',
       tunnelId,
-      internalOrigin: 'http://10.0.1.5:8080',
+      internalOrigin: 'http://10.0.1.5:8080/health.json',
       originHostHeader: 'api.internal.corp',
       originNoTlsVerify: true,
     })
@@ -257,6 +258,40 @@ describe('syncTunnelIngress', () => {
         hostname: 'api.acme-hq.tunnels.test',
         service: 'http://10.0.1.5:8080',
         originRequest: { httpHostHeader: 'api.internal.corp', noTLSVerify: true },
+      },
+    ])
+  })
+})
+
+describe('createTarget tunnel routing', () => {
+  it('puts the address path on the public URL and keeps the service path-free', async () => {
+    const db = createTestDb()
+    const workspaceId = await seedWorkspace(db)
+    const cf = stubCf()
+    const tunnelId = (
+      await provisionTunnel(
+        { db, cf, kek: KEK, zoneId: 'z1', hostnameBase: BASE },
+        input(workspaceId),
+      )
+    ).id
+
+    const target = await createTarget(db, 'acme', {
+      name: 'IIS box',
+      slug: 'iis-box',
+      method: 'GET',
+      authKind: 'none',
+      reachability: 'tunnel',
+      tunnelId,
+      internalOrigin: 'http://192.168.68.112/health.json',
+    })
+    await syncTunnelIngress({ db, cf }, tunnelId)
+
+    expect(target.url).toBe('https://iis-box.acme-hq.tunnels.test/health.json')
+    expect(cf.putTunnelIngress).toHaveBeenLastCalledWith('cf_tnl', [
+      {
+        hostname: 'iis-box.acme-hq.tunnels.test',
+        service: 'http://192.168.68.112',
+        originRequest: { httpHostHeader: '192.168.68.112' },
       },
     ])
   })
