@@ -24,9 +24,9 @@
     "CF_TUNNEL_HOSTNAME_BASE": "tunnels.stlabs.org",
     // Email via Microsoft Graph (email/graph-shared-mailbox). Non-secret ids here;
     // GRAPH_CLIENT_SECRET is a secret. See docs/agents/email-graph-setup.md.
-    "GRAPH_TENANT_ID": "",
-    "GRAPH_CLIENT_ID": "",
-    "GRAPH_MAIL_SENDER": ""
+    "GRAPH_TENANT_ID": "cd551af0-e42b-4a17-a193-1748738a72d7",
+    "GRAPH_CLIENT_ID": "13cbbcb8-83c8-47f6-b1f0-0cbae88d87c8",
+    "GRAPH_MAIL_SENDER": "boop@switchthink.com"
   },
   // BOOP_SECRETS_KEK lives in the account Secrets Store (read via env.BOOP_SECRETS_KEK.get()).
   // TEAM_DOMAIN + POLICY_AUD are non-secret Access config and live in vars per env.
