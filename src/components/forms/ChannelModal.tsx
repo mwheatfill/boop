@@ -13,7 +13,7 @@ import { EntityModal } from '@/components/forms/EntityModal'
 import type { FormApiFor } from '@/components/forms/form-api'
 import { useSlugAutoFill } from '@/components/forms/use-slug-auto-fill'
 import { createChannelFn, updateChannelFn } from '@/lib/channels/server-fns'
-import { mailer } from '@/lib/email-recipe'
+import { EMAIL_RECIPE_INSTALLED } from '@/lib/email-recipe'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import {
   type Channel,
@@ -45,7 +45,7 @@ const FALLBACK_KIND_OPTION: KindOption = {
 }
 
 function availableKindOptions(): KindOption[] {
-  if (mailer) return KIND_OPTIONS_BASE
+  if (EMAIL_RECIPE_INSTALLED) return KIND_OPTIONS_BASE
   return KIND_OPTIONS_BASE.filter((o) => o.kind !== 'email')
 }
 
@@ -228,7 +228,9 @@ export function ChannelModal({
           selectedKindOption={selectedKindOption}
         />
         {kind === 'teams' ? <TeamsChannelConfig form={channelForm} /> : null}
-        {kind === 'email' && mailer ? <EmailChannelConfig form={channelForm} /> : null}
+        {kind === 'email' && EMAIL_RECIPE_INSTALLED ? (
+          <EmailChannelConfig form={channelForm} />
+        ) : null}
         {kind === 'webhook' ? (
           <WebhookChannelConfig form={channelForm} webhookMethod={webhookMethod} />
         ) : null}

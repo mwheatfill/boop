@@ -20,3 +20,13 @@ PUBLIC_APP_ORIGIN=http://localhost:5173
 # Base64 raw 32-byte AES-256 key. Generate:
 #   node -e "console.log(Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64'))"
 BOOP_SECRETS_KEK=replace-me-with-a-base64-32-byte-key
+
+# Email channel via Microsoft Graph (email/graph-shared-mailbox). All four are
+# required to send; leave blank to keep the email Channel inert. The tenant/client
+# id and sender are non-secret (vars in wrangler.jsonc for deployed Workers);
+# GRAPH_CLIENT_SECRET is a secret (wrangler secret put for deployed Workers).
+# Setup: docs/agents/email-graph-setup.md
+GRAPH_TENANT_ID=
+GRAPH_CLIENT_ID=
+GRAPH_CLIENT_SECRET=
+GRAPH_MAIL_SENDER=alerts@stelglobal.com
