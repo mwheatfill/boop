@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Bell, Plus } from 'lucide-react'
 import { z } from 'zod'
@@ -68,16 +68,21 @@ function columnsFor(channelNameById: Map<string, string>): ColumnDef<AlertRule>[
 
 function AlertRulesPage() {
   const { activeSlug } = Route.useLoaderData()
-  if (!activeSlug) {
-    return (
-      <EmptyState
-        icon={Bell}
-        title="No Workspaces yet."
-        description="Create a Workspace before adding Alert Rules."
-      />
-    )
-  }
-  return <AlertRulesList activeSlug={activeSlug} />
+  return (
+    <>
+      {activeSlug ? (
+        <AlertRulesList activeSlug={activeSlug} />
+      ) : (
+        <EmptyState
+          icon={Bell}
+          title="No Workspaces yet."
+          description="Create a Workspace before adding Alert Rules."
+        />
+      )}
+      {/* new / $ruleSlug / edit modal routes render here */}
+      <Outlet />
+    </>
+  )
 }
 
 function AlertRulesList({ activeSlug }: { activeSlug: string }) {
