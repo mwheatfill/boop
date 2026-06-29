@@ -35,3 +35,23 @@ The original queue is now empty: the Cmd+K palette landed in PR #52, the dashboa
 Read this before starting the design-language session. The principle frames the aesthetic; the queued surfaces define the scope; the cross-reference table is the audit trail for what's been parked and where.
 
 Update this file when the design-language session happens — the principle stays, the queued list shrinks, and items either land as ADRs (e.g., "ADR-NNN: inline-edit-by-default") or get rolled into the implementing PRD.
+
+## NEXT SESSION (decided): UI reset — align with the rollout app (mcc)
+
+**Decision (locked by the operator):** adopt the UI system from the sibling **rollout** project at `/Users/michael/Code/projects/claude/mcc` (same template family: Cloudflare Workers + TanStack Start, shadcn **base-vega**, Base UI). Bring the **theming over wholesale** (mcc `src/styles/app.css` tokens + radius `1.4rem` + Inter/Lora fonts); **recolor later** (boop's brand-vs-UI-accent split from ADR-022 will be re-applied on top of mcc's token structure as a follow-up). Add mcc's data-viz token layer (`--chart-1..5` + `--viz-positive/warning/critical/neutral`, mcc ADR-020).
+
+**Root cause this fixes:** boop's pain (ugly/non-functional pill dropdowns, inconsistent form formatting, "all over the place") is an *execution* gap, not a language gap. boop hand-rolled `PillButton`/`PillPicker`/`SearchableCombobox` and ad-hoc per-modal label/input/error markup; mcc composes from shadcn primitives (`Field`, `Select`, `Combobox`) and uses **zero** pill-popover choice inputs.
+
+**Strategic reversal:** revise `DESIGN.md` § 6 away from "Queued: Linear-style modal-with-inline-pills" toward **Field-composed forms with shadcn `Select`/`Combobox`** (mcc's proven pattern). Write this up as a new ADR (supersede the inline-pills target) before/with the work.
+
+**Retire:** `src/components/forms/PillPicker.tsx`, `PillButton`, `SearchableCombobox.tsx` (replaced by shadcn `Select`/`Combobox` + `Field`).
+
+**Adopt from mcc (base-vega registry primitives mcc already validated):** `field.tsx` (label+description+control+deduped error, orientation-aware), `select.tsx`, `combobox.tsx` (searchable + multi-select chips), `input-group.tsx`, `button-group.tsx`, `empty.tsx`, `breadcrumb.tsx`, and the richer `data-table/` (TanStack Table + Virtual: sort/pin/filter/reorder). Also adopt mcc's **shadcn registry-drift audit** (`scripts/audit-patterns/shadcn.ts` diffs every `ui/*.tsx` against the live base-vega registry) so primitives can't be hand-rolled again — boop's audit currently only checks color classes.
+
+**Phased plan (each phase ships independently):**
+1. **Foundations** — pull the mcc primitives from the base-vega registry, replace `src/styles/app.css` with mcc's theme wholesale, add `--viz-*` tokens, add the registry-drift audit. Low risk (same template lineage).
+2. **Kill the pills** — rebuild the entity modals (Job, Target, Channel, AlertRule, Tunnel, Workspace) on `Field` + `Select`/`Combobox`. Bulk of the work; highest payoff.
+3. **Lists / shell** — upgrade `DataTable` + breadcrumbs/header to mcc's level.
+4. **Finish queued** — shortcuts + motion (already specced in DESIGN.md §§ 7–8, unbuilt).
+
+Concrete mcc pointers: tokens `mcc/src/styles/app.css`; `mcc/src/components/ui/field.tsx`; form exemplar `mcc/src/components/settings/ingestion-card.tsx`; DataTable `mcc/src/components/data-table/data-table.tsx`; viz tokens rationale `mcc/docs/adr/020-data-viz-color-tokens.md`; registry audit `mcc/scripts/audit-patterns/shadcn.ts`.
