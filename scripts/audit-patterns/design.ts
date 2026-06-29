@@ -33,7 +33,7 @@ const rules: Rule[] = [
     id: 'no-tailwind-color-numeric',
     pattern: new RegExp(`(?:^|[\\s"'\`])(?:${TW_COLOR_PREFIXES})-(?:${TW_COLOR_FAMILIES})-\\d+`),
     message:
-      'Tailwind color classes with numeric scales bypass the theme tokens. Use the token classes (text-primary, bg-card, border-muted, text-success/warning/info/destructive, etc.) so colors flow from --theme-base / --theme-accent. See DESIGN.md § 3 Visual tokens.',
+      'Tailwind color classes with numeric scales bypass the theme tokens. Use the token classes (text-primary, bg-card, border-muted, text-success/warning/info/destructive, etc.) so colors resolve against the flat shadcn tokens. See DESIGN.md § 3 Visual tokens.',
     severity: 'error',
   },
   {

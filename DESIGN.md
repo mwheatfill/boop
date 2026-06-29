@@ -12,36 +12,40 @@ The audience is developers and IT operators. They expect dense information when 
 
 ## 2. Reference aesthetic
 
-**Linear-leaning, not Linear-orthodox.** boop adopts Linear's structural patterns: monochrome chrome, flush tiled grids, sharp data edges, three-anchor theme system, dense rows, keyboard-first interaction, command palette, inline feedback over toasts, evolution over revolution. boop diverges where the warm orange brand identity carries meaning: the chart palette and dashboard accents.
+**Linear-leaning, not Linear-orthodox.** boop adopts Linear's structural patterns: monochrome chrome, flush tiled grids, sharp data edges, dense rows, keyboard-first interaction, command palette, inline feedback over toasts, evolution over revolution.
 
-The brand-vs-UI-accent split is load-bearing. The UI chrome is monochrome dark with a single cool-blue accent for action. The warm orange brand identity surfaces in `--chart-1..3`, dashboard tiles, illustrative accents, and marketing. Operators see one color carry one meaning; nothing competes with operational state.
+**Shared UI system with the rollout app.** boop's theme and primitives are adopted wholesale from the sibling rollout app (`mcc`), per [ADR-029](docs/adr/029-adopt-rollout-ui-system.md). A single teal accent (`--primary`) carries every action affordance; chrome is otherwise monochrome. Operators see one color carry one meaning; nothing competes with operational state. There is no separate brand palette.
 
 ## 3. Visual tokens
 
-Canonical shadcn flat OKLCH tokens on `base-vega` (Base UI). Two blocks in `src/styles/app.css`: `:root` (light) and `.dark`. Every token has a value in each. Per [ADR-022](docs/adr/022-design-language-pass-2.md).
+Flat shadcn OKLCH tokens on `base-vega` (Base UI), adopted wholesale from the rollout app per [ADR-029](docs/adr/029-adopt-rollout-ui-system.md). Two blocks in `src/styles/app.css`: `:root` (light) and `.dark`. Every token has a value in each, mapped through `@theme inline` to Tailwind utilities. The flat-token contract (no derivation layer) carries forward from [ADR-022](docs/adr/022-design-language-pass-2.md).
 
-**Theme refresh workflow.** Open [`ui.shadcn.com/create`](https://ui.shadcn.com/create), tune a theme, copy the CSS block, paste into `src/styles/app.css` over the `:root` + `.dark` blocks. Re-add the three project token extensions (`--success` / `--warning` / `--info` and their foregrounds) if the paste removed them. The shape matches verbatim — no translation step.
+**Theme refresh workflow.** The theme is a [tweakcn](https://tweakcn.com) export shared with the rollout app. To refresh: re-export from tweakcn (or copy mcc's `:root` + `.dark` blocks) over the blocks in `src/styles/app.css`. Re-add the project extensions (`--success` / `--warning` / `--info` and the `--viz-*` set) if a paste drops them. No translation step.
 
-**Mode structure is light-first; dark is the user default.** `:root` carries light values; `.dark` overrides. `next-themes` `defaultTheme="dark"` keeps the user-facing default unchanged. The CSS structure matches the shape `shadcn-create` emits so pastes are verbatim.
+**Mode structure is light-first; dark is the user default.** `:root` carries light values; `.dark` overrides. `next-themes` `defaultTheme="dark"` keeps the user-facing default unchanged.
 
-**Project token extensions** beyond shadcn's canonical set: `--success`, `--warning`, `--info` and their foreground variants. Defined in both blocks; mapped through `@theme inline` to Tailwind utilities (`bg-success`, `text-warning-foreground`, etc.).
+**Single teal accent.** `--primary` / `--ring` are teal (`oklch(0.75 0.13 182)`, `#08CDBE`) in both modes. There is no separate brand palette; the accent is the one action color across CTAs, focus rings, selected rows, links, and the command palette highlight.
 
-**Semantic state values** (low chroma, hue-canonical):
+**Project token extensions** beyond shadcn's canonical set:
+- **Semantic states:** `--success`, `--warning`, `--info` and their foregrounds. `--info` is boop-only (the rollout app omits it); preserve it on any wholesale theme paste.
+- **Data-viz layer:** `--viz-positive` / `--viz-warning` / `--viz-critical` / `--viz-neutral` for chart and status visualization (rollout app ADR-020). Mapped via `@theme inline` to `bg-viz-positive`, `text-viz-critical`, etc.
+
+**Semantic state values:**
 
 | Token | Light (`:root`) | Dark (`.dark`) |
 |---|---|---|
-| `--success` | `oklch(0.55 0.12 150)` | `oklch(0.7 0.1 150)` |
-| `--warning` | `oklch(0.65 0.13 85)` | `oklch(0.78 0.1 85)` |
+| `--success` | `oklch(0.62 0.15 150)` | `oklch(0.7 0.15 155)` |
+| `--warning` | `oklch(0.7 0.15 70)` | `oklch(0.78 0.15 75)` |
 | `--info` | `oklch(0.55 0.13 235)` | `oklch(0.7 0.1 235)` |
-| `--destructive` | `oklch(0.55 0.18 25)` | `oklch(0.62 0.15 25)` |
+| `--destructive` | `oklch(0.6665 0.2111 2.8306)` | `oklch(0.7425 0.1696 1.0847)` |
 
-**Borders are hairlines at low alpha.** Light: `oklch(0 0 0 / 0.10)`. Dark: `oklch(1 0 0 / 0.08)`. Structure emerges from border lines, not gaps or shadows.
+**Borders are low-contrast greys**, not pure-alpha hairlines. Light `--border` ≈ `oklch(0.97 0 0)`; dark ≈ `oklch(0.21 0 0)`. Structure still emerges from border lines and tone steps, not gaps.
 
-**Radius is `0.5rem` (8px)** for default-radius surfaces. Smaller / larger derive from `--radius-sm` / `--radius-lg` / `--radius-xl`. Radius applies only to floating overlays and interactive controls (see § 5 Lists and tables for the no-rounded-data-surface rule).
+**Radius is `0.625rem`** (the standard shadcn default) for default-radius surfaces; `--radius-sm` / `--radius-md` / `--radius-lg` / `--radius-xl` derive from it. Radius applies to floating overlays and interactive controls; data surfaces stay square (see § 5 for the no-rounded-data-surface rule).
 
-**Chart palette carries the warm orange brand.** `--chart-1` through `--chart-3` are the warm orange family from the source brand palette; `--chart-4..5` are complementary cool and green for stacked / multi-series charts.
+**Chart palette** is the rollout app's `--chart-1..5` (teal, green, red, blue, amber). No brand-orange family.
 
-**Font stack is the system stack** (`ui-sans-serif, system-ui, sans-serif`). Inter Variable adoption is queued; the override path is documented in `src/styles/app.css`.
+**Fonts:** Inter Variable (sans, bundled via `@fontsource-variable/inter`), Lora (serif display, referenced not bundled — falls back to system serif), and the system mono stack. Set in `--font-sans` / `--font-serif` / `--font-mono`.
 
 ## 4. Navigation layout
 
@@ -85,11 +89,11 @@ The active Workspace is a retained `ws` search param (defaults to the first Work
 - **Default:** internal component borders (`--border`, inputs, buttons, table headers).
 - **Subtle:** lightest separators (table rows, activity items, detail panel internals). Often `oklch(1 0 0 / 0.04)` in dark mode.
 
-**Filter chips sit at the top of the content area** as pill-shaped buttons. Active filter has a filled background (cool-blue tint at low chroma); inactive filters are outlined only. The "All" chip is always present and reads as the cleared state.
+**Filter chips sit at the top of the content area** as pill-shaped buttons. Active filter has a filled background (teal tint at low chroma); inactive filters are outlined only. The "All" chip is always present and reads as the cleared state.
 
-**Primary action top-right.** "Create new Job," "Add Customer," "Send test alert" land at the top-right corner of the content area, opposite the filters. Always the same hue: `--primary` (cool blue).
+**Primary action top-right.** "Create new Job," "Add Customer," "Send test alert" land at the top-right corner of the content area, opposite the filters. Always the same hue: `--primary` (teal).
 
-**Selected-row indicator** is a 1px left border in `--primary` at low chroma (`var(--theme-accent)` mixed toward the background), plus a subtle background tint. Not a full-color flood.
+**Selected-row indicator** is a 1px left border in `--primary` at low chroma, plus a subtle background tint. Not a full-color flood.
 
 **Status indicators use shape AND color**, never color alone. Hollow circle = backlog / scheduled. Filled circle = in progress / running. Filled bar / pill = priority. Filled X = canceled. Filled checkmark = complete / success. Color reinforces the shape; color-blind operators read the shape.
 
@@ -101,9 +105,9 @@ The active Workspace is a retained `ws` search param (defaults to the first Work
 
 **Inline validation on blur and on submit.** No "validate as you type" spam (causes red-screen-while-typing). Server errors flow back to the form via TanStack Form's onSubmitAsync return shape.
 
-**Current shape: separate `/new` and `/edit` routes** with labeled inputs, one field per row. Save semantics: explicit "Create" / "Save" button; no save-on-blur.
+**Composed from shadcn `Field` + `Select` / `Combobox` / `InputGroup`.** Per [ADR-029](docs/adr/029-adopt-rollout-ui-system.md). Each control is a `Field` (label + optional description + control + deduped error), one field per row. Choice inputs are `Select` (short, fixed lists) or `Combobox` (searchable, multi-select with chips). The modal is the surface; its body is Field-composed, not a row of inline property pills. Save semantics: explicit "Create" / "Save"; no save-on-blur.
 
-**Queued: Linear-style modal-with-inline-pills.** Target pattern from Linear screenshots: rounded modal with a huge placeholder-only title field, a large description field, a row of inline property pills (`Backlog | Priority | Assignee | Labels`) that open pickers on click, a bottom action bar (attach / Create more toggle on left, Cancel / primary CTA right). The inline-edit-vs-drawer-vs-page convention is the open decision; modal-with-pills is the Linear-leaning target. See `docs/design-direction.md`.
+**No hand-rolled choice inputs.** `PillButton`, `PillPicker`, `SearchableCombobox`, `MultiSearchableCombobox`, and `SingleSelectPill` are retired (ADR-029). Use the registry primitives so the drift audit (`scripts/audit-patterns/shadcn.ts`) keeps them honest.
 
 ## 7. Shortcuts
 
@@ -164,12 +168,12 @@ The most common ways to break this design system. Each undermines the core aesth
 - **Rounded data surfaces.** `border-radius` on table containers, grid cells, list items, content sections is wrong. Round corners only on buttons, inputs, badges / pills, and floating overlays.
 - **Max-width content containers.** `max-width: 800px; margin: 0 auto;` fights the grid. Content fills its column; the sidebar + content layout handles width.
 - **Tables for non-tabular data.** Activity feeds, comments, narrative content — render as styled row lists with typography hierarchy. Reserve `<table>` for genuinely columnar data.
-- **Color absence as "restraint."** "Color restraint" means small and intentional, not "zero color." Status colors, primary accent, brand orange in charts are all in scope. The right amount is "where it carries meaning, nowhere else."
+- **Color absence as "restraint."** "Color restraint" means small and intentional, not "zero color." Status colors, the teal primary accent, and the chart palette are all in scope. The right amount is "where it carries meaning, nowhere else."
 - **Bland empty states.** "No items found" is not an empty state. Pick the right variant from § 9 (with-CTA / icon-only / inline).
-- **Warm orange as UI chrome accent.** The brand palette lives in `--chart-1..3` and dashboard accents. Primary CTAs, focus rings, selected rows use `--primary` (currently cool blue). See [ADR-022](docs/adr/022-design-language-pass-2.md) brand-vs-UI-accent decision.
+- **Hand-rolled choice inputs.** No bespoke pill pickers or one-off combobox wrappers. Compose from the registry primitives (`Field`, `Select`, `Combobox`, `InputGroup`); the drift audit (`scripts/audit-patterns/shadcn.ts`) diffs every `ui/*.tsx` against the live `base-vega` registry. See [ADR-029](docs/adr/029-adopt-rollout-ui-system.md).
 - **`--accent` as a duplicate of `--secondary`.** `--accent` is the faint tint for hovered items in dropdowns and contextual emphasis. `--secondary` is the larger muted surface. Treating them as identical loses the dropdown-item hover affordance.
 - **Workaround flags in CSS / config.** Same rule as the research-first protocol re-anchored each turn: no workaround when a canonical alternative exists. If a token you need does not exist, add it as a project extension (mapped in both `:root` and `.dark`, exposed via `@theme inline`) — do not hand-roll an arbitrary color at the call site.
-- **Re-introducing a derivation layer.** Anchor-derived tokens (e.g. `oklch(from var(--theme-base) calc(l + step) c h)`) were tried and removed in ADR-022. Theme refreshes go through the `ui.shadcn.com/create` paste workflow; values are pre-computed.
+- **Re-introducing a derivation layer.** Anchor-derived tokens (e.g. `oklch(from var(--theme-base) calc(l + step) c h)`) were tried and removed in ADR-022. Theme refreshes go through the tweakcn export workflow (§ 3); values are pre-computed.
 
 ## 12. Further reading
 
@@ -179,7 +183,8 @@ ADRs that govern interface decisions:
 - [ADR-013](docs/adr/013-forms-and-validation.md) — Forms + validation (TanStack Form, React 19 actions, Zod).
 - [ADR-018](docs/adr/018-navigation-ia.md) — Navigation IA (Customer-nested URLs, Jobs-first surfaces).
 - [ADR-019](docs/adr/019-soft-delete-policy.md) — Soft-delete policy (archive UX, "Show archived" toggle).
-- [ADR-022](docs/adr/022-design-language-pass-2.md) — Design language pass 2 (dark-first, three-anchor theme, cool-blue UI accent).
+- [ADR-029](docs/adr/029-adopt-rollout-ui-system.md) — Adopt the rollout app's UI system (teal theme + shadcn primitives wholesale; supersedes ADR-022 theme values + ADR-023).
+- [ADR-022](docs/adr/022-design-language-pass-2.md) — Design language pass 2 (flat shadcn token contract; superseded theme values, see ADR-029).
 
 Project-internal:
 

@@ -1,6 +1,8 @@
 # ADR-023: Modal-with-pills as the create + edit convention
 
-![Status](https://img.shields.io/badge/status-Proposed-yellow) ![Date](https://img.shields.io/badge/date-2026--05--12-blue)
+![Status](https://img.shields.io/badge/status-Superseded-lightgrey) ![Date](https://img.shields.io/badge/date-2026--05--12-blue)
+
+> Superseded by [ADR-029](029-adopt-rollout-ui-system.md) (2026-06-28). boop adopts the rollout app's Field-composed forms (`Field` + `Select` / `Combobox`); the modal-with-inline-pills convention and its hand-rolled pill inputs are retired.
 
 ## Context
 

@@ -1,6 +1,8 @@
 # ADR-022: Design language — canonical shadcn flat tokens on `base-vega` Base UI
 
-![Status](https://img.shields.io/badge/status-Accepted-green) ![Date](https://img.shields.io/badge/date-2026--05--14-blue)
+![Status](https://img.shields.io/badge/status-Superseded-lightgrey) ![Date](https://img.shields.io/badge/date-2026--05--14-blue)
+
+> Superseded by [ADR-029](029-adopt-rollout-ui-system.md) (2026-06-28). The flat-shadcn-token contract and light-first/dark-default structure below are carried forward; the accent (cool blue), brand-vs-UI-accent split, radius (`0.5rem`), and system font stack are replaced by the rollout app's teal theme. The `--success` / `--warning` / `--info` extensions remain.
 
 ## Context
 

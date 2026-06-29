@@ -31,8 +31,8 @@ Ordered foundation → data → auth → AI → product surface → meta.
 | [018](018-navigation-ia.md) | Superseded for boop | Navigation IA (Customer-nested URLs, Jobs-first navigation surfaces); URL grammar superseded by ADR-027, Jobs-first principle carried forward |
 | [019](019-soft-delete-policy.md) | Proposed | Soft-delete policy (archive blocks on active dependents) |
 | [020](020-current-by-default-third-party-pins.md) | Proposed | Current-by-default for third-party version pins (Renovate + audit + agent-side rule) |
-| [022](022-design-language-pass-2.md) | Proposed | Design language pass 2 (dark-first, three-anchor theme, cool-blue UI accent, warm orange brand retreats to chart palette) |
-| [023](023-modal-with-pills-crud-convention.md) | Proposed | Modal-with-pills as the create + edit convention (Base UI Dialog, route masking, nested dialogs, `useBlocker` discard) |
+| [022](022-design-language-pass-2.md) | Superseded | Design language pass 2 (flat shadcn tokens); accent/radius/font values superseded by ADR-029, token-contract principle carried forward |
+| [023](023-modal-with-pills-crud-convention.md) | Superseded | Modal-with-pills as the create + edit convention; superseded by ADR-029 (Field-composed forms with Select/Combobox) |
 | [024](024-auth-surfaces-api-tokens-and-oauth-for-mcp.md) | Proposed | Auth surfaces (API tokens for CLI/SDK, OAuth 2.1 recipe-handled for MCP, Cloudflare Access for browser) |
 | [025](025-workspace-scope-on-channels-and-alert-rules.md) | Superseded | Workspace scope on Channels + AlertRules; additive override hierarchy (the customer tier is removed by ADR-027) |
 | [026](026-cloudflare-access-with-entra-oidc.md) | Accepted | Cloudflare Access (fronted by Entra OIDC) is boop's auth implementation (supersedes ADR-006's choice for boop) |

@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils'
 
 function Label({ className, htmlFor, ...props }: React.ComponentProps<'label'>) {
   return (
-    // biome-ignore lint/a11y/noLabelWithoutControl: shadcn label is composed with htmlFor at call sites
     <label
       htmlFor={htmlFor}
       data-slot="label"

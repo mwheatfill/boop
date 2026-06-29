@@ -36,9 +36,11 @@ Read this before starting the design-language session. The principle frames the 
 
 Update this file when the design-language session happens — the principle stays, the queued list shrinks, and items either land as ADRs (e.g., "ADR-NNN: inline-edit-by-default") or get rolled into the implementing PRD.
 
-## NEXT SESSION (decided): UI reset — align with the rollout app (mcc)
+## UI reset — align with the rollout app (mcc)
 
-**Decision (locked by the operator):** adopt the UI system from the sibling **rollout** project at `/Users/michael/Code/projects/claude/mcc` (same template family: Cloudflare Workers + TanStack Start, shadcn **base-vega**, Base UI). Bring the **theming over wholesale** (mcc `src/styles/app.css` tokens + radius `1.4rem` + Inter/Lora fonts); **recolor later** (boop's brand-vs-UI-accent split from ADR-022 will be re-applied on top of mcc's token structure as a follow-up). Add mcc's data-viz token layer (`--chart-1..5` + `--viz-positive/warning/critical/neutral`, mcc ADR-020).
+**Decision (locked by the operator):** adopt the UI system from the sibling **rollout** project at `/Users/michael/Code/projects/claude/mcc` (same template family: Cloudflare Workers + TanStack Start, shadcn **base-vega**, Base UI). Theming brought over **wholesale**, including mcc's **teal accent** (`#08CDBE`); ADR-022's cool-blue/warm-orange split is **retired**, not re-applied. See [ADR-029](adr/029-adopt-rollout-ui-system.md).
+
+**Phase 1 (Foundations) — LANDED** on branch `ui-foundations-rollout-theme`: theme swap (mcc `app.css` wholesale, `--info` preserved), six primitives ported (`field`, `combobox`, `input-group`, `button-group`, `empty`, `breadcrumb`), `@reui` registry, deps (`@fontsource-variable/inter`, `tw-animate-css`), ADR-029 (supersedes ADR-022 theme values + ADR-023), DESIGN.md § 2/3/5/6/11 revised, `src/components/ui/**` biome override. Gates green: typecheck, build, `audit:patterns` (incl. shadcn drift), biome. **Next: Phase 2 — kill the pills.**
 
 **Root cause this fixes:** boop's pain (ugly/non-functional pill dropdowns, inconsistent form formatting, "all over the place") is an *execution* gap, not a language gap. boop hand-rolled `PillButton`/`PillPicker`/`SearchableCombobox` and ad-hoc per-modal label/input/error markup; mcc composes from shadcn primitives (`Field`, `Select`, `Combobox`) and uses **zero** pill-popover choice inputs.
 
@@ -49,9 +51,9 @@ Update this file when the design-language session happens — the principle stay
 **Adopt from mcc (base-vega registry primitives mcc already validated):** `field.tsx` (label+description+control+deduped error, orientation-aware), `select.tsx`, `combobox.tsx` (searchable + multi-select chips), `input-group.tsx`, `button-group.tsx`, `empty.tsx`, `breadcrumb.tsx`, and the richer `data-table/` (TanStack Table + Virtual: sort/pin/filter/reorder). Also adopt mcc's **shadcn registry-drift audit** (`scripts/audit-patterns/shadcn.ts` diffs every `ui/*.tsx` against the live base-vega registry) so primitives can't be hand-rolled again — boop's audit currently only checks color classes.
 
 **Phased plan (each phase ships independently):**
-1. **Foundations** — pull the mcc primitives from the base-vega registry, replace `src/styles/app.css` with mcc's theme wholesale, add `--viz-*` tokens, add the registry-drift audit. Low risk (same template lineage).
-2. **Kill the pills** — rebuild the entity modals (Job, Target, Channel, AlertRule, Tunnel, Workspace) on `Field` + `Select`/`Combobox`. Bulk of the work; highest payoff.
-3. **Lists / shell** — upgrade `DataTable` + breadcrumbs/header to mcc's level.
+1. ~~**Foundations**~~ — DONE (see above). The registry-drift audit already existed in boop (`scripts/audit-patterns/shadcn.ts`), so that sub-task was a no-op.
+2. **Kill the pills** — rebuild the entity modals (Job, Target, Channel, AlertRule, Tunnel, Workspace) on `Field` + `Select`/`Combobox`; then delete `PillPicker`, `PillButton`, `SearchableCombobox`, `MultiSearchableCombobox`, `SingleSelectPill`. Bulk of the work; highest payoff.
+3. **Lists / shell** — upgrade `DataTable` + breadcrumbs/header to mcc's level (adds `@tanstack/react-table` + `@tanstack/react-virtual`).
 4. **Finish queued** — shortcuts + motion (already specced in DESIGN.md §§ 7–8, unbuilt).
 
 Concrete mcc pointers: tokens `mcc/src/styles/app.css`; `mcc/src/components/ui/field.tsx`; form exemplar `mcc/src/components/settings/ingestion-card.tsx`; DataTable `mcc/src/components/data-table/data-table.tsx`; viz tokens rationale `mcc/docs/adr/020-data-viz-color-tokens.md`; registry audit `mcc/scripts/audit-patterns/shadcn.ts`.
