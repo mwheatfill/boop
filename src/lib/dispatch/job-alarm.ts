@@ -102,6 +102,10 @@ export async function handleAlarm(
   }
   const effectiveInterval = job.intervalSeconds ?? intervalSeconds ?? 0
   if (effectiveInterval > 0) {
-    await storage.setAlarm(now().getTime() + effectiveInterval * 1000)
+    // Re-arm from the scheduled tick (start-to-start) so the interval is honored
+    // for fast runs. A run that overran the interval fires the next as soon as it
+    // finished (runs never overlap), rather than adding the interval on top.
+    const nextAt = Math.max(now().getTime(), tick.getTime() + effectiveInterval * 1000)
+    await storage.setAlarm(nextAt)
   }
 }

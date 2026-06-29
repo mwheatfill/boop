@@ -95,6 +95,50 @@ describe('handleAlarm', () => {
     expect(storage._alarm).toBe(tick.getTime() + 30_000)
   })
 
+  it('re-arms from the scheduled tick when the run finishes within the interval', async () => {
+    const storage = fakeStorage()
+    const start = new Date('2026-05-12T14:30:30.000Z').getTime()
+    let clock = start
+    await handleSeed(
+      { storage, now: () => new Date(start - 30_000) },
+      { jobId: 'job_1', intervalSeconds: 30 },
+    )
+    await handleAlarm({
+      storage,
+      now: () => new Date(clock),
+      async readJob() {
+        return activeIntervalRow(30)
+      },
+      async runDispatch() {
+        clock += 5_000 // run took 5s, under the interval
+      },
+    })
+    // start-to-start: next fire is start + 30s, not (start + 5s) + 30s
+    expect(storage._alarm).toBe(start + 30_000)
+  })
+
+  it('fires as soon as a run that overran the interval finishes (never overlaps)', async () => {
+    const storage = fakeStorage()
+    const start = new Date('2026-05-12T14:30:30.000Z').getTime()
+    let clock = start
+    await handleSeed(
+      { storage, now: () => new Date(start - 30_000) },
+      { jobId: 'job_1', intervalSeconds: 30 },
+    )
+    await handleAlarm({
+      storage,
+      now: () => new Date(clock),
+      async readJob() {
+        return activeIntervalRow(30)
+      },
+      async runDispatch() {
+        clock += 45_000 // run took 45s, over the 30s interval
+      },
+    })
+    // tick + interval (start + 30s) is already past; fire now (start + 45s), not start + 75s
+    expect(storage._alarm).toBe(start + 45_000)
+  })
+
   it('does not reschedule when Job has been paused', async () => {
     const storage = fakeStorage()
     await handleSeed({ storage, now: () => new Date() }, { jobId: 'job_1', intervalSeconds: 30 })

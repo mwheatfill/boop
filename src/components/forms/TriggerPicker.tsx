@@ -266,8 +266,9 @@ function SchedulePreview({
     return (
       <div className="rounded-md border border-border bg-muted/30 p-3">
         <p className="text-xs text-muted-foreground">
-          Fires every {value.intervalSeconds}s (~
-          {firesPerDay(value.intervalSeconds).toLocaleString()}/day).
+          Runs at most every {value.intervalSeconds}s (up to ~
+          {firesPerDay(value.intervalSeconds).toLocaleString()}/day). Runs never overlap, so a slow
+          run delays the next.
         </p>
       </div>
     )
