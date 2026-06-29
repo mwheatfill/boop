@@ -199,7 +199,7 @@ export function ActionCommandGroup({
         keywords={['create', 'add']}
         onSelect={() => {
           close()
-          void goTo({ to: '/jobs/new' })
+          void goTo({ to: '/jobs' })
         }}
       >
         <Plus aria-hidden /> New Job
@@ -232,7 +232,7 @@ export function ActionCommandGroup({
           keywords={['create', 'add', 'endpoint', 'url']}
           onSelect={() => {
             close()
-            void goTo({ to: '/targets/new' })
+            void goTo({ to: '/targets' })
           }}
         >
           <Plus aria-hidden /> New Target

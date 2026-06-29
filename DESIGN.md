@@ -105,7 +105,9 @@ The active Workspace is a retained `ws` search param (defaults to the first Work
 
 **Inline validation on blur and on submit.** No "validate as you type" spam (causes red-screen-while-typing). Server errors flow back to the form via TanStack Form's onSubmitAsync return shape.
 
-**Composed from shadcn `Field` + `Select` / `Combobox` / `InputGroup`.** Per [ADR-029](docs/adr/029-adopt-rollout-ui-system.md). Each control is a `Field` (label + optional description + control + deduped error), one field per row. Choice inputs are `Select` (short, fixed lists) or `Combobox` (searchable, multi-select with chips). The modal is the surface; its body is Field-composed, not a row of inline property pills. Save semantics: explicit "Create" / "Save"; no save-on-blur.
+**Composed from shadcn `Field` + `Select` / `Combobox` / `InputGroup`.** Per [ADR-029](docs/adr/029-adopt-rollout-ui-system.md). Each control is a `Field` (label + optional description + control + deduped error), grouped into labeled `Section`s. Choice inputs are `Select` (short, fixed lists) or `Combobox` (searchable, multi-select with chips). Save semantics: explicit "Create" / "Save"; no save-on-blur.
+
+**The surface is a right-side `Sheet`, not a modal.** All six entity editors (Job, Target, Channel, AlertRule, Tunnel, Workspace) are uniform Sheets opened from a row click or the top-right "New" action (no route-masking). Destructive confirms escalate to `AlertDialog`. Container choice (page vs Sheet vs Dialog vs AlertDialog) and the surface-craft checklist live in [`docs/ui-craft.md`](docs/ui-craft.md) — **read it before building any editor or overlay.**
 
 **No hand-rolled choice inputs.** `PillButton`, `PillPicker`, `SearchableCombobox`, `MultiSearchableCombobox`, and `SingleSelectPill` are retired (ADR-029). Use the registry primitives so the drift audit (`scripts/audit-patterns/shadcn.ts`) keeps them honest.
 

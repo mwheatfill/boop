@@ -1,13 +1,15 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
 import { z } from 'zod'
 import { ContentChrome } from '@/components/ContentChrome'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
+import { JobSheet } from '@/components/forms/JobSheet'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
+import { isAdmin } from '@/lib/auth/is-admin'
 import { formatInTimezone } from '@/lib/format'
 import { effectiveTimezone } from '@/lib/jobs/queries'
 import { listAllJobsFn } from '@/lib/jobs/server-fns'
@@ -78,6 +80,7 @@ function columnsFor(): ColumnDef<JobSummary>[] {
 function JobsPage() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
+  const { currentUser, workspaceSlug } = Route.useRouteContext()
   const filters = { ...(search.status ? { status: search.status } : {}) }
   const { data: jobs } = useSuspenseQuery(allJobsQueryOptions(filters))
   const filtered = Boolean(search.status)
@@ -95,9 +98,15 @@ function JobsPage() {
           <Button render={<Link to="/" />} variant="outline" size="sm">
             ← Dashboard
           </Button>
-          <Button render={<Link to="/jobs/new" />}>
-            <Plus aria-hidden /> New Job
-          </Button>
+          <JobSheet
+            owner={{ workspaceSlug }}
+            isAdmin={isAdmin(currentUser)}
+            trigger={
+              <Button>
+                <Plus aria-hidden /> New Job
+              </Button>
+            }
+          />
           <ContentChrome />
         </div>
       </header>
@@ -138,16 +147,21 @@ function JobsPage() {
             title="No Jobs yet."
             description="Create a Job to schedule HTTP calls to a Target."
             action={
-              <Button render={<Link to="/jobs/new" />}>
-                <Plus aria-hidden /> New Job
-              </Button>
+              <JobSheet
+                owner={{ workspaceSlug }}
+                isAdmin={isAdmin(currentUser)}
+                trigger={
+                  <Button>
+                    <Plus aria-hidden /> New Job
+                  </Button>
+                }
+              />
             }
           />
         )
       ) : (
         <DataTable columns={columnsFor()} data={jobs} />
       )}
-      <Outlet />
     </div>
   )
 }

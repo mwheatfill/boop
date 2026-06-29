@@ -126,11 +126,7 @@ function RunDetailPage() {
           Target
         </h2>
         <p className="text-sm">
-          <Link
-            to="/targets/$targetSlug"
-            params={{ targetSlug: target.slug }}
-            className="font-medium hover:underline"
-          >
+          <Link to="/targets" className="font-medium hover:underline">
             {target.name}
           </Link>{' '}
           · <code className="font-mono">{target.method}</code> {target.url}

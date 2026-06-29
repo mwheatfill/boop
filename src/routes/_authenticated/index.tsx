@@ -10,8 +10,10 @@ import { KpiCard } from '@/components/dashboard/KpiCard'
 import { RunsAreaChart } from '@/components/dashboard/RunsAreaChart'
 import { SearchHint } from '@/components/dashboard/SearchHint'
 import { SuccessRateTile } from '@/components/dashboard/SuccessRateTile'
+import { JobSheet } from '@/components/forms/JobSheet'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { isAdmin } from '@/lib/auth/is-admin'
 import { dashboardSummaryQueryOptions } from '@/lib/dashboard/query-options'
 import { relativeAgo, relativeIn } from '@/lib/format'
 import type {
@@ -39,6 +41,7 @@ function formatDuration(ms: number | null): string {
 
 function DashboardPage() {
   const search = Route.useSearch()
+  const { workspaceSlug, currentUser } = Route.useRouteContext()
   const { data: summary } = useSuspenseQuery(dashboardSummaryQueryOptions)
 
   useEffect(() => {
@@ -55,9 +58,15 @@ function DashboardPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Operations</h1>
         <div className="flex items-center gap-3">
           <SearchHint />
-          <Button render={<Link to="/jobs/new" mask={{ to: '/' }} />}>
-            <Plus aria-hidden /> New Job
-          </Button>
+          <JobSheet
+            owner={{ workspaceSlug }}
+            isAdmin={isAdmin(currentUser)}
+            trigger={
+              <Button>
+                <Plus aria-hidden /> New Job
+              </Button>
+            }
+          />
           <ContentChrome />
         </div>
       </header>

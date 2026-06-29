@@ -4,7 +4,7 @@ import { Waypoints } from 'lucide-react'
 import { useState } from 'react'
 import { DateTime } from '@/components/DateTime'
 import { EmptyState } from '@/components/EmptyState'
-import { TunnelEditModal } from '@/components/forms/TunnelEditModal'
+import { TunnelSheet } from '@/components/forms/TunnelSheet'
 import { TargetHealthBadge } from '@/components/targets/TargetHealthBadge'
 import { TargetVerifyButton } from '@/components/targets/TargetVerifyButton'
 import { TunnelActions } from '@/components/tunnels/TunnelActions'
@@ -119,11 +119,7 @@ function TunnelDetailPage() {
               <li key={target.id} className="flex items-center justify-between gap-3 py-3">
                 <div className="flex flex-col gap-0.5">
                   {isAdmin ? (
-                    <Link
-                      to="/targets/$targetSlug"
-                      params={{ targetSlug: target.slug }}
-                      className="font-medium text-foreground hover:underline"
-                    >
+                    <Link to="/targets" className="font-medium text-foreground hover:underline">
                       {target.name}
                     </Link>
                   ) : (
@@ -143,9 +139,7 @@ function TunnelDetailPage() {
         )}
       </section>
 
-      {editing && isAdmin ? (
-        <TunnelEditModal tunnel={tunnel} onClose={() => setEditing(false)} />
-      ) : null}
+      {isAdmin ? <TunnelSheet tunnel={tunnel} open={editing} onOpenChange={setEditing} /> : null}
     </div>
   )
 }

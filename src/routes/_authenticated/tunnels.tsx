@@ -1,9 +1,10 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Plus, Waypoints } from 'lucide-react'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
+import { TunnelSheet } from '@/components/forms/TunnelSheet'
 import { TunnelStateBadge } from '@/components/tunnels/TunnelStateBadge'
 import { Button } from '@/components/ui/button'
 import { tunnelsQueryOptions } from '@/lib/tunnels/query-options'
@@ -53,9 +54,13 @@ function TunnelsPage() {
           </p>
         </div>
         {isAdmin ? (
-          <Button size="sm" render={<Link to="/tunnels/new" />}>
-            <Plus aria-hidden /> New tunnel
-          </Button>
+          <TunnelSheet
+            trigger={
+              <Button size="sm">
+                <Plus aria-hidden /> New tunnel
+              </Button>
+            }
+          />
         ) : null}
       </header>
 
@@ -66,9 +71,13 @@ function TunnelsPage() {
           description="Create a tunnel to reach a private origin, then install one command on the customer's network."
           action={
             isAdmin ? (
-              <Button render={<Link to="/tunnels/new" />}>
-                <Plus aria-hidden /> New tunnel
-              </Button>
+              <TunnelSheet
+                trigger={
+                  <Button>
+                    <Plus aria-hidden /> New tunnel
+                  </Button>
+                }
+              />
             ) : undefined
           }
         />

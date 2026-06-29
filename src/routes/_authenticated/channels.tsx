@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { DataTable } from '@/components/DataTable'
 import { DateTime } from '@/components/DateTime'
 import { EmptyState } from '@/components/EmptyState'
+import { ChannelSheet } from '@/components/forms/ChannelSheet'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { listChannelsQueryOptions } from '@/lib/channels/query-options'
@@ -105,9 +106,14 @@ function ChannelsList({ activeSlug }: { activeSlug: string }) {
             {archived ? 'Hide archived' : 'Show archived'}
           </Button>
           {isAdmin ? (
-            <Button size="sm" render={<Link to="/channels/new" />}>
-              <Plus aria-hidden /> New Channel
-            </Button>
+            <ChannelSheet
+              owner={{ workspaceSlug: activeSlug }}
+              trigger={
+                <Button size="sm">
+                  <Plus aria-hidden /> New Channel
+                </Button>
+              }
+            />
           ) : null}
         </div>
       </header>
@@ -123,9 +129,14 @@ function ChannelsList({ activeSlug }: { activeSlug: string }) {
           }
           action={
             !archived && isAdmin ? (
-              <Button render={<Link to="/channels/new" />}>
-                <Plus aria-hidden /> New Channel
-              </Button>
+              <ChannelSheet
+                owner={{ workspaceSlug: activeSlug }}
+                trigger={
+                  <Button>
+                    <Plus aria-hidden /> New Channel
+                  </Button>
+                }
+              />
             ) : undefined
           }
         />

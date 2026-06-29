@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { createFileRoute, Link, Outlet, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Pencil } from 'lucide-react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { ChannelDetailView } from '@/components/channels/ChannelDetailView'
+import { ChannelSheet } from '@/components/forms/ChannelSheet'
 import { useShortcut } from '@/components/keyboard/use-shortcut'
 import { Button } from '@/components/ui/button'
 import { channelQueryOptions } from '@/lib/channels/query-options'
@@ -22,6 +24,7 @@ function ChannelDetailPage() {
   const { workspaceSlug } = Route.useRouteContext()
   const goTo = useNavigate()
   const queryClient = useQueryClient()
+  const [editOpen, setEditOpen] = useState(false)
   const { data: channel } = useSuspenseQuery(channelQueryOptions(workspaceSlug, channelSlug))
 
   const archive = useMutation({
@@ -59,11 +62,7 @@ function ChannelDetailPage() {
     },
   })
 
-  useShortcut(
-    'e',
-    () => void goTo({ to: '/channels/$channelSlug/edit', params: { channelSlug } }),
-    { description: 'Edit Channel', section: 'page' },
-  )
+  useShortcut('e', () => setEditOpen(true), { description: 'Edit Channel', section: 'page' })
 
   useShortcut('t', () => sendTest.mutate(), {
     description: 'Send test alert',
@@ -85,19 +84,22 @@ function ChannelDetailPage() {
           </Link>
         }
         editButton={
-          <Button
-            size="sm"
-            variant="outline"
-            render={<Link to="/channels/$channelSlug/edit" params={{ channelSlug }} />}
-          >
-            <Pencil aria-hidden /> Edit
-          </Button>
+          <ChannelSheet
+            owner={{ workspaceSlug }}
+            channel={channel}
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            trigger={
+              <Button size="sm" variant="outline">
+                <Pencil aria-hidden /> Edit
+              </Button>
+            }
+          />
         }
         archive={{ onClick: () => archive.mutate(), isPending: archive.isPending }}
         restore={{ onClick: () => restore.mutate(), isPending: restore.isPending }}
         sendTest={{ onClick: () => sendTest.mutate(), isPending: sendTest.isPending }}
       />
-      <Outlet />
     </>
   )
 }

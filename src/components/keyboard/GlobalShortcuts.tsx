@@ -44,8 +44,8 @@ export function GlobalShortcuts({ currentUser }: GlobalShortcutsProps) {
     section: 'navigation',
   })
 
-  useShortcut('n j', () => void navigate({ to: '/jobs/new' }), {
-    description: 'New Job',
+  useShortcut('n j', () => void navigate({ to: '/jobs' }), {
+    description: 'Go to Jobs',
     section: 'navigation',
   })
 
@@ -73,9 +73,9 @@ export function GlobalShortcuts({ currentUser }: GlobalShortcutsProps) {
         toast.error('Admin only.')
         return
       }
-      void navigate({ to: '/targets/new' })
+      void navigate({ to: '/targets' })
     },
-    { description: 'New Target (Admin, current Workspace)', section: 'navigation' },
+    { description: 'Go to Targets (Admin, current Workspace)', section: 'navigation' },
   )
 
   useShortcut(
@@ -85,17 +85,17 @@ export function GlobalShortcuts({ currentUser }: GlobalShortcutsProps) {
         toast.error('Admin only.')
         return
       }
-      void navigate({ to: '/channels/new' })
+      void navigate({ to: '/channels' })
     },
-    { description: 'New Channel (Admin, current Workspace)', section: 'navigation' },
+    { description: 'Go to Channels (Admin, current Workspace)', section: 'navigation' },
   )
 
   useShortcut(
     'n a',
     () => {
-      void navigate({ to: '/alert-rules/new' })
+      void navigate({ to: '/alert-rules' })
     },
-    { description: 'New Alert Rule (current Workspace)', section: 'navigation' },
+    { description: 'Go to Alert Rules (current Workspace)', section: 'navigation' },
   )
 
   return null

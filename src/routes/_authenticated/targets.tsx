@@ -1,10 +1,12 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Plus, Target as TargetIcon } from 'lucide-react'
+import { useState } from 'react'
 import { z } from 'zod'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
+import { TargetSheet } from '@/components/forms/TargetSheet'
 import { StatusBadge } from '@/components/StatusBadge'
 import { TargetHealthBadge } from '@/components/targets/TargetHealthBadge'
 import { Button } from '@/components/ui/button'
@@ -86,6 +88,7 @@ function TargetsList({ activeSlug }: { activeSlug: string }) {
   const { currentUser } = Route.useRouteContext()
   const isAdmin = currentUser.role === 'admin'
   const { data: targets } = useSuspenseQuery(targetsQueryOptions(activeSlug, archived))
+  const [editing, setEditing] = useState<Target | null>(null)
 
   return (
     <div className="flex flex-col gap-6">
@@ -108,9 +111,14 @@ function TargetsList({ activeSlug }: { activeSlug: string }) {
             {archived ? 'Hide archived' : 'Show archived'}
           </Button>
           {isAdmin ? (
-            <Button size="sm" render={<Link to="/targets/new" />}>
-              <Plus aria-hidden /> New Target
-            </Button>
+            <TargetSheet
+              owner={{ workspaceSlug: activeSlug }}
+              trigger={
+                <Button size="sm">
+                  <Plus aria-hidden /> New Target
+                </Button>
+              }
+            />
           ) : null}
         </div>
       </header>
@@ -126,9 +134,14 @@ function TargetsList({ activeSlug }: { activeSlug: string }) {
           }
           action={
             !archived && isAdmin ? (
-              <Button render={<Link to="/targets/new" />}>
-                <Plus aria-hidden /> New Target
-              </Button>
+              <TargetSheet
+                owner={{ workspaceSlug: activeSlug }}
+                trigger={
+                  <Button>
+                    <Plus aria-hidden /> New Target
+                  </Button>
+                }
+              />
             ) : undefined
           }
         />
@@ -136,18 +149,20 @@ function TargetsList({ activeSlug }: { activeSlug: string }) {
         <DataTable
           columns={targetColumns}
           data={targets}
-          {...(isAdmin
-            ? {
-                onRowClick: (target: Target) => {
-                  void navigate({
-                    to: '/targets/$targetSlug',
-                    params: { targetSlug: target.slug },
-                  })
-                },
-              }
-            : {})}
+          {...(isAdmin ? { onRowClick: (target: Target) => setEditing(target) } : {})}
         />
       )}
+
+      {isAdmin ? (
+        <TargetSheet
+          owner={{ workspaceSlug: activeSlug }}
+          open={!!editing}
+          onOpenChange={(next) => {
+            if (!next) setEditing(null)
+          }}
+          {...(editing ? { target: editing } : {})}
+        />
+      ) : null}
     </div>
   )
 }

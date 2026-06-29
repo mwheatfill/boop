@@ -7,6 +7,7 @@ import { AlertsAppliedPanel } from '@/components/alerts/AlertsAppliedPanel'
 import { ContentChrome } from '@/components/ContentChrome'
 import { DateTime } from '@/components/DateTime'
 import { JobActionsMenu } from '@/components/forms/JobActionsMenu'
+import { JobSheet } from '@/components/forms/JobSheet'
 import { RecentRunsPanel } from '@/components/forms/RecentRunsPanel'
 import { SaveJobTemplateModal } from '@/components/forms/SaveJobTemplateModal'
 import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
@@ -15,6 +16,7 @@ import { PinButton } from '@/components/PinButton'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { isAdmin } from '@/lib/auth/is-admin'
 import { triggerSummaryWithTimezone } from '@/lib/jobs/format'
 import {
   archiveJobFn,
@@ -40,12 +42,13 @@ export const Route = createFileRoute('/_authenticated/jobs_/$jobSlug/')({
 
 function JobDetailPage() {
   const { jobSlug } = Route.useParams()
-  const { workspaceSlug } = Route.useRouteContext()
+  const { workspaceSlug, currentUser } = Route.useRouteContext()
   const goTo = useNavigate()
   const queryClient = useQueryClient()
   const { data: job } = useSuspenseQuery(jobOptions(workspaceSlug, jobSlug))
   const [archiveBlock, setArchiveBlock] = useState<string | null>(null)
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['workspaces', workspaceSlug] })
@@ -95,16 +98,10 @@ function JobDetailPage() {
     { description: 'Pause / Resume', section: 'page' },
   )
 
-  useShortcut(
-    'e',
-    () => {
-      void goTo({
-        to: '/jobs/$jobSlug/edit',
-        params: { jobSlug },
-      })
-    },
-    { description: 'Edit Job', section: 'page' },
-  )
+  useShortcut('e', () => setEditOpen(true), {
+    description: 'Edit Job',
+    section: 'page',
+  })
 
   useShortcut('n l', () => setSaveTemplateOpen(true), {
     description: 'Save as template',
@@ -152,13 +149,18 @@ function JobDetailPage() {
             >
               <Play aria-hidden /> Run now
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              render={<Link to="/jobs/$jobSlug/edit" params={{ jobSlug }} />}
-            >
-              <Pencil aria-hidden /> Edit
-            </Button>
+            <JobSheet
+              owner={{ workspaceSlug }}
+              job={job}
+              isAdmin={isAdmin(currentUser)}
+              open={editOpen}
+              onOpenChange={setEditOpen}
+              trigger={
+                <Button size="sm" variant="outline">
+                  <Pencil aria-hidden /> Edit
+                </Button>
+              }
+            />
             <JobActionsMenu
               status={job.status}
               onPause={simpleAction(pauseJobFn, 'Paused')}
@@ -210,11 +212,7 @@ function JobDetailPage() {
         <CardHeader>
           <CardTitle className="text-sm">Target</CardTitle>
           <CardDescription>
-            <Link
-              to="/targets/$targetSlug"
-              params={{ targetSlug: job.targetSlug }}
-              className="font-medium text-foreground hover:underline"
-            >
+            <Link to="/targets" className="font-medium text-foreground hover:underline">
               {job.targetName}
             </Link>
           </CardDescription>

@@ -5,6 +5,7 @@ import { Bell, Plus } from 'lucide-react'
 import { z } from 'zod'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
+import { AlertRuleSheet } from '@/components/forms/AlertRuleSheet'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { listAlertRulesQueryOptions } from '@/lib/alert-rules/query-options'
@@ -79,7 +80,7 @@ function AlertRulesPage() {
           description="Create a Workspace before adding Alert Rules."
         />
       )}
-      {/* new / $ruleSlug / edit modal routes render here */}
+      {/* $ruleSlug detail route renders here */}
       <Outlet />
     </>
   )
@@ -89,6 +90,8 @@ function AlertRulesList({ activeSlug }: { activeSlug: string }) {
   const search = Route.useSearch()
   const archived = Boolean(search.archived)
   const navigate = Route.useNavigate()
+  const { currentUser } = Route.useRouteContext()
+  const isAdmin = currentUser.role === 'admin'
   const { data: rules } = useSuspenseQuery(listAlertRulesQueryOptions(activeSlug, archived))
   const { data: channels } = useSuspenseQuery(listChannelsQueryOptions(activeSlug, true))
   const channelNameById = new Map(channels.map((c) => [c.id, c.name]))
@@ -113,9 +116,15 @@ function AlertRulesList({ activeSlug }: { activeSlug: string }) {
           >
             {archived ? 'Hide archived' : 'Show archived'}
           </Button>
-          <Button size="sm" render={<Link to="/alert-rules/new" />}>
-            <Plus aria-hidden /> New Alert Rule
-          </Button>
+          <AlertRuleSheet
+            owner={{ workspaceSlug: activeSlug }}
+            isAdmin={isAdmin}
+            trigger={
+              <Button size="sm">
+                <Plus aria-hidden /> New Alert Rule
+              </Button>
+            }
+          />
         </div>
       </header>
 
@@ -130,9 +139,15 @@ function AlertRulesList({ activeSlug }: { activeSlug: string }) {
           }
           action={
             !archived ? (
-              <Button render={<Link to="/alert-rules/new" />}>
-                <Plus aria-hidden /> New Alert Rule
-              </Button>
+              <AlertRuleSheet
+                owner={{ workspaceSlug: activeSlug }}
+                isAdmin={isAdmin}
+                trigger={
+                  <Button>
+                    <Plus aria-hidden /> New Alert Rule
+                  </Button>
+                }
+              />
             ) : undefined
           }
         />
