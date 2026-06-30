@@ -120,7 +120,11 @@
         "CF_TUNNEL_HOSTNAME_BASE": "tunnels.stlabs.org",
         "GRAPH_TENANT_ID": "cd551af0-e42b-4a17-a193-1748738a72d7",
         "GRAPH_CLIENT_ID": "13cbbcb8-83c8-47f6-b1f0-0cbae88d87c8",
-        "GRAPH_MAIL_SENDER": "boop@switchthink.com"
+        "GRAPH_MAIL_SENDER": "boop@switchthink.com",
+        "AI_PROVIDER": "foundry",
+        "FOUNDRY_DEPLOYMENT": "gpt-4.1-mini",
+        "FOUNDRY_API_VERSION": "v1",
+        "FOUNDRY_AI_GATEWAY_URL": "https://ai-df-platform-eastus2.services.ai.azure.com/openai"
       },
       "secrets_store_secrets": [
         {
