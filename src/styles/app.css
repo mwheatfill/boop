@@ -76,6 +76,11 @@
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   --tracking-normal: 0em;
   --spacing: 0.27rem;
+  /* Motion (DESIGN.md § 8). fast = hover/focus/press; medium = overlays/route;
+   * ease is Tailwind v4's default timing function, named here for explicit use. */
+  --motion-fast: 120ms;
+  --motion-medium: 220ms;
+  --motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark {
@@ -202,6 +207,14 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
+
+  /* Motion: `duration-fast` / `duration-medium` / `ease-standard` utilities, and
+   * the default so bare `transition` utilities run at the fast tempo (§ 8). */
+  --duration-fast: var(--motion-fast);
+  --duration-medium: var(--motion-medium);
+  --ease-standard: var(--motion-ease);
+  --default-transition-duration: var(--motion-fast);
+  --default-transition-timing-function: var(--motion-ease);
 }
 
 @layer base {

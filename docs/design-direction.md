@@ -50,10 +50,10 @@ Update this file when the design-language session happens — the principle stay
 
 **Adopt from mcc (base-vega registry primitives mcc already validated):** `field.tsx` (label+description+control+deduped error, orientation-aware), `select.tsx`, `combobox.tsx` (searchable + multi-select chips), `input-group.tsx`, `button-group.tsx`, `empty.tsx`, `breadcrumb.tsx`, and the richer `data-table/` (TanStack Table + Virtual: sort/pin/filter/reorder). Also adopt mcc's **shadcn registry-drift audit** (`scripts/audit-patterns/shadcn.ts` diffs every `ui/*.tsx` against the live base-vega registry) so primitives can't be hand-rolled again — boop's audit currently only checks color classes.
 
-**Phased plan (each phase ships independently):**
-1. ~~**Foundations**~~ — DONE (see above). The registry-drift audit already existed in boop (`scripts/audit-patterns/shadcn.ts`), so that sub-task was a no-op.
-2. **Kill the pills** — rebuild the entity modals (Job, Target, Channel, AlertRule, Tunnel, Workspace) on `Field` + `Select`/`Combobox`; then delete `PillPicker`, `PillButton`, `SearchableCombobox`, `MultiSearchableCombobox`, `SingleSelectPill`. Bulk of the work; highest payoff.
-3. **Lists / shell** — upgrade `DataTable` + breadcrumbs/header to mcc's level (adds `@tanstack/react-table` + `@tanstack/react-virtual`).
-4. **Finish queued** — shortcuts + motion (already specced in DESIGN.md §§ 7–8, unbuilt).
+**Phased plan — ALL SHIPPED to prod (v0.1.35–v0.1.40, 2026-06-30):**
+1. ~~**Foundations**~~ — DONE. Theme + primitives + `@reui` registry + ADR-029 (v0.1.35–36).
+2. ~~**Kill the pills**~~ — DONE. Six editors rebuilt as uniform right-side Sheets on `Field` + `Select`/`Combobox`; all pill primitives deleted (incl. `TimezoneCombobox` moved to the shadcn `Combobox`) (v0.1.36–37).
+3. ~~**Lists / shell**~~ — DONE. `DataTable` upgraded on react-table v8 (rollout is v9-beta, so reimplemented, not copied): sort, sticky header, density, search, column show/reorder (dnd-kit), device-local saved views, per-column faceted filters (v0.1.38–39).
+4. ~~**Finish queued**~~ — DONE. Shortcuts were already built (`src/components/keyboard/`); added the motion tokens (`--motion-*`, `duration-fast/medium`, `ease-standard`) per DESIGN.md § 8 (v0.1.40). Hover-hint banner deferred (low value). **UI reset complete.**
 
 Concrete mcc pointers: tokens `mcc/src/styles/app.css`; `mcc/src/components/ui/field.tsx`; form exemplar `mcc/src/components/settings/ingestion-card.tsx`; DataTable `mcc/src/components/data-table/data-table.tsx`; viz tokens rationale `mcc/docs/adr/020-data-viz-color-tokens.md`; registry audit `mcc/scripts/audit-patterns/shadcn.ts`.

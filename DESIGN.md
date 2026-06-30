@@ -113,23 +113,21 @@ The active Workspace is a retained `ws` search param (defaults to the first Work
 
 ## 7. Shortcuts
 
-**Queued.** Linear-leaning target:
+**Built**, in `src/components/keyboard/` (`KeyboardProvider` registry + `useShortcut`):
 
-- **Single-letter for common actions on the current page:** `r` Run now from a Job detail page, `p` pause / resume, `c` create new (context-aware), `e` edit, `Esc` close.
-- **Chord sequences for navigation:** `g j` go to Jobs, `g c` go to Customers, `g h` go to home, `g r` go to /runs. Two-key vim-style.
-- **`?` reveals a cheatsheet overlay** listing every active shortcut on the current page.
-- **Cmd+K (Ctrl+K) opens the command palette** — the navigation accelerator across all surfaces. Fuzzy search for Customer / Job / Run by name or slug. Tab switches into "Ask Linear"-equivalent AI mode (future, see ADR-015). Each option in the palette shows its keyboard shortcut on the right; first option is pre-selected (Enter executes).
-- **Shortcut hints surface on hover** after ~500ms — a banner showing the keyboard shortcut for the element under the cursor. Gentle training, not popup spam.
-
-See `docs/design-direction.md` for queue state.
+- **Single-letter for common actions on the current page:** `r` Run now, `p` pause / resume, `e` edit (opens the entity Sheet), `Esc` close. Registered per detail page via `useShortcut`.
+- **Chord sequences for navigation:** `g j` Jobs, `g r` Runs, `g h` home, plus `n j/t/h/a` jump to the create surfaces — in `GlobalShortcuts.tsx`. Two-key vim-style.
+- **`?` reveals a cheatsheet overlay** (`CheatsheetDialog`) listing every registered shortcut, grouped by section.
+- **Cmd+K opens the command palette** (`CommandPalette`) — fuzzy nav across entities. Tab → AI mode is future (ADR-015).
+- **Deferred (low value):** the ~500ms hover-hint banner. The `useShortcut` `withTarget` ref exists for it, but a hover banner risks the popup-spam it's meant to avoid; revisit only if operators ask.
 
 ## 8. Motion
 
-**Queued.** Target tokens (no consumers yet):
+**Built**, in `src/styles/app.css`. Tokens, exposed as Tailwind utilities (`duration-fast`, `duration-medium`, `ease-standard`); the fast tempo is also the app-wide `transition` default, so bare `transition` / `transition-colors` run at it for free:
 
-- `--motion-fast: 120ms` — hover, focus, button press.
-- `--motion-medium: 220ms` — popovers, drawers, route transitions.
-- `--motion-ease: cubic-bezier(0.4, 0, 0.2, 1)` — Material "standard" curve, Linear-equivalent.
+- `--motion-fast: 120ms` — hover, focus, button press (the `transition` default).
+- `--motion-medium: 220ms` — popovers, drawers, route transitions (`duration-medium`).
+- `--motion-ease: cubic-bezier(0.4, 0, 0.2, 1)` — Material "standard" curve, which is also Tailwind v4's default timing function.
 
 **Motion communicates state changes, never decoration.** Small animations on starring, completing, dragging give tactile feedback (~200ms). No bouncy springs, no scroll-jacking, no entrance animations on every page load.
 
