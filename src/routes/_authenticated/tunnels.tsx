@@ -1,7 +1,8 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Plus, Waypoints } from 'lucide-react'
+import { Pencil, Plus, Waypoints } from 'lucide-react'
+import { useState } from 'react'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { TunnelSheet } from '@/components/forms/TunnelSheet'
@@ -17,29 +18,59 @@ export const Route = createFileRoute('/_authenticated/tunnels')({
   component: TunnelsPage,
 })
 
-const columns: ColumnDef<Tunnel>[] = [
-  {
-    accessorKey: 'name',
-    header: 'Name',
-    cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span>,
-  },
-  {
-    accessorKey: 'hostname',
-    header: 'Hostname',
-    cell: ({ row }) => <span className="font-mono text-xs">{row.original.hostname}</span>,
-  },
-  {
-    accessorKey: 'state',
-    header: 'Status',
-    meta: { label: 'Status', filterVariant: 'select' },
-    cell: ({ row }) => <TunnelStateBadge state={row.original.state} />,
-  },
-]
+function columnsFor(onEdit: ((tunnel: Tunnel) => void) | null): ColumnDef<Tunnel>[] {
+  const cols: ColumnDef<Tunnel>[] = [
+    {
+      accessorKey: 'name',
+      header: 'Name',
+      cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span>,
+    },
+    {
+      accessorKey: 'hostname',
+      header: 'Hostname',
+      cell: ({ row }) => <span className="font-mono text-xs">{row.original.hostname}</span>,
+    },
+    {
+      accessorKey: 'state',
+      header: 'Status',
+      meta: { label: 'Status', filterVariant: 'select' },
+      cell: ({ row }) => <TunnelStateBadge state={row.original.state} />,
+    },
+  ]
+  if (onEdit) {
+    // Trailing row-action: hover/focus-revealed direct Edit, so editing is one
+    // click without leaving the list (the row itself opens the detail page).
+    cols.push({
+      id: 'actions',
+      enableHiding: false,
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Edit ${row.original.name}`}
+            className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover/row:opacity-100"
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit(row.original)
+            }}
+          >
+            <Pencil aria-hidden />
+          </Button>
+        </div>
+      ),
+    })
+  }
+  return cols
+}
 
 function TunnelsPage() {
   const { currentUser } = Route.useRouteContext()
   const isAdmin = currentUser.role === 'admin'
   const navigate = Route.useNavigate()
+  const [editing, setEditing] = useState<Tunnel | null>(null)
   const { data: tunnels } = useSuspenseQuery(tunnelsQueryOptions)
 
   return (
@@ -84,7 +115,7 @@ function TunnelsPage() {
         />
       ) : (
         <DataTable
-          columns={columns}
+          columns={columnsFor(isAdmin ? setEditing : null)}
           data={tunnels}
           gridKey="tunnels"
           onRowClick={(tunnel) =>
@@ -92,6 +123,16 @@ function TunnelsPage() {
           }
         />
       )}
+
+      {isAdmin ? (
+        <TunnelSheet
+          open={!!editing}
+          onOpenChange={(open) => {
+            if (!open) setEditing(null)
+          }}
+          {...(editing ? { tunnel: editing } : {})}
+        />
+      ) : null}
     </div>
   )
 }
