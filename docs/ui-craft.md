@@ -65,6 +65,7 @@ Every surface passes this before it is "done."
 
 **Values & labels**
 - **Humanize** stored values: never a raw lowercase enum in the UI ("Static", not "static"). Plain language, no jargon (DESIGN.md voice).
+- **Route header** = a plain `<h1>` matching the nav label (the noun: "Targets", "Runs"), no uppercase eyebrow above it, and an optional one-line plain subtitle (drop it when the title is self-evident). Say what the thing is in easy words, never a clever phrase ("Reach private-network origins" → "Tunnels"; "Outbound destinations" → "Channels").
 - Buttons are `Verb + Noun`. Primary action on the right.
 
 **Density**

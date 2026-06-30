@@ -102,13 +102,8 @@ function AlertRulesList({ activeSlug }: { activeSlug: string }) {
     <div className="flex flex-col gap-6">
       <header className="flex items-start justify-between">
         <div className="flex flex-col gap-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Alert Rules
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight">Workspace-default routing</h1>
-          <p className="text-sm text-muted-foreground">
-            Predicates that decide which Channels fan out when a Run becomes terminal.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">Alert rules</h1>
+          <p className="text-sm text-muted-foreground">When to send alerts, and where.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button

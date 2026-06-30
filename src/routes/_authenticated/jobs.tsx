@@ -95,9 +95,7 @@ function JobsPage() {
       <header className="flex items-start justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Jobs</h1>
-          <p className="text-sm text-muted-foreground">
-            Every scheduled HTTP call. Filter by status.
-          </p>
+          <p className="text-sm text-muted-foreground">Scheduled calls to your Targets.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button render={<Link to="/" />} variant="outline" size="sm">

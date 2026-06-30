@@ -90,13 +90,8 @@ function ChannelsList({ activeSlug }: { activeSlug: string }) {
     <div className="flex flex-col gap-6">
       <header className="flex items-start justify-between">
         <div className="flex flex-col gap-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Channels
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight">Outbound destinations</h1>
-          <p className="text-sm text-muted-foreground">
-            Configure Teams, Email, and Webhook destinations for alerts.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">Channels</h1>
+          <p className="text-sm text-muted-foreground">Where boop sends alerts.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button

@@ -99,13 +99,8 @@ function TargetsList({ activeSlug }: { activeSlug: string }) {
     <div className="flex flex-col gap-6">
       <header className="flex items-start justify-between">
         <div className="flex flex-col gap-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Targets
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight">Reusable HTTP destinations</h1>
-          <p className="text-sm text-muted-foreground">
-            URL, method, and auth that Jobs in this Workspace fire against.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">Targets</h1>
+          <p className="text-sm text-muted-foreground">The URLs your Jobs call.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button

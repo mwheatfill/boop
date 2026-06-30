@@ -79,9 +79,7 @@ function RunsPage() {
       <header className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">Runs</h1>
-          <p className="text-sm text-muted-foreground">
-            Every Run, sorted newest first. Filters update the URL.
-          </p>
+          <p className="text-sm text-muted-foreground">Each time a Job ran. Newest first.</p>
         </div>
         <ContentChrome />
       </header>

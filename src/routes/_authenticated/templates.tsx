@@ -26,9 +26,7 @@ function TemplatesRoute() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Templates</h1>
-          <p className="text-sm text-muted-foreground">
-            Starter recipes and saved Job patterns, cloned into regular Jobs when used.
-          </p>
+          <p className="text-sm text-muted-foreground">Ready-made Jobs to start from.</p>
         </div>
         <JobSheet
           owner={{ workspaceSlug }}

@@ -77,12 +77,9 @@ function TunnelsPage() {
     <div className="flex flex-col gap-6">
       <header className="flex items-start justify-between">
         <div className="flex flex-col gap-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Private Tunnels
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight">Reach private-network origins</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Tunnels</h1>
           <p className="text-sm text-muted-foreground">
-            Cloudflare Tunnels that let Jobs reach internal services without a public IP.
+            Let Jobs reach servers on a private network.
           </p>
         </div>
         {isAdmin ? (
