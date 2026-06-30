@@ -19,7 +19,7 @@ import {
 import { useAppForm } from '@/hooks/use-app-form'
 import { slugify } from '@/lib/slug/slugify'
 import { tunnelQueryOptions } from '@/lib/tunnels/query-options'
-import { provisionTunnelFn, updateTunnelFn } from '@/lib/tunnels/server-fns'
+import { getTunnelInstallFn, provisionTunnelFn, updateTunnelFn } from '@/lib/tunnels/server-fns'
 import { nameField } from '@/shared/schemas/fields'
 import { type Tunnel, TunnelCreateInput } from '@/shared/schemas/tunnel'
 
@@ -53,6 +53,14 @@ export function TunnelSheet({ tunnel, trigger, open: openProp, onOpenChange }: T
     ...tunnelQueryOptions(provisioned?.slug ?? ''),
     enabled: provisioned !== null,
     refetchInterval: (q) => (q.state.data?.state === 'operational' ? false : 4000),
+  })
+
+  // Editing an existing tunnel surfaces its connector install commands too, so the
+  // Sheet is the one place for everything a tunnel needs (no separate dialog).
+  const { data: installData } = useQuery({
+    queryKey: ['tunnels', tunnel?.id, 'install'],
+    queryFn: () => getTunnelInstallFn({ data: { tunnelId: tunnel?.id ?? '' } }),
+    enabled: open && isEdit && !provisioned,
   })
 
   const form = useAppForm({
@@ -160,31 +168,54 @@ export function TunnelSheet({ tunnel, trigger, open: openProp, onOpenChange }: T
                 />
               </Section>
             ) : (
-              <Section title="Identity">
-                <form.AppField name="name">
-                  {(f) => (
-                    <f.TextField
-                      label="Name"
-                      placeholder="Acme HQ"
-                      autoFocus
-                      description={
-                        isEdit ? (
-                          <>
-                            Hostname{' '}
-                            <code className="font-mono text-foreground">{tunnel.hostname}</code>{' '}
-                            can't change.
-                          </>
-                        ) : (
-                          'A site or network, not a single service. Internal addresses are set per Target.'
-                        )
-                      }
-                    />
-                  )}
-                </form.AppField>
-                <form.Subscribe selector={(s) => s.errorMap.onSubmit}>
-                  {(formError) => (formError ? <FieldError>{String(formError)}</FieldError> : null)}
-                </form.Subscribe>
-              </Section>
+              <>
+                <Section title="Identity">
+                  <form.AppField name="name">
+                    {(f) => (
+                      <f.TextField
+                        label="Name"
+                        placeholder="Acme HQ"
+                        autoFocus
+                        description={
+                          isEdit ? (
+                            <>
+                              Hostname{' '}
+                              <code className="font-mono text-foreground">{tunnel.hostname}</code>{' '}
+                              can't change.
+                            </>
+                          ) : (
+                            'A site or network, not a single service. Internal addresses are set per Target.'
+                          )
+                        }
+                      />
+                    )}
+                  </form.AppField>
+                  <form.Subscribe selector={(s) => s.errorMap.onSubmit}>
+                    {(formError) =>
+                      formError ? <FieldError>{String(formError)}</FieldError> : null
+                    }
+                  </form.Subscribe>
+                </Section>
+
+                {isEdit ? (
+                  <Section
+                    title="Install the connector"
+                    hint="Run one of these on a host inside the private network."
+                  >
+                    {installData ? (
+                      <TunnelInstallCommands
+                        hostname={installData.hostname}
+                        installToken={installData.installToken}
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="size-4 animate-spin" aria-hidden /> Loading install
+                        command…
+                      </div>
+                    )}
+                  </Section>
+                ) : null}
+              </>
             )}
           </div>
 

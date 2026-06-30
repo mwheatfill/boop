@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { MoreHorizontal, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { TunnelInstallCommands } from '@/components/tunnels/TunnelInstallCommands'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,13 +14,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -29,16 +21,10 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   decommissionTunnelFn,
-  getTunnelInstallFn,
   rotateTunnelCredentialsFn,
   verifyTunnelFn,
 } from '@/lib/tunnels/server-fns'
 import type { Tunnel } from '@/shared/schemas/tunnel'
-
-interface Install {
-  hostname: string
-  installToken: string
-}
 
 export function TunnelActions({
   tunnel,
@@ -53,7 +39,6 @@ export function TunnelActions({
 }) {
   const queryClient = useQueryClient()
   const [confirming, setConfirming] = useState(false)
-  const [install, setInstall] = useState<Install | null>(null)
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['tunnels'] })
 
   const verify = useMutation({
@@ -64,12 +49,6 @@ export function TunnelActions({
       void invalidate()
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Verify failed'),
-  })
-
-  const showInstall = useMutation({
-    mutationFn: () => getTunnelInstallFn({ data: { tunnelId: tunnel.id } }),
-    onSuccess: (data) => setInstall(data),
-    onError: (err) => toast.error(err instanceof Error ? err.message : 'Could not load command'),
   })
 
   const rotate = useMutation({
@@ -115,9 +94,7 @@ export function TunnelActions({
             <MoreHorizontal aria-hidden />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem disabled={showInstall.isPending} onClick={() => showInstall.mutate()}>
-              Install command…
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onEdit}>Install command…</DropdownMenuItem>
             <DropdownMenuItem disabled={rotate.isPending} onClick={() => rotate.mutate()}>
               Rotate credentials
             </DropdownMenuItem>
@@ -127,25 +104,6 @@ export function TunnelActions({
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}
-
-      <Dialog open={install !== null} onOpenChange={(next) => !next && setInstall(null)}>
-        <DialogContent size="wide">
-          <DialogHeader>
-            <DialogTitle>Install the connector</DialogTitle>
-            <DialogDescription>
-              Run one of these on a host inside the private network for {tunnel.name}.
-            </DialogDescription>
-          </DialogHeader>
-          {install ? (
-            <div className="flex flex-col gap-4">
-              <TunnelInstallCommands
-                hostname={install.hostname}
-                installToken={install.installToken}
-              />
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
