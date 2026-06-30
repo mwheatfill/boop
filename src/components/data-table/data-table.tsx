@@ -31,15 +31,7 @@ import {
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
-import {
-  AlignJustify,
-  ArrowDown,
-  ArrowUp,
-  ChevronsUpDown,
-  GripVertical,
-  Search,
-  X,
-} from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronsUpDown, GripVertical, Search, X } from 'lucide-react'
 import { type CSSProperties, type ReactNode, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -88,7 +80,6 @@ export function DataTable<TData, TValue>({
   )
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = useState('')
-  const [density, setDensity] = useState<'compact' | 'spacious'>('compact')
 
   const table = useReactTable({
     data,
@@ -127,7 +118,7 @@ export function DataTable<TData, TValue>({
   }
 
   const rows = table.getRowModel().rows
-  const pad = density === 'compact' ? 'px-3 py-1.5' : 'px-3 py-3'
+  const pad = 'px-3 py-3'
 
   const capture = (): TableViewState => ({
     columnVisibility,
@@ -143,7 +134,7 @@ export function DataTable<TData, TValue>({
   }
 
   return (
-    <div className="flex flex-col gap-3" data-density={density}>
+    <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -169,14 +160,6 @@ export function DataTable<TData, TValue>({
         <div className="ml-auto flex items-center gap-2">
           {gridKey ? <DataTableViews gridKey={gridKey} capture={capture} apply={apply} /> : null}
           <DataTableViewOptions table={table} />
-          <Button
-            variant="outline"
-            size="icon-sm"
-            aria-label={density === 'compact' ? 'Use spacious rows' : 'Use compact rows'}
-            onClick={() => setDensity((d) => (d === 'compact' ? 'spacious' : 'compact'))}
-          >
-            <AlignJustify className="size-4" />
-          </Button>
           <span className="text-xs text-muted-foreground">
             {rows.length} {rows.length === 1 ? 'row' : 'rows'}
           </span>
