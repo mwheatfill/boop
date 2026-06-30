@@ -11,6 +11,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { isAdmin } from '@/lib/auth/is-admin'
 import { formatInTimezone } from '@/lib/format'
+import { triggerKindLabel } from '@/lib/jobs/format'
 import { effectiveTimezone } from '@/lib/jobs/queries'
 import { listAllJobsFn } from '@/lib/jobs/server-fns'
 import type { JobSummary } from '@/shared/schemas/job'
@@ -53,7 +54,8 @@ function columnsFor(): ColumnDef<JobSummary>[] {
       ),
     },
     {
-      accessorKey: 'triggerKind',
+      id: 'triggerKind',
+      accessorFn: (row) => triggerKindLabel(row.triggerKind),
       header: 'Trigger',
       meta: { label: 'Trigger', filterVariant: 'select' },
     },
