@@ -1,19 +1,11 @@
 import { Check, ChevronDown } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { ManualScheduler } from '@/components/forms/ManualScheduler'
 import { ScheduleNlBox } from '@/components/forms/ScheduleNlBox'
 import { SCHEDULE_PRESETS, type SchedulePreset } from '@/components/forms/schedule-presets'
-import { TimezoneCombobox } from '@/components/forms/TimezoneCombobox'
 import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { nextRuns } from '@/lib/cron/next-runs'
 import type { TriggerKind } from '@/shared/schemas/job'
@@ -87,19 +79,12 @@ export function TriggerPicker({
   const tab = value.triggerKind === 'webhook' ? 'webhook' : 'schedule'
   const timezone = value.triggerTimezone || workspaceTimezone
   const [aiSummary, setAiSummary] = useState<string | null>(null)
-  const activePreset = useMemo(() => SCHEDULE_PRESETS.find((p) => matchesPreset(value, p)), [value])
   const description = describeSchedule(value, aiSummary)
   const nextLine = nextRunLine(value, timezone)
-
-  const applyPreset = (preset: SchedulePreset) => {
-    setAiSummary(null)
-    onChange({
-      ...value,
-      triggerKind: preset.kind,
-      cronExpression: preset.cronExpression,
-      intervalSeconds: preset.intervalSeconds,
-    })
-  }
+  const hasSchedule =
+    value.triggerKind === 'interval'
+      ? value.intervalSeconds > 0
+      : value.cronExpression.trim() !== ''
 
   const selectTab = (next: string) => {
     if (next === 'webhook') {
@@ -135,13 +120,19 @@ export function TriggerPicker({
           }}
         />
 
-        <div className="flex flex-col gap-1 rounded-md border border-border bg-muted/30 px-3 py-2">
-          <div className="flex items-center gap-2 text-sm">
-            <Check className="size-4 shrink-0 text-success" aria-hidden />
-            <span className="font-medium text-foreground">{description}</span>
+        {hasSchedule ? (
+          <div className="flex flex-col gap-1 rounded-md border border-border bg-muted/30 px-3 py-2">
+            <div className="flex items-center gap-2 text-sm">
+              <Check className="size-4 shrink-0 text-success" aria-hidden />
+              <span className="font-medium text-foreground">{description}</span>
+            </div>
+            {nextLine ? <p className="pl-6 text-xs text-muted-foreground">{nextLine}</p> : null}
           </div>
-          {nextLine ? <p className="pl-6 text-xs text-muted-foreground">{nextLine}</p> : null}
-        </div>
+        ) : (
+          <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">
+            No schedule yet. Describe one above, or set it manually.
+          </div>
+        )}
 
         <Collapsible>
           <CollapsibleTrigger className="group/manual flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
@@ -151,35 +142,16 @@ export function TriggerPicker({
             />
             Set it manually
           </CollapsibleTrigger>
-          <CollapsibleContent className="flex flex-col gap-3 pt-3">
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Run</Label>
-              <Select
-                value={activePreset?.label ?? ''}
-                onValueChange={(label) => {
-                  const preset = SCHEDULE_PRESETS.find((p) => p.label === label)
-                  if (preset) applyPreset(preset)
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a schedule" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SCHEDULE_PRESETS.map((preset) => (
-                    <SelectItem key={preset.label} value={preset.label}>
-                      {preset.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Timezone</Label>
-              <TimezoneCombobox
-                value={timezone}
-                onValueChange={(tz) => onChange({ ...value, triggerTimezone: tz })}
-              />
-            </div>
+          <CollapsibleContent className="pt-3">
+            <ManualScheduler
+              cronExpression={value.cronExpression}
+              timezone={timezone}
+              onChange={(cron) => {
+                setAiSummary(null)
+                onChange({ ...value, triggerKind: 'cron', cronExpression: cron })
+              }}
+              onTimezone={(tz) => onChange({ ...value, triggerTimezone: tz })}
+            />
           </CollapsibleContent>
         </Collapsible>
       </TabsContent>

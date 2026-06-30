@@ -198,7 +198,7 @@ export function JobSheet({
       workspaceSlug: (isEdit ? job?.workspaceSlug : workspaceDefault?.slug) ?? '',
       targetSlug: job?.targetSlug ?? '',
       triggerKind: job?.triggerKind ?? 'cron',
-      cronExpression: job?.cronExpression ?? DEFAULT_CRON,
+      cronExpression: job?.cronExpression ?? '',
       intervalSeconds: job?.intervalSeconds ?? DEFAULT_INTERVAL,
       triggerTimezone: job?.triggerTimezone ?? ws?.timezone ?? 'UTC',
       bodyTemplate: job?.bodyTemplate ?? '',
@@ -217,6 +217,8 @@ export function JobSheet({
         if (!value.targetSlug) return { fields: { targetSlug: 'Pick a Target' } }
         if (!value.name.trim()) return { fields: { name: 'Name is required' } }
         if (!value.slug.trim()) return { fields: { slug: 'Slug is required' } }
+        if (value.triggerKind === 'cron' && !value.cronExpression.trim())
+          return 'Choose a schedule for this Job, or switch to Webhook.'
 
         const triggerInput =
           value.triggerKind === 'cron'
