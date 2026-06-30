@@ -1,14 +1,16 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Waypoints } from 'lucide-react'
+import { Plus, Waypoints } from 'lucide-react'
 import { useState } from 'react'
 import { DateTime } from '@/components/DateTime'
 import { EmptyState } from '@/components/EmptyState'
+import { TargetSheet } from '@/components/forms/TargetSheet'
 import { TunnelSheet } from '@/components/forms/TunnelSheet'
 import { TargetHealthBadge } from '@/components/targets/TargetHealthBadge'
 import { TargetVerifyButton } from '@/components/targets/TargetVerifyButton'
 import { TunnelActions } from '@/components/tunnels/TunnelActions'
 import { TunnelStateBadge } from '@/components/tunnels/TunnelStateBadge'
+import { Button } from '@/components/ui/button'
 import { targetsForTunnelQueryOptions } from '@/lib/targets/query-options'
 import { tunnelQueryOptions } from '@/lib/tunnels/query-options'
 
@@ -41,7 +43,7 @@ export const Route = createFileRoute('/_authenticated/tunnels_/$tunnelSlug')({
 
 function TunnelDetailPage() {
   const { tunnelSlug } = Route.useParams()
-  const { currentUser } = Route.useRouteContext()
+  const { currentUser, workspaceSlug } = Route.useRouteContext()
   const isAdmin = currentUser.role === 'admin'
   const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
@@ -101,17 +103,41 @@ function TunnelDetailPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-medium">Targets</h2>
-          <p className="text-sm text-muted-foreground">
-            Targets that use this tunnel, with their current health.
-          </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-medium">Targets</h2>
+            <p className="text-sm text-muted-foreground">
+              Targets that use this tunnel, with their current health.
+            </p>
+          </div>
+          {isAdmin && ridingTargets.length > 0 ? (
+            <TargetSheet
+              owner={{ workspaceSlug }}
+              trigger={
+                <Button size="sm">
+                  <Plus aria-hidden /> Add target
+                </Button>
+              }
+            />
+          ) : null}
         </div>
         {ridingTargets.length === 0 ? (
           <EmptyState
             icon={Waypoints}
             title="No targets use this tunnel yet."
             description="Add a target and choose this tunnel."
+            action={
+              isAdmin ? (
+                <TargetSheet
+                  owner={{ workspaceSlug }}
+                  trigger={
+                    <Button>
+                      <Plus aria-hidden /> Add target
+                    </Button>
+                  }
+                />
+              ) : undefined
+            }
           />
         ) : (
           <ul className="divide-y divide-border border-y border-border">

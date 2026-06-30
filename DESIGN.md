@@ -37,7 +37,7 @@ Flat shadcn OKLCH tokens on `base-vega` (Base UI), adopted wholesale from the ro
 | `--success` | `oklch(0.62 0.15 150)` | `oklch(0.7 0.15 155)` |
 | `--warning` | `oklch(0.7 0.15 70)` | `oklch(0.78 0.15 75)` |
 | `--info` | `oklch(0.55 0.13 235)` | `oklch(0.7 0.1 235)` |
-| `--destructive` | `oklch(0.6665 0.2111 2.8306)` | `oklch(0.7425 0.1696 1.0847)` |
+| `--destructive` | `oklch(0.648 0.222 35)` | `oklch(0.71 0.19 35)` |
 
 **Borders are low-contrast greys**, not pure-alpha hairlines. Light `--border` ≈ `oklch(0.97 0 0)`; dark ≈ `oklch(0.21 0 0)`. Structure still emerges from border lines and tone steps, not gaps.
 
