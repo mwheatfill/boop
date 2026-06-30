@@ -9,6 +9,7 @@ import {
   Pin,
   SendHorizonal,
   Target as TargetIcon,
+  Trash2,
   Waypoints,
 } from 'lucide-react'
 import type { ComponentType, ReactNode } from 'react'
@@ -46,6 +47,7 @@ interface NavItem {
     | '/tunnels'
     | '/channels'
     | '/alert-rules'
+    | '/recycle-bin'
   icon: ComponentType<{ 'aria-hidden'?: boolean }>
   exact?: boolean
   adminOnly?: boolean
@@ -60,6 +62,7 @@ const NAV: NavItem[] = [
   { label: 'Channels', to: '/channels', icon: SendHorizonal },
   { label: 'Alert Rules', to: '/alert-rules', icon: Bell },
   { label: 'Templates', to: '/templates', icon: BookTemplate },
+  { label: 'Recycle Bin', to: '/recycle-bin', icon: Trash2, adminOnly: true },
 ]
 
 type EntityKind = 'workspace' | 'job'
