@@ -42,26 +42,21 @@ const jobSlugPair = z.object({
 
 export const listAllJobsFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .inputValidator(
-    (data: { workspaceSlug?: string; status?: 'active' | 'paused' | 'archived' } | undefined) =>
-      z
-        .object({
-          workspaceSlug: z.string().min(1).optional(),
-          status: z.enum(['active', 'paused', 'archived']).optional(),
-        })
-        .parse(data ?? {}),
+  .inputValidator((data: { workspaceSlug?: string; includeArchived?: boolean } | undefined) =>
+    z
+      .object({
+        workspaceSlug: z.string().min(1).optional(),
+        includeArchived: z.boolean().optional(),
+      })
+      .parse(data ?? {}),
   )
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
+    const includeArchived = data.includeArchived ?? false
     if (data.workspaceSlug) {
-      return listJobsForWorkspace(db, data.workspaceSlug, {
-        includeArchived: data.status === 'archived',
-      })
+      return listJobsForWorkspace(db, data.workspaceSlug, { includeArchived })
     }
-    return listAllJobs(db, {
-      ...(data.status ? { status: data.status } : {}),
-      includeArchived: data.status === 'archived',
-    })
+    return listAllJobs(db, { includeArchived })
   })
 
 export const getJobFn = createServerFn({ method: 'GET' })

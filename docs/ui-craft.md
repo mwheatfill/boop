@@ -53,6 +53,12 @@ Every surface passes this before it is "done."
 **Hierarchy**
 - One clear title. Section headers are a `CardTitle` (normal-weight `text-sm`/`text-base`) with a muted leading icon — not tiny uppercase. Labels are muted; values are foreground. Do not give everything the same weight.
 
+**Tables — one standard, building blocks opt-in**
+- Every tabular list route uses the shared **`DataTable`** (`src/components/data-table/`) with its one toolbar: search + faceted-filter buttons + Views + Columns + row count. **Never** a bespoke filter UI beside it — no status pill rows (`ContentChrome`), no inline chip groups (`RunsFilterChips`), no per-route segmented controls. If two routes both filter by status, they show the **same** faceted-filter button.
+- Building blocks a table opts into via column defs / props, not by reinventing chrome: **faceted filter** (`meta: { filterVariant: 'select' }`), **sort** (column header), **date-range filter**, **grouping** (`getGroupedRowModel`, when a table needs it), **saved views** (`gridKey`), **column show/reorder**. Not every table needs every block, but the block is the same everywhere.
+- **Archived** is a uniform `Show archived` toggle (a `?archived` search param), never a status facet value or a pill.
+- **Large/server-filtered tables** (e.g. Runs) use the same toolbar with the DataTable's server mode (`manualFiltering` — filters/search are controlled and emitted to the parent, which refetches), so a high-volume list looks and filters like every other one.
+
 **Lists are lists**
 - A list of entities (targets, variables, recipients) is **rows** (icon + name + secondary + a remove/action), not a raw `<textarea>` dump. Bulk paste is a *secondary* affordance, not the primary surface.
 

@@ -3,7 +3,6 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
 import { z } from 'zod'
-import { ContentChrome } from '@/components/ContentChrome'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { JobSheet } from '@/components/forms/JobSheet'
@@ -16,27 +15,23 @@ import { effectiveTimezone } from '@/lib/jobs/queries'
 import { listAllJobsFn } from '@/lib/jobs/server-fns'
 import type { JobSummary } from '@/shared/schemas/job'
 
-const allJobsQueryOptions = (filters: { status?: 'active' | 'paused' | 'archived' }) =>
+const allJobsQueryOptions = (filters: { includeArchived?: boolean }) =>
   queryOptions({
     queryKey: ['jobs', filters],
     queryFn: () => listAllJobsFn({ data: filters }),
   })
 
 const searchSchema = z.object({
-  status: z.enum(['active', 'paused', 'archived']).optional(),
+  archived: z.boolean().optional(),
 })
 
 export const Route = createFileRoute('/_authenticated/jobs')({
   validateSearch: searchSchema,
-  loaderDeps: ({ search }) => ({ status: search.status }),
+  loaderDeps: ({ search }) => ({ archived: Boolean(search.archived) }),
   loader: ({ context, deps }) =>
-    context.queryClient.ensureQueryData(
-      allJobsQueryOptions({ ...(deps.status ? { status: deps.status } : {}) }),
-    ),
+    context.queryClient.ensureQueryData(allJobsQueryOptions({ includeArchived: deps.archived })),
   component: JobsPage,
 })
-
-const STATUSES = ['active', 'paused', 'archived'] as const
 
 function columnsFor(): ColumnDef<JobSummary>[] {
   return [
@@ -85,12 +80,11 @@ function columnsFor(): ColumnDef<JobSummary>[] {
 }
 
 function JobsPage() {
-  const search = Route.useSearch()
   const navigate = Route.useNavigate()
+  const search = Route.useSearch()
   const { currentUser, workspaceSlug } = Route.useRouteContext()
-  const filters = { ...(search.status ? { status: search.status } : {}) }
-  const { data: jobs } = useSuspenseQuery(allJobsQueryOptions(filters))
-  const filtered = Boolean(search.status)
+  const archived = Boolean(search.archived)
+  const { data: jobs } = useSuspenseQuery(allJobsQueryOptions({ includeArchived: archived }))
 
   return (
     <div className="flex flex-col gap-6">
@@ -103,55 +97,35 @@ function JobsPage() {
           <Button render={<Link to="/" />} variant="outline" size="sm">
             ← Dashboard
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate({ search: (prev) => ({ ...prev, archived: !archived }) })}
+          >
+            {archived ? 'Hide archived' : 'Show archived'}
+          </Button>
           <JobSheet
             owner={{ workspaceSlug }}
             isAdmin={isAdmin(currentUser)}
             trigger={
-              <Button>
+              <Button size="sm">
                 <Plus aria-hidden /> New Job
               </Button>
             }
           />
-          <ContentChrome />
         </div>
       </header>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          variant={search.status ? 'outline' : 'default'}
-          size="xs"
-          onClick={() => navigate({ search: (prev) => ({ ...prev, status: undefined }) })}
-        >
-          All
-        </Button>
-        {STATUSES.map((status) => (
-          <Button
-            key={status}
-            variant={search.status === status ? 'default' : 'outline'}
-            size="xs"
-            onClick={() => navigate({ search: (prev) => ({ ...prev, status }) })}
-          >
-            {status}
-          </Button>
-        ))}
-      </div>
-
       {jobs.length === 0 ? (
-        filtered ? (
-          <EmptyState
-            title="No Jobs match these filters."
-            description="Clear the filters to see every Job."
-            action={
-              <Button variant="outline" size="sm" onClick={() => navigate({ search: {} })}>
-                Clear filters
-              </Button>
-            }
-          />
-        ) : (
-          <EmptyState
-            title="No Jobs yet."
-            description="Create a Job to schedule calls to a Target."
-            action={
+        <EmptyState
+          title={archived ? 'No archived Jobs.' : 'No Jobs yet.'}
+          description={
+            archived
+              ? 'Toggle off "Show archived" to see active Jobs.'
+              : 'Create a Job to schedule calls to a Target.'
+          }
+          action={
+            archived ? undefined : (
               <JobSheet
                 owner={{ workspaceSlug }}
                 isAdmin={isAdmin(currentUser)}
@@ -161,9 +135,9 @@ function JobsPage() {
                   </Button>
                 }
               />
-            }
-          />
-        )
+            )
+          }
+        />
       ) : (
         <DataTable columns={columnsFor()} data={jobs} gridKey="jobs" />
       )}
