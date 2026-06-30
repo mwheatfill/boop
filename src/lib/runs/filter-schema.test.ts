@@ -10,8 +10,16 @@ describe('RunsSearchSchema', () => {
   })
 
   it('catches a malformed range and falls back to 24h', () => {
-    const result = RunsSearchSchema.parse({ range: 'forever' })
-    expect(result.range).toBe('24h')
+    expect(RunsSearchSchema.parse({ range: 'forever' }).range).toBe('24h')
+  })
+
+  it('accepts a relative custom range like 45m', () => {
+    expect(RunsSearchSchema.parse({ range: '45m' }).range).toBe('45m')
+    expect(RunsSearchSchema.parse({ range: '3mo' }).range).toBe('3mo')
+  })
+
+  it('accepts "all"', () => {
+    expect(RunsSearchSchema.parse({ range: 'all' }).range).toBe('all')
   })
 
   it('parses a CSV string of statuses into an enum array', () => {
@@ -33,55 +41,28 @@ describe('RunsSearchSchema', () => {
     const result = RunsSearchSchema.parse({ workspace: 'acme, beta' })
     expect(result.workspace).toEqual(['acme', 'beta'])
   })
-
-  it('passes through a valid ISO datetime in from/to', () => {
-    const result = RunsSearchSchema.parse({
-      range: 'custom',
-      from: '2026-05-01T00:00:00.000Z',
-      to: '2026-05-12T23:59:59.999Z',
-    })
-    expect(result.from).toBe('2026-05-01T00:00:00.000Z')
-    expect(result.to).toBe('2026-05-12T23:59:59.999Z')
-  })
-
-  it('catches a malformed ISO datetime and falls back to empty', () => {
-    const result = RunsSearchSchema.parse({ range: 'custom', from: 'not-a-date' })
-    expect(result.from).toBe('')
-  })
 })
 
 describe('resolveRange', () => {
   const now = new Date('2026-05-12T15:00:00.000Z')
 
-  it('resolves 24h to now - 24h with no upper bound', () => {
-    const filters = RunsSearchSchema.parse({})
-    const range = resolveRange(filters, now)
+  it('resolves 24h to now - 24h', () => {
+    const range = resolveRange(RunsSearchSchema.parse({}), now)
     expect(range.from?.toISOString()).toBe('2026-05-11T15:00:00.000Z')
-    expect(range.to).toBeUndefined()
   })
 
   it('resolves 7d to now - 7 days', () => {
-    const filters = RunsSearchSchema.parse({ range: '7d' })
-    const range = resolveRange(filters, now)
+    const range = resolveRange(RunsSearchSchema.parse({ range: '7d' }), now)
     expect(range.from?.toISOString()).toBe('2026-05-05T15:00:00.000Z')
   })
 
-  it('resolves custom to the literal from/to', () => {
-    const filters = RunsSearchSchema.parse({
-      range: 'custom',
-      from: '2026-05-01T00:00:00.000Z',
-      to: '2026-05-10T00:00:00.000Z',
-    })
-    const range = resolveRange(filters, now)
-    expect(range.from?.toISOString()).toBe('2026-05-01T00:00:00.000Z')
-    expect(range.to?.toISOString()).toBe('2026-05-10T00:00:00.000Z')
+  it('resolves a relative custom range (45m)', () => {
+    const range = resolveRange(RunsSearchSchema.parse({ range: '45m' }), now)
+    expect(range.from?.toISOString()).toBe('2026-05-12T14:15:00.000Z')
   })
 
-  it('returns empty bounds for custom range with no from/to', () => {
-    const filters = RunsSearchSchema.parse({ range: 'custom' })
-    const range = resolveRange(filters, now)
-    expect(range.from).toBeUndefined()
-    expect(range.to).toBeUndefined()
+  it('resolves "all" to no lower bound', () => {
+    expect(resolveRange(RunsSearchSchema.parse({ range: 'all' }), now).from).toBeUndefined()
   })
 })
 
@@ -89,23 +70,21 @@ describe('filtersToWhere', () => {
   const now = new Date('2026-05-12T15:00:00.000Z')
 
   it('returns a non-undefined fragment for the default (24h range)', () => {
-    const filters = RunsSearchSchema.parse({})
-    expect(filtersToWhere(filters, now)).toBeDefined()
+    expect(filtersToWhere(RunsSearchSchema.parse({}), now)).toBeDefined()
   })
 
-  it('returns undefined for custom range with no bounds and no other filters', () => {
-    const filters = RunsSearchSchema.parse({ range: 'custom' })
-    expect(filtersToWhere(filters, now)).toBeUndefined()
+  it('returns undefined for range=all with no other filters', () => {
+    expect(filtersToWhere(RunsSearchSchema.parse({ range: 'all' }), now)).toBeUndefined()
   })
 
   it('produces a fragment when status is set', () => {
-    const filters = RunsSearchSchema.parse({ range: 'custom', status: 'running' })
+    const filters = RunsSearchSchema.parse({ range: 'all', status: 'running' })
     expect(filtersToWhere(filters, now)).toBeDefined()
   })
 
   it('produces a fragment when failureKind is set (EXISTS subquery)', () => {
     const filters = RunsSearchSchema.parse({
-      range: 'custom',
+      range: 'all',
       outcome: 'failure',
       failureKind: 'http_5xx',
     })

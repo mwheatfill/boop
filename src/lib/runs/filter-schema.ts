@@ -1,11 +1,27 @@
-import { and, gte, inArray, lte, type SQL, sql } from 'drizzle-orm'
+import { and, gte, inArray, type SQL, sql } from 'drizzle-orm'
 import { attempts, runs, workspaces } from '@/lib/db/schema'
 import { z } from '@/shared/schemas/openapi'
 import { FAILURE_KINDS, RUN_OUTCOMES, RUN_STATUSES } from '@/shared/schemas/run'
 
 export const TRIGGER_SOURCES = ['cron', 'interval', 'webhook', 'manual'] as const
 
-const RANGE_PRESETS = ['24h', '7d', 'custom'] as const
+const RANGE_RE = /^(\d+)(m|h|d|w|mo)$/
+const RANGE_UNIT_MS: Record<string, number> = {
+  m: 60_000,
+  h: 3_600_000,
+  d: 86_400_000,
+  w: 604_800_000,
+  mo: 30 * 86_400_000,
+}
+
+// A range is "all" or "<N><unit>" (e.g. 24h, 7d, 45m, 3mo) — a sliding window
+// computed at query time. Presets and custom relative ranges share this form.
+export function rangeToMs(range: string): number | null {
+  const m = RANGE_RE.exec(range)
+  const unit = m?.[2]
+  if (!m || unit === undefined) return null
+  return Number(m[1]) * (RANGE_UNIT_MS[unit] ?? 0)
+}
 
 const csvArray = <T extends string>(values: readonly T[]) =>
   z
@@ -38,17 +54,17 @@ const csvSlugs = z
   .catch([])
   .optional()
 
-const isoTimestamp = z.iso.datetime().catch('').optional()
-
 export const RunsSearchSchema = z.object({
   workspace: csvSlugs,
   status: csvArray(RUN_STATUSES),
   outcome: csvArray(RUN_OUTCOMES),
   failureKind: csvArray(FAILURE_KINDS),
   triggerSource: csvArray(TRIGGER_SOURCES),
-  range: z.enum(RANGE_PRESETS).catch('24h').default('24h'),
-  from: isoTimestamp,
-  to: isoTimestamp,
+  range: z
+    .string()
+    .regex(/^(all|\d+(m|h|d|w|mo))$/)
+    .catch('24h')
+    .default('24h'),
   cursor: z.string().catch('').optional(),
 })
 
@@ -56,22 +72,12 @@ export type RunsFilters = z.infer<typeof RunsSearchSchema>
 
 interface ResolvedRange {
   from?: Date
-  to?: Date
 }
 
 export function resolveRange(filters: RunsFilters, now: Date = new Date()): ResolvedRange {
-  if (filters.range === '24h') return { from: new Date(now.getTime() - 24 * 60 * 60 * 1000) }
-  if (filters.range === '7d') return { from: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) }
-  const result: ResolvedRange = {}
-  if (filters.from) {
-    const parsed = new Date(filters.from)
-    if (!Number.isNaN(parsed.getTime())) result.from = parsed
-  }
-  if (filters.to) {
-    const parsed = new Date(filters.to)
-    if (!Number.isNaN(parsed.getTime())) result.to = parsed
-  }
-  return result
+  if (filters.range === 'all') return {}
+  const ms = rangeToMs(filters.range) ?? 24 * 60 * 60 * 1000
+  return { from: new Date(now.getTime() - ms) }
 }
 
 export function filtersToWhere(filters: RunsFilters, now: Date = new Date()): SQL | undefined {
@@ -97,7 +103,6 @@ export function filtersToWhere(filters: RunsFilters, now: Date = new Date()): SQ
 
   const range = resolveRange(filters, now)
   if (range.from) conditions.push(gte(runs.startedAt, range.from))
-  if (range.to) conditions.push(lte(runs.startedAt, range.to))
 
   if (conditions.length === 0) return undefined
   if (conditions.length === 1) return conditions[0]

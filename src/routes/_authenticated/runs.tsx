@@ -1,16 +1,18 @@
 import { infiniteQueryOptions, useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { ContentChrome } from '@/components/ContentChrome'
+import { DateRangeFilter } from '@/components/data-table/data-table-date-filter'
+import { FacetedFilter } from '@/components/data-table/data-table-faceted-filter'
 import { EmptyState } from '@/components/EmptyState'
-import {
-  RunsFilterChips,
-  type RunsFilters as RunsFiltersUI,
-} from '@/components/forms/RunsFilterChips'
 import { RunsTable } from '@/components/forms/RunsTable'
 import { Button } from '@/components/ui/button'
-import { RunsSearchSchema } from '@/lib/runs/filter-schema'
+import { RunsSearchSchema, TRIGGER_SOURCES } from '@/lib/runs/filter-schema'
 import { listAllRunsFn } from '@/lib/runs/server-fns'
-import type { RunsListResponse } from '@/shared/schemas/run'
+import {
+  FAILURE_KINDS,
+  RUN_OUTCOMES,
+  RUN_STATUSES,
+  type RunsListResponse,
+} from '@/shared/schemas/run'
 
 const runsInfiniteOptions = (search: Record<string, unknown>) =>
   infiniteQueryOptions({
@@ -35,17 +37,6 @@ export const Route = createFileRoute('/_authenticated/runs')({
   component: RunsPage,
 })
 
-function searchToFilters(search: Record<string, unknown>): RunsFiltersUI {
-  const out: RunsFiltersUI = { range: (search.range as RunsFiltersUI['range']) ?? '24h' }
-  if (Array.isArray(search.status)) out.status = search.status as string[]
-  if (Array.isArray(search.outcome)) out.outcome = search.outcome as string[]
-  if (Array.isArray(search.failureKind)) out.failureKind = search.failureKind as string[]
-  if (Array.isArray(search.triggerSource)) out.triggerSource = search.triggerSource as string[]
-  if (typeof search.from === 'string' && search.from) out.from = search.from
-  if (typeof search.to === 'string' && search.to) out.to = search.to
-  return out
-}
-
 function RunsPage() {
   const search = Route.useSearch()
   const goTo = Route.useNavigate()
@@ -54,37 +45,60 @@ function RunsPage() {
   )
 
   const rows = data?.pages.flatMap((p) => p.rows) ?? []
-  const filters = searchToFilters(search as unknown as Record<string, unknown>)
 
-  const onFilterChange = (next: Partial<RunsFiltersUI>) => {
-    void goTo({
-      search: (prev) =>
-        ({
-          ...prev,
-          ...next,
-          cursor: undefined,
-        }) as never,
-    })
+  const onFilterChange = (next: Record<string, unknown>) => {
+    void goTo({ search: (prev) => ({ ...prev, ...next, cursor: undefined }) as never })
   }
 
+  const showFailureKind = (search.outcome ?? []).includes('failure')
   const hasNonDefaultFilter =
-    (filters.status && filters.status.length > 0) ||
-    (filters.outcome && filters.outcome.length > 0) ||
-    (filters.failureKind && filters.failureKind.length > 0) ||
-    (filters.triggerSource && filters.triggerSource.length > 0) ||
-    filters.range !== '24h'
+    (search.status?.length ?? 0) > 0 ||
+    (search.outcome?.length ?? 0) > 0 ||
+    (search.failureKind?.length ?? 0) > 0 ||
+    (search.triggerSource?.length ?? 0) > 0 ||
+    (search.range ?? '24h') !== '24h'
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Runs</h1>
-          <p className="text-sm text-muted-foreground">Each time a Job ran. Newest first.</p>
-        </div>
-        <ContentChrome />
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Runs</h1>
+        <p className="text-sm text-muted-foreground">Each time a Job ran. Newest first.</p>
       </header>
 
-      <RunsFilterChips filters={filters} onChange={onFilterChange} />
+      <div className="flex flex-wrap items-center gap-2">
+        <FacetedFilter
+          title="Status"
+          options={RUN_STATUSES.map((v) => ({ value: v }))}
+          value={search.status ?? []}
+          onChange={(status) => onFilterChange({ status })}
+        />
+        <FacetedFilter
+          title="Outcome"
+          options={RUN_OUTCOMES.map((v) => ({ value: v }))}
+          value={search.outcome ?? []}
+          onChange={(outcome) => onFilterChange({ outcome })}
+        />
+        {showFailureKind ? (
+          <FacetedFilter
+            title="Failure"
+            options={FAILURE_KINDS.map((v) => ({ value: v }))}
+            value={search.failureKind ?? []}
+            onChange={(failureKind) => onFilterChange({ failureKind })}
+          />
+        ) : null}
+        <FacetedFilter
+          title="Trigger"
+          options={TRIGGER_SOURCES.map((v) => ({ value: v }))}
+          value={search.triggerSource ?? []}
+          onChange={(triggerSource) => onFilterChange({ triggerSource })}
+        />
+        <div className="ml-auto">
+          <DateRangeFilter
+            value={search.range ?? '24h'}
+            onChange={(range) => onFilterChange({ range })}
+          />
+        </div>
+      </div>
 
       {rows.length === 0 ? (
         <EmptyState

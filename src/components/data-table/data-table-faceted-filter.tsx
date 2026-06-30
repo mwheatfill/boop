@@ -14,23 +14,28 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
-export function DataTableFacetedFilter<TData, TValue>({
-  column,
+export interface FacetOption {
+  value: string
+  label?: string
+  count?: number
+}
+
+// The shared faceted multi-select control. Used in two ways: bound to a
+// react-table column (client-side lists), or standalone with explicit options +
+// value/onChange (server-filtered lists like Runs). Same chrome either way.
+function FacetedFilterControl({
   title,
+  options,
+  selected,
+  onToggle,
+  onClear,
 }: {
-  column: Column<TData, TValue>
   title: string
+  options: FacetOption[]
+  selected: Set<string>
+  onToggle: (value: string) => void
+  onClear: () => void
 }) {
-  const facets = column.getFacetedUniqueValues()
-  const options = [...facets.entries()]
-    .map(([value, count]) => ({ value: String(value), count }))
-    .filter((o) => o.value)
-    .sort((a, b) => a.value.localeCompare(b.value))
-  const selected = new Set((column.getFilterValue() as string[] | undefined) ?? [])
-
-  // A single (or no) facet value can't filter anything — don't show the control.
-  if (options.length <= 1) return null
-
   return (
     <Popover>
       <PopoverTrigger render={<Button variant="outline" size="sm" className="h-8 border-dashed" />}>
@@ -54,16 +59,7 @@ export function DataTableFacetedFilter<TData, TValue>({
               {options.map((option) => {
                 const isSelected = selected.has(option.value)
                 return (
-                  <CommandItem
-                    key={option.value}
-                    onSelect={() => {
-                      const next = new Set(selected)
-                      if (isSelected) next.delete(option.value)
-                      else next.add(option.value)
-                      const values = [...next]
-                      column.setFilterValue(values.length ? values : undefined)
-                    }}
-                  >
+                  <CommandItem key={option.value} onSelect={() => onToggle(option.value)}>
                     <div
                       className={cn(
                         'flex size-4 items-center justify-center rounded-sm border border-primary',
@@ -74,20 +70,19 @@ export function DataTableFacetedFilter<TData, TValue>({
                     >
                       <Check className="size-3" />
                     </div>
-                    <span className="capitalize">{option.value}</span>
-                    <span className="ml-auto font-mono text-xs text-muted-foreground">
-                      {option.count}
-                    </span>
+                    <span className="capitalize">{option.label ?? option.value}</span>
+                    {option.count !== undefined ? (
+                      <span className="ml-auto font-mono text-xs text-muted-foreground">
+                        {option.count}
+                      </span>
+                    ) : null}
                   </CommandItem>
                 )
               })}
             </CommandGroup>
             {selected.size > 0 ? (
               <CommandGroup>
-                <CommandItem
-                  onSelect={() => column.setFilterValue(undefined)}
-                  className="justify-center text-center"
-                >
+                <CommandItem onSelect={onClear} className="justify-center text-center">
                   Clear filter
                 </CommandItem>
               </CommandGroup>
@@ -96,5 +91,66 @@ export function DataTableFacetedFilter<TData, TValue>({
         </Command>
       </PopoverContent>
     </Popover>
+  )
+}
+
+// Bound to a react-table column: options + selection derived from the table.
+export function DataTableFacetedFilter<TData, TValue>({
+  column,
+  title,
+}: {
+  column: Column<TData, TValue>
+  title: string
+}) {
+  const facets = column.getFacetedUniqueValues()
+  const options = [...facets.entries()]
+    .map(([value, count]) => ({ value: String(value), count }))
+    .filter((o) => o.value)
+    .sort((a, b) => a.value.localeCompare(b.value))
+  // A single (or no) facet value can't filter anything — don't show the control.
+  if (options.length <= 1) return null
+  const selected = new Set((column.getFilterValue() as string[] | undefined) ?? [])
+  return (
+    <FacetedFilterControl
+      title={title}
+      options={options}
+      selected={selected}
+      onToggle={(v) => {
+        const next = new Set(selected)
+        if (next.has(v)) next.delete(v)
+        else next.add(v)
+        column.setFilterValue(next.size ? [...next] : undefined)
+      }}
+      onClear={() => column.setFilterValue(undefined)}
+    />
+  )
+}
+
+// Standalone: explicit options + controlled value (for server-filtered lists).
+export function FacetedFilter({
+  title,
+  options,
+  value,
+  onChange,
+}: {
+  title: string
+  options: FacetOption[]
+  value: string[]
+  onChange: (next: string[]) => void
+}) {
+  const selected = new Set(value)
+  return (
+    <FacetedFilterControl
+      title={title}
+      options={options}
+      selected={selected}
+      onToggle={(v) => {
+        const next = new Set(selected)
+        if (next.has(v)) next.delete(v)
+        else next.add(v)
+        onChange([...next])
+      }}
+      onClear={() => onChange([])}
+    />
   )
 }
