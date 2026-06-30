@@ -11,6 +11,7 @@ interface ScheduleNlBoxProps {
     triggerKind: 'cron' | 'interval'
     cronExpression: string
     intervalSeconds: number
+    summary: string
   }) => void
 }
 
@@ -27,8 +28,10 @@ export function ScheduleNlBox({ timezone, onApply }: ScheduleNlBoxProps) {
           triggerKind: p.kind,
           cronExpression: p.cronExpression,
           intervalSeconds: p.intervalSeconds,
+          summary: p.summary,
         })
-        setMessage(p.summary)
+        setText('')
+        setMessage(null)
         return
       }
       setMessage(

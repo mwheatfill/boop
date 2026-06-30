@@ -1,15 +1,21 @@
+import { Check, ChevronDown } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { CronPreview } from '@/components/forms/CronPreview'
-import { CRON_QUICK_PICKS } from '@/components/forms/cron-quick-picks'
-import { firesPerDay, IntervalChips } from '@/components/forms/IntervalChips'
 import { ScheduleNlBox } from '@/components/forms/ScheduleNlBox'
 import { SCHEDULE_PRESETS, type SchedulePreset } from '@/components/forms/schedule-presets'
 import { TimezoneCombobox } from '@/components/forms/TimezoneCombobox'
 import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { nextRuns } from '@/lib/cron/next-runs'
 import type { TriggerKind } from '@/shared/schemas/job'
 
 export interface TriggerPickerValue {
@@ -36,6 +42,41 @@ function matchesPreset(value: TriggerPickerValue, preset: SchedulePreset): boole
     : preset.intervalSeconds === value.intervalSeconds
 }
 
+function intervalText(seconds: number): string {
+  if (seconds >= 3600 && seconds % 3600 === 0) {
+    const h = seconds / 3600
+    return `Every ${h} hour${h === 1 ? '' : 's'}`
+  }
+  if (seconds >= 60 && seconds % 60 === 0) {
+    const m = seconds / 60
+    return `Every ${m} minute${m === 1 ? '' : 's'}`
+  }
+  return `Every ${seconds} seconds`
+}
+
+function describeSchedule(value: TriggerPickerValue, aiSummary: string | null): string {
+  if (value.triggerKind === 'interval') return intervalText(value.intervalSeconds)
+  const preset = SCHEDULE_PRESETS.find((p) => matchesPreset(value, p))
+  if (preset) return preset.label
+  return aiSummary ?? 'Custom schedule'
+}
+
+function nextRunLine(value: TriggerPickerValue, timezone: string): string | null {
+  if (value.triggerKind === 'interval') return 'Runs back-to-back; a slow run delays the next.'
+  try {
+    const [next] = nextRuns({ expression: value.cronExpression, timezone, n: 1 })
+    if (!next) return null
+    const formatted = Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(next)
+    return `Next run ${formatted} · ${timezone}`
+  } catch {
+    return null
+  }
+}
+
 export function TriggerPicker({
   value,
   onChange,
@@ -43,25 +84,26 @@ export function TriggerPicker({
   workspaceTimezone,
   webhookEditJobSlug,
 }: TriggerPickerProps) {
-  const set = <K extends keyof TriggerPickerValue>(key: K, next: TriggerPickerValue[K]) =>
-    onChange({ ...value, [key]: next })
-
   const tab = value.triggerKind === 'webhook' ? 'webhook' : 'schedule'
+  const timezone = value.triggerTimezone || workspaceTimezone
+  const [aiSummary, setAiSummary] = useState<string | null>(null)
   const activePreset = useMemo(() => SCHEDULE_PRESETS.find((p) => matchesPreset(value, p)), [value])
-  const [advancedOpen, setAdvancedOpen] = useState(false)
-  const showAdvanced = advancedOpen || (tab === 'schedule' && !activePreset)
+  const description = describeSchedule(value, aiSummary)
+  const nextLine = nextRunLine(value, timezone)
 
-  const applyPreset = (preset: SchedulePreset) =>
+  const applyPreset = (preset: SchedulePreset) => {
+    setAiSummary(null)
     onChange({
       ...value,
       triggerKind: preset.kind,
       cronExpression: preset.cronExpression,
       intervalSeconds: preset.intervalSeconds,
     })
+  }
 
   const selectTab = (next: string) => {
     if (next === 'webhook') {
-      set('triggerKind', 'webhook')
+      onChange({ ...value, triggerKind: 'webhook' })
     } else if (value.triggerKind === 'webhook') {
       onChange({
         ...value,
@@ -70,14 +112,6 @@ export function TriggerPicker({
       })
     }
   }
-
-  const setMode = (mode: 'cron' | 'interval') =>
-    onChange({
-      ...value,
-      triggerKind: mode,
-      cronExpression: mode === 'cron' ? value.cronExpression || DEFAULT_CRON : value.cronExpression,
-      intervalSeconds: mode === 'interval' ? value.intervalSeconds || 300 : value.intervalSeconds,
-    })
 
   return (
     <Tabs value={tab} onValueChange={selectTab}>
@@ -88,8 +122,9 @@ export function TriggerPicker({
 
       <TabsContent value="schedule" className="flex flex-col gap-3">
         <ScheduleNlBox
-          timezone={value.triggerTimezone || workspaceTimezone}
-          onApply={(p) =>
+          timezone={timezone}
+          onApply={(p) => {
+            setAiSummary(p.summary)
             onChange({
               ...value,
               triggerKind: p.triggerKind,
@@ -97,68 +132,56 @@ export function TriggerPicker({
               intervalSeconds:
                 p.triggerKind === 'interval' ? p.intervalSeconds : value.intervalSeconds,
             })
-          }
+          }}
         />
-        <div className="flex flex-wrap gap-1.5">
-          {SCHEDULE_PRESETS.map((preset) => (
-            <Button
-              key={preset.label}
-              type="button"
-              variant={activePreset?.label === preset.label ? 'default' : 'outline'}
-              size="xs"
-              onClick={() => applyPreset(preset)}
-            >
-              {preset.label}
-            </Button>
-          ))}
+
+        <div className="flex flex-col gap-1 rounded-md border border-border bg-muted/30 px-3 py-2">
+          <div className="flex items-center gap-2 text-sm">
+            <Check className="size-4 shrink-0 text-success" aria-hidden />
+            <span className="font-medium text-foreground">{description}</span>
+          </div>
+          {nextLine ? <p className="pl-6 text-xs text-muted-foreground">{nextLine}</p> : null}
         </div>
 
-        <button
-          type="button"
-          className="self-start text-xs text-muted-foreground hover:text-foreground"
-          onClick={() => setAdvancedOpen((o) => !o)}
-        >
-          {showAdvanced ? 'Hide advanced' : 'Advanced'}
-        </button>
-
-        {showAdvanced ? (
-          <div className="flex flex-col gap-3 rounded-md border border-border p-3">
-            <div className="flex gap-1.5">
-              <Button
-                type="button"
-                size="xs"
-                variant={value.triggerKind === 'cron' ? 'default' : 'outline'}
-                onClick={() => setMode('cron')}
+        <Collapsible>
+          <CollapsibleTrigger className="group/manual flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
+            <ChevronDown
+              className="size-3.5 transition-transform group-data-[panel-open]/manual:rotate-180"
+              aria-hidden
+            />
+            Set it manually
+          </CollapsibleTrigger>
+          <CollapsibleContent className="flex flex-col gap-3 pt-3">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Run</Label>
+              <Select
+                value={activePreset?.label ?? ''}
+                onValueChange={(label) => {
+                  const preset = SCHEDULE_PRESETS.find((p) => p.label === label)
+                  if (preset) applyPreset(preset)
+                }}
               >
-                Calendar (cron)
-              </Button>
-              <Button
-                type="button"
-                size="xs"
-                variant={value.triggerKind === 'interval' ? 'default' : 'outline'}
-                onClick={() => setMode('interval')}
-              >
-                Interval
-              </Button>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a schedule" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SCHEDULE_PRESETS.map((preset) => (
+                    <SelectItem key={preset.label} value={preset.label}>
+                      {preset.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-
-            {value.triggerKind === 'interval' ? (
-              <IntervalAdvanced
-                seconds={value.intervalSeconds}
-                onChange={(s) => set('intervalSeconds', s)}
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Timezone</Label>
+              <TimezoneCombobox
+                value={timezone}
+                onValueChange={(tz) => onChange({ ...value, triggerTimezone: tz })}
               />
-            ) : (
-              <CronAdvanced
-                expression={value.cronExpression}
-                timezone={value.triggerTimezone || workspaceTimezone}
-                onExpression={(e) => set('cronExpression', e)}
-                onTimezone={(tz) => set('triggerTimezone', tz)}
-              />
-            )}
-          </div>
-        ) : null}
-
-        <SchedulePreview value={value} workspaceTimezone={workspaceTimezone} />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </TabsContent>
 
       <TabsContent value="webhook" className="flex flex-col gap-3">
@@ -175,112 +198,6 @@ export function TriggerPicker({
         ) : null}
       </TabsContent>
     </Tabs>
-  )
-}
-
-function IntervalAdvanced({
-  seconds,
-  onChange,
-}: {
-  seconds: number
-  onChange: (s: number) => void
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <IntervalChips value={seconds} onChange={onChange} />
-      <Label htmlFor="interval-seconds" className="text-xs">
-        Custom (seconds)
-      </Label>
-      <Input
-        id="interval-seconds"
-        type="number"
-        min={1}
-        value={seconds}
-        onChange={(e) => onChange(Number(e.currentTarget.value) || 0)}
-      />
-      {seconds >= 60 ? (
-        <p className="rounded-md border border-warning/40 bg-warning/10 px-2 py-1.5 text-xs">
-          For 1m+ cadences, a Calendar (cron) schedule is cheaper for the same behavior.
-        </p>
-      ) : null}
-    </div>
-  )
-}
-
-function CronAdvanced({
-  expression,
-  timezone,
-  onExpression,
-  onTimezone,
-}: {
-  expression: string
-  timezone: string
-  onExpression: (e: string) => void
-  onTimezone: (tz: string) => void
-}) {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-1.5">
-        {CRON_QUICK_PICKS.map((q) => (
-          <Button
-            key={q.expression}
-            type="button"
-            variant={expression === q.expression ? 'default' : 'outline'}
-            size="xs"
-            onClick={() => onExpression(q.expression)}
-          >
-            {q.label}
-          </Button>
-        ))}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="cron-expression" className="text-xs">
-            Expression
-          </Label>
-          <Input
-            id="cron-expression"
-            value={expression}
-            placeholder="0 9 * * 1-5"
-            className="font-mono"
-            onChange={(e) => onExpression(e.currentTarget.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs">Timezone</Label>
-          <TimezoneCombobox value={timezone} onValueChange={onTimezone} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function SchedulePreview({
-  value,
-  workspaceTimezone,
-}: {
-  value: TriggerPickerValue
-  workspaceTimezone: string
-}) {
-  if (value.triggerKind === 'interval') {
-    return (
-      <div className="rounded-md border border-border bg-muted/30 p-3">
-        <p className="text-xs text-muted-foreground">
-          Runs at most every {value.intervalSeconds}s (up to ~
-          {firesPerDay(value.intervalSeconds).toLocaleString()}/day). Runs never overlap, so a slow
-          run delays the next.
-        </p>
-      </div>
-    )
-  }
-  return (
-    <div className="rounded-md border border-border bg-muted/30 p-3">
-      <CronPreview
-        expression={value.cronExpression}
-        timezone={value.triggerTimezone || workspaceTimezone}
-        count={3}
-      />
-    </div>
   )
 }
 

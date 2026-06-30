@@ -1,14 +1,24 @@
 import { useStore } from '@tanstack/react-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Activity, Plus } from 'lucide-react'
+import {
+  Activity,
+  ChevronDown,
+  Clock,
+  Code2,
+  Crosshair,
+  LayoutTemplate,
+  Plus,
+  Tag,
+} from 'lucide-react'
 import { type ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Section } from '@/components/Section'
 import { TemplateGallery } from '@/components/templates/TemplateGallery'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
 import {
   Sheet,
@@ -438,15 +448,10 @@ export function JobSheet({
                 {isEdit ? 'Edit this scheduled HTTP call' : 'A scheduled HTTP call to a Target'}
               </SheetDescription>
             </div>
-            {isEdit ? (
-              <Badge variant="secondary" className="shrink-0">
-                {job.triggerKind}
-              </Badge>
-            ) : null}
           </SheetHeader>
 
           <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-5">
-            <Section title="Identity">
+            <Section icon={Tag} title="Identity">
               <form.AppField
                 name="name"
                 listeners={{
@@ -457,32 +462,10 @@ export function JobSheet({
               >
                 {(f) => <f.TextField label="Name" placeholder="Nightly backup" autoFocus />}
               </form.AppField>
-              <form.AppField name="slug">
-                {(f) => (
-                  <Field>
-                    <FieldLabel htmlFor={f.name}>Slug</FieldLabel>
-                    <input
-                      id={f.name}
-                      value={f.state.value}
-                      readOnly={isEdit}
-                      onChange={(e) => {
-                        slug.markManual()
-                        f.handleChange(e.currentTarget.value)
-                      }}
-                      onBlur={f.handleBlur}
-                      placeholder="nightly-backup"
-                      className="h-9 rounded-md border border-input bg-transparent px-3 font-mono text-xs shadow-xs read-only:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none dark:bg-input/30"
-                    />
-                    <FieldDescription>
-                      {isEdit ? "Slug can't change after creation." : 'Used in URLs and the API.'}
-                    </FieldDescription>
-                  </Field>
-                )}
-              </form.AppField>
             </Section>
 
             {!isEdit ? (
-              <Section title="Start from">
+              <Section icon={LayoutTemplate} title="Start from">
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
@@ -516,7 +499,7 @@ export function JobSheet({
                   </p>
                 ) : null}
 
-                <Section title="Target">
+                <Section icon={Crosshair} title="Target">
                   {workspaces.length > 1 ? (
                     isEdit ? (
                       <Field>
@@ -607,7 +590,7 @@ export function JobSheet({
                   ) : null}
                 </Section>
 
-                <Section title="Trigger">
+                <Section icon={Clock} title="Trigger">
                   <TriggerPicker
                     value={{ triggerKind, cronExpression, intervalSeconds, triggerTimezone }}
                     onChange={(next) => {
@@ -624,47 +607,73 @@ export function JobSheet({
                   />
                 </Section>
 
-                <Section
-                  title="Variables"
-                  hint="Effective variables for this Job's templates. Workspace-level entries are inherited; Job entries with the same name override."
-                >
-                  <form.AppField name="variables">
-                    {(f) => (
-                      <KeyValueListEditor
-                        rows={buildVariableRows(selectedWorkspace?.variables ?? {}, f.state.value)}
-                        onChange={(next) => {
-                          const overridesAndJobOnly = next.filter(
-                            (r) => r.source !== 'workspace' && r.name.length > 0,
-                          )
-                          f.handleChange(rowsToVariableMap(overridesAndJobOnly))
-                        }}
-                        addLabel="Add Job variable"
-                      />
-                    )}
-                  </form.AppField>
-                </Section>
-
-                <Section title="Body">
-                  <form.AppField name="bodyTemplate">
-                    {(f) => (
-                      <TemplateEditor
-                        id={f.name}
-                        label="Body template"
-                        value={f.state.value}
-                        onChange={(v) => f.handleChange(v)}
-                        variant="body"
-                        workspaceName={selectedWorkspace?.name ?? ''}
-                        workspaceTimezone={selectedWorkspace?.timezone ?? 'UTC'}
-                        variables={buildAutocompleteVariables(
-                          selectedWorkspace?.variables ?? {},
-                          form.state.values.variables,
-                        )}
-                        secrets={secretNames}
-                        helpText={BODY_HELP_TEXT}
-                      />
-                    )}
-                  </form.AppField>
-                </Section>
+                <Card size="sm" className="shrink-0">
+                  <Collapsible>
+                    <CardHeader>
+                      <CollapsibleTrigger className="group/req flex w-full cursor-pointer items-center justify-between gap-2 text-left">
+                        <CardTitle className="flex items-center gap-2">
+                          <Code2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                          Request body & variables
+                        </CardTitle>
+                        <ChevronDown
+                          className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]/req:rotate-180"
+                          aria-hidden
+                        />
+                      </CollapsibleTrigger>
+                      <CardDescription>
+                        Optional. Only for POST/PUT calls or templated payloads — most Jobs don't
+                        need this.
+                      </CardDescription>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="flex flex-col gap-5">
+                        <form.AppField name="bodyTemplate">
+                          {(f) => (
+                            <TemplateEditor
+                              id={f.name}
+                              label="Body"
+                              value={f.state.value}
+                              onChange={(v) => f.handleChange(v)}
+                              variant="body"
+                              workspaceName={selectedWorkspace?.name ?? ''}
+                              workspaceTimezone={selectedWorkspace?.timezone ?? 'UTC'}
+                              variables={buildAutocompleteVariables(
+                                selectedWorkspace?.variables ?? {},
+                                form.state.values.variables,
+                              )}
+                              secrets={secretNames}
+                              helpText={BODY_HELP_TEXT}
+                            />
+                          )}
+                        </form.AppField>
+                        <form.AppField name="variables">
+                          {(f) => (
+                            <Field>
+                              <FieldLabel>Variables</FieldLabel>
+                              <KeyValueListEditor
+                                rows={buildVariableRows(
+                                  selectedWorkspace?.variables ?? {},
+                                  f.state.value,
+                                )}
+                                onChange={(next) => {
+                                  const overridesAndJobOnly = next.filter(
+                                    (r) => r.source !== 'workspace' && r.name.length > 0,
+                                  )
+                                  f.handleChange(rowsToVariableMap(overridesAndJobOnly))
+                                }}
+                                addLabel="Add Job variable"
+                              />
+                              <FieldDescription>
+                                Workspace variables are inherited; a Job entry with the same name
+                                overrides it.
+                              </FieldDescription>
+                            </Field>
+                          )}
+                        </form.AppField>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
               </>
             ) : null}
 

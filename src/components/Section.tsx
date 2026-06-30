@@ -16,7 +16,7 @@ export function Section({
   children: ReactNode
 }) {
   return (
-    <Card size="sm">
+    <Card size="sm" className="shrink-0">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {Icon ? <Icon className="size-4 shrink-0 text-muted-foreground" /> : null}
