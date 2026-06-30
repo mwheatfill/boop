@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { Target as TargetIcon } from 'lucide-react'
+import { Network, Target as TargetIcon } from 'lucide-react'
 import { type ReactElement, useState } from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Section } from '@/components/Section'
+import { TargetHealthBadge } from '@/components/targets/TargetHealthBadge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
@@ -255,6 +256,39 @@ export function TargetSheet({
           </SheetHeader>
 
           <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-5">
+            <Section icon={Network} title="Summary">
+              <form.Subscribe
+                selector={(s) => ({
+                  method: s.values.method,
+                  url: s.values.url,
+                  reachability: s.values.reachability,
+                  internalOrigin: s.values.internalOrigin,
+                })}
+              >
+                {({ method, url, reachability, internalOrigin }) => {
+                  const isTunnel = reachability === 'tunnel'
+                  const address = (isTunnel ? internalOrigin : url) || 'Not set yet'
+                  return (
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary">{method}</Badge>
+                        <Badge variant="outline">{isTunnel ? 'Private (Tunnel)' : 'Public'}</Badge>
+                        {isEdit && target.health ? (
+                          <TargetHealthBadge health={target.health} />
+                        ) : null}
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs text-muted-foreground">Address</span>
+                        <span className="break-all font-mono text-sm text-foreground">
+                          {address}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                }}
+              </form.Subscribe>
+            </Section>
+
             <Section title="Identity">
               <form.AppField
                 name="name"
