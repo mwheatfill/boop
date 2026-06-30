@@ -14,8 +14,8 @@ export interface DeletedItem {
   deletedAt: string
 }
 
-// Everything currently soft-deleted (status='archived'), across the entities that
-// have a Recycle Bin home. Tunnels are excluded until their teardown moves to purge.
+// Everything currently soft-deleted (status='archived'), across the entities with a
+// Recycle Bin home (jobs, targets, tunnels, channels, alert rules).
 export async function listDeleted(db: Database): Promise<DeletedItem[]> {
   const cols = (
     t: typeof jobs | typeof targets | typeof tunnels | typeof channels | typeof alertRules,

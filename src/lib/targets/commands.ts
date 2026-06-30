@@ -169,15 +169,37 @@ export async function archiveTarget(
   return getTargetBySlug(db, workspaceSlug, targetSlug)
 }
 
+export interface RestoreTargetResult {
+  target: Target
+  /** Interval Jobs brought back with the Target; the caller must re-arm their alarms. */
+  rearmJobIds: string[]
+}
+
 export async function restoreTarget(
   db: Database,
   workspaceSlug: string,
   targetSlug: string,
-): Promise<Target> {
+): Promise<RestoreTargetResult> {
   const target = await getTargetBySlug(db, workspaceSlug, targetSlug)
+  const now = new Date()
+  // Bring back the Jobs that were deleted alongside this Target (symmetric with the
+  // delete cascade), so a restore actually resumes the Target's schedules.
+  const archivedJobs = await db
+    .select({ id: jobs.id, triggerKind: jobs.triggerKind })
+    .from(jobs)
+    .where(and(eq(jobs.targetId, target.id), eq(jobs.status, 'archived')))
+  if (archivedJobs.length > 0) {
+    await db
+      .update(jobs)
+      .set({ status: 'active', updatedAt: now })
+      .where(and(eq(jobs.targetId, target.id), eq(jobs.status, 'archived')))
+  }
   await db
     .update(targets)
-    .set({ status: 'active', updatedAt: new Date() })
+    .set({ status: 'active', updatedAt: now })
     .where(eq(targets.id, target.id))
-  return getTargetBySlug(db, workspaceSlug, targetSlug)
+  return {
+    target: await getTargetBySlug(db, workspaceSlug, targetSlug),
+    rearmJobIds: archivedJobs.filter((j) => j.triggerKind === 'interval').map((j) => j.id),
+  }
 }

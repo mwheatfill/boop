@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { adminMiddleware } from '@/lib/auth/admin-middleware'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
+import { enterIntervalMode } from '@/lib/dispatch/trigger-modes'
 import { getDefaultWorkspace } from '@/lib/workspaces/queries'
 import { z } from '@/shared/schemas/openapi'
 import { TunnelCreateInput } from '@/shared/schemas/tunnel'
@@ -105,7 +106,12 @@ export const restoreTunnelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator((data) => tunnelSlugPair.parse(data))
   .handler(async ({ data }) => {
-    await restoreTunnel(createDb(env.DB), data.workspaceSlug, data.tunnelSlug)
+    const { rearmJobIds } = await restoreTunnel(
+      createDb(env.DB),
+      data.workspaceSlug,
+      data.tunnelSlug,
+    )
+    for (const jobId of rearmJobIds) await enterIntervalMode(env, jobId)
     return { ok: true as const }
   })
 

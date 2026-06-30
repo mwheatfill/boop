@@ -1,7 +1,6 @@
 import { env } from 'cloudflare:workers'
 import { createServerFn } from '@tanstack/react-start'
 import { adminMiddleware } from '@/lib/auth/admin-middleware'
-import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
 import { getProviderConfig } from '@/lib/tunnels/provider'
 import { purgeTunnel } from '@/lib/tunnels/provision'
@@ -10,7 +9,7 @@ import { type PurgeResult, purgeDeleted } from './commands'
 import { DELETED_KINDS, type DeletedItem, listDeleted } from './queries'
 
 export const listDeletedFn = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware])
+  .middleware([adminMiddleware])
   .handler(async (): Promise<DeletedItem[]> => listDeleted(createDb(env.DB)))
 
 const purgeInput = z.object({

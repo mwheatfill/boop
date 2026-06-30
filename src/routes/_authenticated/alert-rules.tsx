@@ -2,7 +2,6 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Bell, Plus } from 'lucide-react'
-import { z } from 'zod'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { AlertRuleSheet } from '@/components/forms/AlertRuleSheet'
@@ -13,19 +12,11 @@ import { listChannelsQueryOptions } from '@/lib/channels/query-options'
 import { defaultWorkspaceQueryOptions } from '@/lib/workspaces/query-options'
 import { type AlertRule, summarizeRuleConfig } from '@/shared/schemas/alert-rule'
 
-const searchSchema = z.object({
-  archived: z.boolean().optional(),
-})
-
 export const Route = createFileRoute('/_authenticated/alert-rules')({
-  validateSearch: searchSchema,
-  loaderDeps: ({ search }) => ({ archived: Boolean(search.archived) }),
-  loader: async ({ context, deps }) => {
+  loader: async ({ context }) => {
     const workspace = await context.queryClient.ensureQueryData(defaultWorkspaceQueryOptions)
     await Promise.all([
-      context.queryClient.ensureQueryData(
-        listAlertRulesQueryOptions(workspace.slug, deps.archived),
-      ),
+      context.queryClient.ensureQueryData(listAlertRulesQueryOptions(workspace.slug, false)),
       context.queryClient.ensureQueryData(listChannelsQueryOptions(workspace.slug, true)),
     ])
     return { activeSlug: workspace.slug }

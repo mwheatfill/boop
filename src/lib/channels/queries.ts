@@ -72,7 +72,15 @@ export async function getChannelBySlug(
   return toChannel(row)
 }
 
+// Resolves a Channel for alert delivery. A deleted (archived) Channel is not
+// deliverable, so it resolves to null and the consumer skips it.
 export async function findChannelById(db: Database, channelId: string): Promise<Channel | null> {
-  const row = (await db.select().from(channels).where(eq(channels.id, channelId)).limit(1))[0]
+  const row = (
+    await db
+      .select()
+      .from(channels)
+      .where(and(eq(channels.id, channelId), eq(channels.status, 'active')))
+      .limit(1)
+  )[0]
   return row ? toChannel(row) : null
 }

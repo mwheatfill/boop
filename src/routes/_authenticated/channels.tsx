@@ -2,7 +2,6 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Plus, SendHorizonal } from 'lucide-react'
-import { z } from 'zod'
 import { DataTable } from '@/components/DataTable'
 import { DateTime } from '@/components/DateTime'
 import { EmptyState } from '@/components/EmptyState'
@@ -13,18 +12,10 @@ import { listChannelsQueryOptions } from '@/lib/channels/query-options'
 import { defaultWorkspaceQueryOptions } from '@/lib/workspaces/query-options'
 import type { Channel } from '@/shared/schemas/channel'
 
-const searchSchema = z.object({
-  archived: z.boolean().optional(),
-})
-
 export const Route = createFileRoute('/_authenticated/channels')({
-  validateSearch: searchSchema,
-  loaderDeps: ({ search }) => ({ archived: Boolean(search.archived) }),
-  loader: async ({ context, deps }) => {
+  loader: async ({ context }) => {
     const workspace = await context.queryClient.ensureQueryData(defaultWorkspaceQueryOptions)
-    await context.queryClient.ensureQueryData(
-      listChannelsQueryOptions(workspace.slug, deps.archived),
-    )
+    await context.queryClient.ensureQueryData(listChannelsQueryOptions(workspace.slug, false))
     return { activeSlug: workspace.slug }
   },
   component: ChannelsPage,

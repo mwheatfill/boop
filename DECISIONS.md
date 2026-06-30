@@ -1,18 +1,18 @@
 # Decisions
 
-A running log of design and product decisions that are too small or too fast-moving for an ADR. Newest first. One entry = what we decided + the why in a few lines. **Supersede by adding a new entry that names what it replaces — don't rewrite old entries.** Reserve `docs/adr/` for the big architectural locks (runtime, framework, data layer, auth); everything else lands here so we capture intent without ADR sprawl.
+A running log of design and product decisions that are too small or too fast-moving for an ADR. Newest first. One entry = what we decided + the why in a few lines. **Supersede by adding a new entry that names what it replaces; don't rewrite old entries.** Reserve `docs/adr/` for the big architectural locks (runtime, framework, data layer, auth); everything else lands here so we capture intent without ADR sprawl.
 
 ---
 
-## 2026-06-30 — Delete + Recycle Bin (replaces the "Archive" concept; relaxes ADR-019; defers ADR-028 teardown to purge)
+## 2026-06-30: Delete + Recycle Bin (replaces the "Archive" concept; relaxes ADR-019; defers ADR-028 teardown to purge)
 
-**What:** The primary destructive verb is **Delete**, and it's soft by default — the item moves to a **Recycle Bin** and is recoverable. There is no separate user-facing "Archive / keep around" idea; the existing `status='archived'` value stays as the internal soft-deleted state, surfaced as **"Deleted."** (Renaming the enum is a 7-table D1 CHECK migration, not worth it.)
+**What:** The primary destructive verb is **Delete**, and it's soft by default: the item moves to a **Recycle Bin** and is recoverable. There is no separate user-facing "Archive / keep around" idea; the existing `status='archived'` value stays as the internal soft-deleted state, surfaced as **"Deleted."** (Renaming the enum is a 7-table D1 CHECK migration, not worth it.)
 
 - **Recycle Bin** (`/recycle-bin`): one cross-entity list of deleted items with **Restore** and **Delete permanently** (purge = hard delete). Replaces the per-list "Show archived" toggles.
-- **Dependents:** Delete never makes you pre-clear them (reverses ADR-019's *block on active dependents*). It cascades with a clear prompt — "Deleting this Tunnel deletes its 3 Targets and stops 2 Jobs." — in one transaction.
-- **Tunnels:** Delete is soft only (the connector keeps running, hidden, its Jobs stopped). The Cloudflare teardown (DNS, Access, cert, tunnel) happens on **purge** (supersedes ADR-028's teardown-on-decommission). Restore is instant; a deleted-not-purged tunnel still holds its wildcard cert until purged — fine at our ~20-tunnel scale.
-- **Language:** inline and plain. "Delete" with a one-line "moves to the Recycle Bin — restore anytime"; in the bin, "Restore" and "Delete permanently — can't be undone."
+- **Dependents:** Delete never makes you pre-clear them (reverses ADR-019's *block on active dependents*). It cascades, with a clear prompt ("Deleting this Tunnel deletes its 3 Targets and stops 2 Jobs."), in one transaction. Restore is symmetric: restoring a parent brings back the children deleted with it.
+- **Tunnels:** Delete is soft only (the connector keeps running, hidden, its Jobs stopped). The Cloudflare teardown (DNS, Access, cert, tunnel) happens on **purge** (supersedes ADR-028's teardown-on-decommission). Restore is instant; a deleted-not-purged tunnel still holds its wildcard cert until purged, which is fine at our ~20-tunnel scale.
+- **Language:** inline and plain. "Delete" with a one-line "moves to the Recycle Bin, restore anytime"; in the bin, "Restore" and "Delete permanently, can't be undone."
 
 **Why:** "Archive" implies *keep this around to look at later*; most of the time the operator is cleaning up things they no longer use, which is *Delete*. The Recycle Bin makes Delete safe (recoverable) without the friction of pre-archiving dependents or the meaningless block.
 
-**Build order:** (1) Recycle Bin route + purge (additive, safe). (2) Archive→Delete rename + cascade-on-delete (together, so "Delete" never blocks). (3) Tunnel teardown-on-purge + drop the per-list toggles.
+**Build order:** (1) Recycle Bin route + purge (additive, safe). (2) Archive to Delete rename + cascade-on-delete (together, so "Delete" never blocks). (3) Tunnel teardown-on-purge + drop the per-list toggles.

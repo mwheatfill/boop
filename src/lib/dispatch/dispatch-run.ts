@@ -318,6 +318,10 @@ export async function runDispatch(
       if (preCreatedRunId) await cancelPreCreatedRun(db, preCreatedRunId, `job_${job.status}`)
       throw new JobNotDispatchableError(jobId, job.status)
     }
+    if (target.status === 'archived') {
+      if (preCreatedRunId) await cancelPreCreatedRun(db, preCreatedRunId, 'target_archived')
+      throw new JobNotDispatchableError(jobId, 'target_archived')
+    }
 
     const runId = preCreatedRunId ?? newId('run')
     const startedAt = new Date()

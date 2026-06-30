@@ -14,10 +14,6 @@ import { listTargetsForWorkspaceFn } from '@/lib/targets/server-fns'
 import { defaultWorkspaceQueryOptions } from '@/lib/workspaces/query-options'
 import type { Target } from '@/shared/schemas/target'
 
-const searchSchema = z.object({
-  archived: z.boolean().optional(),
-})
-
 const targetsQueryOptions = (workspaceSlug: string, includeArchived: boolean) =>
   queryOptions({
     queryKey: ['workspaces', workspaceSlug, 'targets', { includeArchived }],
@@ -25,11 +21,9 @@ const targetsQueryOptions = (workspaceSlug: string, includeArchived: boolean) =>
   })
 
 export const Route = createFileRoute('/_authenticated/targets')({
-  validateSearch: searchSchema,
-  loaderDeps: ({ search }) => ({ archived: Boolean(search.archived) }),
-  loader: async ({ context, deps }) => {
+  loader: async ({ context }) => {
     const workspace = await context.queryClient.ensureQueryData(defaultWorkspaceQueryOptions)
-    await context.queryClient.ensureQueryData(targetsQueryOptions(workspace.slug, deps.archived))
+    await context.queryClient.ensureQueryData(targetsQueryOptions(workspace.slug, false))
     return { activeSlug: workspace.slug }
   },
   component: TargetsPage,

@@ -57,6 +57,7 @@ function RecycleBinActions({ item }: { item: DeletedItem }) {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ['recycle-bin'] }),
       queryClient.invalidateQueries({ queryKey: ['jobs'] }),
+      queryClient.invalidateQueries({ queryKey: ['tunnels'] }),
       queryClient.invalidateQueries({ queryKey: ['workspaces'] }),
     ])
 

@@ -15,7 +15,12 @@ export class ClaimFailedError extends DispatchError {
 export class JobNotDispatchableError extends DispatchError {
   constructor(
     public readonly jobId: string,
-    public readonly reason: 'not_found' | 'paused' | 'archived' | 'workspace_archived',
+    public readonly reason:
+      | 'not_found'
+      | 'paused'
+      | 'archived'
+      | 'workspace_archived'
+      | 'target_archived',
   ) {
     super(`Job ${jobId} is not dispatchable: ${reason}`)
     this.name = 'JobNotDispatchableError'

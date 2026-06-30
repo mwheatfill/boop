@@ -228,6 +228,29 @@ describe('restoreTarget', () => {
     await createTarget(db, 'acme', targetInput)
     await archiveTarget(db, 'acme', 'primary-api')
     const restored = await restoreTarget(db, 'acme', 'primary-api')
-    expect(restored.status).toBe('active')
+    expect(restored.target.status).toBe('active')
+  })
+
+  it('cascade-restores the Jobs that were deleted with the Target', async () => {
+    const db = createTestDb()
+    const workspace = await createWorkspace(db, workspaceInput)
+    const target = await createTarget(db, 'acme', targetInput)
+    const jobId = newId('job')
+    await db.insert(jobs).values({
+      id: jobId,
+      workspaceId: workspace.id,
+      targetId: target.id,
+      name: 'Daily',
+      slug: 'daily',
+      triggerKind: 'interval',
+      intervalSeconds: 60,
+      triggerTimezone: 'UTC',
+      status: 'active',
+    })
+    await archiveTarget(db, 'acme', 'primary-api')
+    const restored = await restoreTarget(db, 'acme', 'primary-api')
+    expect(restored.rearmJobIds).toEqual([jobId])
+    const job = (await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1))[0]
+    expect(job?.status).toBe('active')
   })
 })

@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
+import { enterIntervalMode } from '@/lib/dispatch/trigger-modes'
 import { logWarn } from '@/lib/log'
 import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
 import { getProviderConfig } from '@/lib/tunnels/provider'
@@ -149,7 +150,8 @@ export const restoreTargetFn = createServerFn({ method: 'POST' })
   .inputValidator((data) => slugPair.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
-    const target = await restoreTarget(db, data.workspaceSlug, data.targetSlug)
+    const { target, rearmJobIds } = await restoreTarget(db, data.workspaceSlug, data.targetSlug)
+    for (const jobId of rearmJobIds) await enterIntervalMode(env, jobId)
     await syncTunnels(db, [target.tunnelId])
     return { ok: true as const, data: target }
   })

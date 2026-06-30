@@ -3,7 +3,6 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { z } from 'zod'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { JobSheet } from '@/components/forms/JobSheet'
@@ -24,15 +23,9 @@ const allJobsQueryOptions = (filters: { includeArchived?: boolean }) =>
     queryFn: () => listAllJobsFn({ data: filters }),
   })
 
-const searchSchema = z.object({
-  archived: z.boolean().optional(),
-})
-
 export const Route = createFileRoute('/_authenticated/jobs')({
-  validateSearch: searchSchema,
-  loaderDeps: ({ search }) => ({ archived: Boolean(search.archived) }),
-  loader: ({ context, deps }) =>
-    context.queryClient.ensureQueryData(allJobsQueryOptions({ includeArchived: deps.archived })),
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(allJobsQueryOptions({ includeArchived: false })),
   component: JobsPage,
 })
 
@@ -134,11 +127,9 @@ function JobEditSheet({
 
 function JobsPage() {
   const navigate = Route.useNavigate()
-  const search = Route.useSearch()
   const { currentUser, workspaceSlug } = Route.useRouteContext()
   const admin = isAdmin(currentUser)
-  const archived = Boolean(search.archived)
-  const { data: jobs } = useSuspenseQuery(allJobsQueryOptions({ includeArchived: archived }))
+  const { data: jobs } = useSuspenseQuery(allJobsQueryOptions({ includeArchived: false }))
   const [editing, setEditing] = useState<{ workspaceSlug: string; jobSlug: string } | null>(null)
 
   return (

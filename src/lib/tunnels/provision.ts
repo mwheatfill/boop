@@ -331,14 +331,45 @@ export async function restoreTunnel(
   db: Database,
   workspaceSlug: string,
   tunnelSlug: string,
-): Promise<void> {
+): Promise<{ rearmJobIds: string[] }> {
   const workspaceId = await resolveWorkspaceId(db, workspaceSlug)
-  const result = await db
+  const tunnel = (
+    await db
+      .select({ id: tunnels.id })
+      .from(tunnels)
+      .where(and(eq(tunnels.workspaceId, workspaceId), eq(tunnels.slug, tunnelSlug)))
+      .limit(1)
+  )[0]
+  if (!tunnel) throw new NotFoundError('Tunnel', `${workspaceSlug}/${tunnelSlug}`)
+  const now = new Date()
+  // Bring back the Targets (and their Jobs) deleted alongside this Tunnel, symmetric
+  // with the delete cascade, so a restore actually resumes everything.
+  const targetRows = await db
+    .select({ id: targets.id })
+    .from(targets)
+    .where(and(eq(targets.tunnelId, tunnel.id), eq(targets.status, 'archived')))
+  const targetIds = targetRows.map((t) => t.id)
+  let rearmJobIds: string[] = []
+  if (targetIds.length > 0) {
+    const archivedJobs = await db
+      .select({ id: jobs.id, triggerKind: jobs.triggerKind })
+      .from(jobs)
+      .where(and(inArray(jobs.targetId, targetIds), eq(jobs.status, 'archived')))
+    rearmJobIds = archivedJobs.filter((j) => j.triggerKind === 'interval').map((j) => j.id)
+    await db
+      .update(jobs)
+      .set({ status: 'active', updatedAt: now })
+      .where(and(inArray(jobs.targetId, targetIds), eq(jobs.status, 'archived')))
+    await db
+      .update(targets)
+      .set({ status: 'active', updatedAt: now })
+      .where(inArray(targets.id, targetIds))
+  }
+  await db
     .update(tunnels)
-    .set({ status: 'active', archivedAt: null, updatedAt: new Date() })
-    .where(and(eq(tunnels.workspaceId, workspaceId), eq(tunnels.slug, tunnelSlug)))
-    .returning({ id: tunnels.id })
-  if (result.length === 0) throw new NotFoundError('Tunnel', `${workspaceSlug}/${tunnelSlug}`)
+    .set({ status: 'active', archivedAt: null, updatedAt: now })
+    .where(eq(tunnels.id, tunnel.id))
+  return { rearmJobIds }
 }
 
 // Permanent: run the Cloudflare teardown, then hard-delete the row. Blocks while any
