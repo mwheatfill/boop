@@ -14,6 +14,7 @@ import {
 import { type ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Section } from '@/components/Section'
+import { TargetSummary } from '@/components/targets/TargetSummary'
 import { TemplateGallery } from '@/components/templates/TemplateGallery'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -590,6 +591,13 @@ export function JobSheet({
                       }}
                     />
                   ) : null}
+
+                  <form.Subscribe selector={(s) => s.values.targetSlug}>
+                    {(targetSlug) => {
+                      const selected = targets.find((t) => t.slug === targetSlug)
+                      return selected ? <TargetSummary target={selected} /> : null
+                    }}
+                  </form.Subscribe>
                 </Section>
 
                 <Section icon={Clock} title="Trigger">
