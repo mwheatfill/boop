@@ -64,7 +64,7 @@ export function AlertRuleDetailView({
       </header>
 
       <section className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-4">
-        <h2 className="text-sm font-medium">Routes to</h2>
+        <h2 className="text-sm font-medium">Sends to</h2>
         <ul className="flex flex-col gap-1 text-sm">
           {rule.channelIds.map((id) => {
             const channel = channelById.get(id)
@@ -72,7 +72,7 @@ export function AlertRuleDetailView({
               <li key={id} className="flex items-center gap-2">
                 <span className="text-foreground">{channel?.name ?? id}</span>
                 {channel && channel.status !== 'active' ? (
-                  <span className="text-xs text-warning">(archived, update routing)</span>
+                  <span className="text-xs text-warning">(archived, pick a different Channel)</span>
                 ) : null}
               </li>
             )
@@ -81,9 +81,9 @@ export function AlertRuleDetailView({
       </section>
 
       <section className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-4">
-        <h2 className="text-sm font-medium">Last fired</h2>
+        <h2 className="text-sm font-medium">Last alert sent</h2>
         <p className="text-sm text-muted-foreground">
-          <DateTime value={rule.lastFiredAt} fallback="Never fired yet." />
+          <DateTime value={rule.lastFiredAt} fallback="No alerts sent yet." />
         </p>
       </section>
     </div>

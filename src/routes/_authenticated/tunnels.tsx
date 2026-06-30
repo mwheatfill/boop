@@ -97,7 +97,7 @@ function TunnelsPage() {
         <EmptyState
           icon={Waypoints}
           title="No tunnels yet."
-          description="Create a tunnel to reach a private origin, then install one command on the customer's network."
+          description="Create a tunnel to reach a server on a private network, then run one install command on the customer's network."
           action={
             isAdmin ? (
               <TunnelSheet

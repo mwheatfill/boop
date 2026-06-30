@@ -58,7 +58,7 @@ const DEFAULT_INTERVAL = 300
 const SWITCHTHINK_SLUG = 'switchthink'
 
 const BODY_HELP_TEXT =
-  'LiquidJS. Available: {{ run_id }}, {{ attempt_number }}, {{ workspace_name }}, {{ workspace_timezone }}, {{ now }}, plus operator-defined variables. {% boop_secret "name" %} pulls a Workspace secret at fire time.'
+  'LiquidJS. Available: {{ run_id }}, {{ attempt_number }}, {{ workspace_name }}, {{ workspace_timezone }}, {{ now }}, plus operator-defined variables. {% boop_secret "name" %} pulls a Workspace secret when the Job runs.'
 
 interface JobFormValues {
   name: string
@@ -447,7 +447,7 @@ export function JobSheet({
                 {isEdit ? job.name : 'New Job'}
               </SheetTitle>
               <SheetDescription className="text-xs">
-                {isEdit ? 'Edit this scheduled HTTP call' : 'A scheduled HTTP call to a Target'}
+                {isEdit ? 'Edit this scheduled web request' : 'A scheduled web request to a Target'}
               </SheetDescription>
             </div>
           </SheetHeader>
@@ -623,8 +623,7 @@ export function JobSheet({
                         />
                       </CollapsibleTrigger>
                       <CardDescription>
-                        Optional. Only for POST/PUT calls or templated payloads — most Jobs don't
-                        need this.
+                        Optional. Only needed when the Job sends data. Most Jobs don't need this.
                       </CardDescription>
                     </CardHeader>
                     <CollapsibleContent>

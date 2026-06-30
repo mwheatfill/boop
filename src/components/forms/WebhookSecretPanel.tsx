@@ -207,8 +207,8 @@ export function WebhookSecretPanel({ workspaceSlug, jobSlug, origin }: WebhookSe
           <AlertDialogHeader>
             <AlertDialogTitle>Rotate signing secret</AlertDialogTitle>
             <AlertDialogDescription>
-              A fresh secret is generated. The current secret keeps verifying for the overlap window
-              so the external caller has time to switch over.
+              A fresh secret is generated. The current secret keeps working for the overlap time so
+              the other system has time to switch over.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex flex-col gap-2">

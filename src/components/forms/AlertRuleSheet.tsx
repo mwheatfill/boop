@@ -62,10 +62,10 @@ const KIND_OPTIONS: ReadonlyArray<KindOption> = [
   {
     kind: 'consecutive_failures',
     label: 'Consecutive failures',
-    description: 'Streak of N non-success Runs',
+    description: 'Several failed Runs in a row',
   },
   { kind: 'recovery', label: 'Recovery', description: 'First success after a failure streak' },
-  { kind: 'slow_run', label: 'Slow run', description: 'Run duration exceeds a threshold' },
+  { kind: 'slow_run', label: 'Slow run', description: 'A Run takes longer than a set time' },
   { kind: 'missed_schedule', label: 'Silence alert', description: 'No Run starts within a window' },
 ]
 
@@ -260,8 +260,8 @@ export function AlertRuleSheet({
               </SheetTitle>
               <SheetDescription className="text-xs">
                 {isEdit
-                  ? 'Edit when this rule fires and where it routes'
-                  : 'A predicate that routes terminal Runs to Channels'}
+                  ? 'Edit when this rule alerts, and where it goes'
+                  : 'Sends finished Runs to your Channels'}
               </SheetDescription>
             </div>
             {isEdit && kindLabel ? (
@@ -307,7 +307,10 @@ export function AlertRuleSheet({
               </form.AppField>
             </Section>
 
-            <Section title="Condition" hint="The predicate that decides when this rule fires.">
+            <Section
+              title="Condition"
+              hint="The condition that decides when this rule sends an alert."
+            >
               <form.AppField name="kind">
                 {(f) =>
                   isEdit ? (
@@ -387,7 +390,9 @@ export function AlertRuleSheet({
                         <form.AppField name="silenceThresholdMinutes">
                           {(f) => (
                             <Field>
-                              <FieldLabel htmlFor={f.name}>Window without a Run</FieldLabel>
+                              <FieldLabel htmlFor={f.name}>
+                                How long with no Runs before alerting
+                              </FieldLabel>
                               <div className="flex flex-wrap gap-2">
                                 {MISSED_SCHEDULE_PRESETS.map((preset) => (
                                   <button
@@ -412,8 +417,8 @@ export function AlertRuleSheet({
                                 className="max-w-[220px]"
                               />
                               <FieldDescription>
-                                Minutes. Alerts when no Run starts in this window. Endpoint failures
-                                use Consecutive failures.
+                                Minutes. Alerts when no Run starts in this time. For failures from
+                                the target, use Consecutive failures.
                               </FieldDescription>
                             </Field>
                           )}
@@ -425,7 +430,7 @@ export function AlertRuleSheet({
               </form.Subscribe>
             </Section>
 
-            <Section title="Channels" hint="Where matching Runs fan out.">
+            <Section title="Channels" hint="Where matching Runs are sent.">
               <form.AppField name="channelIds">
                 {(f) => {
                   const selectedIds = new Set(f.state.value)

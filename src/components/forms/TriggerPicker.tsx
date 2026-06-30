@@ -54,7 +54,8 @@ function describeSchedule(value: TriggerPickerValue, aiSummary: string | null): 
 }
 
 function nextRunLine(value: TriggerPickerValue, timezone: string): string | null {
-  if (value.triggerKind === 'interval') return 'Runs back-to-back; a slow run delays the next.'
+  if (value.triggerKind === 'interval')
+    return 'Runs one right after another; a slow run delays the next one.'
   try {
     const [next] = nextRuns({ expression: value.cronExpression, timezone, n: 1 })
     if (!next) return null
@@ -161,8 +162,8 @@ export function TriggerPicker({
           <WebhookReceiverUrl workspaceSlug={workspaceSlug} jobSlug={webhookEditJobSlug} />
         ) : (
           <p className="text-sm text-muted-foreground">
-            Webhook Jobs fire on inbound HTTP POST. The receiver URL is valid once the Job is
-            created.
+            Webhook Jobs run when another system sends them a request. The receiver URL works once
+            the Job is created.
           </p>
         )}
         {webhookEditJobSlug ? (

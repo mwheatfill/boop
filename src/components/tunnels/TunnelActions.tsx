@@ -110,8 +110,8 @@ export function TunnelActions({
           <AlertDialogHeader>
             <AlertDialogTitle>Remove {tunnel.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This tears down the Cloudflare Tunnel, Access app, Service Token, and DNS record, then
-              archives it. Any Targets using this tunnel must be archived first.
+              This removes the Cloudflare Tunnel, Access app, Service Token, and DNS record, then
+              archives it. Archive any Targets that use this tunnel first.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -121,7 +121,7 @@ function ChannelsList({ activeSlug }: { activeSlug: string }) {
           description={
             archived
               ? 'Toggle off "Show archived" to see active Channels.'
-              : 'Create a Channel so alerts have somewhere to land.'
+              : 'Create a Channel so alerts have somewhere to go.'
           }
           action={
             !archived && isAdmin ? (

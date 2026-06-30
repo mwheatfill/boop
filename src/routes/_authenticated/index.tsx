@@ -78,7 +78,7 @@ function DashboardPage() {
         <KpiCard
           label="Failing Jobs"
           value={summary.stats.failingJobsNow}
-          footerPrimary="Jobs in a failing streak"
+          footerPrimary="Jobs failing over and over"
           footerSecondary="Right now"
         />
         <SuccessRateTile
@@ -121,7 +121,7 @@ function DashboardPage() {
           <RunsAreaChart series={summary.runsSeries7d} />
         </div>
         <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-4">
-          <h2 className="text-sm font-medium">Upcoming fires (24h)</h2>
+          <h2 className="text-sm font-medium">Upcoming runs (24h)</h2>
           <UpcomingFiresList rows={summary.upcomingFires} />
         </div>
       </section>

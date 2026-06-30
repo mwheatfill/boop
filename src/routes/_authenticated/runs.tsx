@@ -92,7 +92,7 @@ function RunsPage() {
           description={
             hasNonDefaultFilter
               ? 'Adjust filters above or clear them to see more Runs.'
-              : 'Once a Job fires, you will see it here.'
+              : 'Once a Job runs, you will see it here.'
           }
         />
       ) : (

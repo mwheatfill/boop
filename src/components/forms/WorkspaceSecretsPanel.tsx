@@ -288,8 +288,8 @@ export function WorkspaceSecretsPanel({ workspaceSlug, canEdit }: WorkspaceSecre
           <AlertDialogHeader>
             <AlertDialogTitle>Revoke {revoking?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Templates referencing this secret will fail at fire time until you create a new value
-              with the same name.
+              Templates that use this secret will fail when the Job runs until you create a new
+              value with the same name.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

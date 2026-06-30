@@ -55,8 +55,8 @@ const targetColumns: ColumnDef<Target>[] = [
   },
   {
     accessorKey: 'reachability',
-    header: 'Reachability',
-    meta: { label: 'Reachability', filterVariant: 'select' },
+    header: 'Access',
+    meta: { label: 'Access', filterVariant: 'select' },
   },
   {
     accessorKey: 'health',
@@ -130,7 +130,7 @@ function TargetsList({ activeSlug }: { activeSlug: string }) {
           description={
             archived
               ? 'Toggle off "Show archived" to see active Targets.'
-              : 'Add a Target so Jobs have somewhere to fire.'
+              : 'Add a Target so Jobs have somewhere to call.'
           }
           action={
             !archived && isAdmin ? (

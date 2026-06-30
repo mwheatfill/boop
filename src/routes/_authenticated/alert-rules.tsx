@@ -50,8 +50,8 @@ function columnsFor(channelNameById: Map<string, string>): ColumnDef<AlertRule>[
     },
     {
       accessorKey: 'kind',
-      header: 'Predicate',
-      meta: { label: 'Predicate', filterVariant: 'select' },
+      header: 'Condition',
+      meta: { label: 'Condition', filterVariant: 'select' },
       cell: ({ row }) => summarizeRuleConfig(row.original.config),
     },
     {
@@ -132,7 +132,7 @@ function AlertRulesList({ activeSlug }: { activeSlug: string }) {
           description={
             archived
               ? 'Toggle off "Show archived" to see active rules.'
-              : 'Wire a predicate to one or more Channels to start routing alerts.'
+              : 'Connect a condition to one or more Channels to start sending alerts.'
           }
           action={
             !archived ? (

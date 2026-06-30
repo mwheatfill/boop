@@ -197,7 +197,7 @@ export function ChannelSheet({
                 {isEdit ? channel.name : 'New Channel'}
               </SheetTitle>
               <SheetDescription className="text-xs">
-                {isEdit ? 'Edit this outbound destination' : 'An outbound destination for alerts'}
+                {isEdit ? 'Edit where alerts are sent' : 'A place to send alerts'}
               </SheetDescription>
             </div>
             {isEdit ? (
@@ -269,7 +269,7 @@ export function ChannelSheet({
                           label="Webhook URL"
                           type="url"
                           placeholder="https://prod-XX.logic.azure.com/workflows/..."
-                          description="From a Teams Workflow's incoming-webhook trigger. Legacy O365 connector URLs still work."
+                          description="Paste the URL from your Teams Workflow's webhook. Older O365 connector URLs still work."
                         />
                       )}
                     </form.AppField>

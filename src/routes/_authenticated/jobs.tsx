@@ -148,7 +148,7 @@ function JobsPage() {
         ) : (
           <EmptyState
             title="No Jobs yet."
-            description="Create a Job to schedule HTTP calls to a Target."
+            description="Create a Job to schedule calls to a Target."
             action={
               <JobSheet
                 owner={{ workspaceSlug }}

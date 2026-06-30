@@ -120,7 +120,7 @@ export function TargetSheet({
           return { form: 'Select a tunnel.' }
         }
         if (value.reachability === 'tunnel' && !value.internalOrigin) {
-          return { form: 'Enter the internal origin (e.g. http://10.0.1.50:8080).' }
+          return { form: 'Enter the address on your network (e.g. http://10.0.1.50:8080).' }
         }
         const base = {
           name: value.name,
@@ -238,7 +238,7 @@ export function TargetSheet({
                 {isEdit ? target.name : 'New Target'}
               </SheetTitle>
               <SheetDescription className="text-xs">
-                {isEdit ? 'Edit this HTTP destination' : 'A reusable HTTP destination for Jobs'}
+                {isEdit ? 'Edit this web address' : 'A reusable web address for Jobs'}
               </SheetDescription>
             </div>
             {isEdit ? (
@@ -295,7 +295,9 @@ export function TargetSheet({
                 {(f) => <f.SelectField label="Method" options={METHOD_OPTIONS} />}
               </form.AppField>
               <form.AppField name="reachability">
-                {(f) => <f.SelectField label="Reachability" options={REACHABILITY_OPTIONS} />}
+                {(f) => (
+                  <f.SelectField label="How boop reaches it" options={REACHABILITY_OPTIONS} />
+                )}
               </form.AppField>
             </Section>
 
