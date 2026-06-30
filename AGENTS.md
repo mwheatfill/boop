@@ -12,7 +12,7 @@ Before substantial work:
 
 You're an AI coding agent (Claude Code, Codex, Cursor, Aider, or similar) working in a Cloudflare Workers + TanStack Start application built from `boop`. This file is the canonical entry point. Read it first.
 
-At session start: skim [`docs/adr/README.md`](docs/adr/README.md) for the architectural decisions, [`CONTEXT.md`](CONTEXT.md) for the domain language, and [`DESIGN.md`](DESIGN.md) for the interface rules. Read whatever spec exists (`SPEC.md`, `PRD.md`, `docs/spec/*`). Run `git log --oneline -20` for in-flight context. Doc resolution for libraries is handled by the research-first protocol re-anchored every turn via the `UserPromptSubmit` hook in [`.claude/hooks/`](.claude/hooks/).
+At session start: skim [`docs/adr/README.md`](docs/adr/README.md) for the architectural decisions, [`DECISIONS.md`](DECISIONS.md) for the running log of smaller/in-flight decisions, [`CONTEXT.md`](CONTEXT.md) for the domain language, and [`DESIGN.md`](DESIGN.md) for the interface rules. Read whatever spec exists (`SPEC.md`, `PRD.md`, `docs/spec/*`). Run `git log --oneline -20` for in-flight context. Doc resolution for libraries is handled by the research-first protocol re-anchored every turn via the `UserPromptSubmit` hook in [`.claude/hooks/`](.claude/hooks/).
 
 ## Stack snapshot
 
@@ -50,6 +50,8 @@ The `UserPromptSubmit` hook re-anchors this every turn.
 ## Locked decisions
 
 ADRs in `docs/adr/`. Read the ADR before contemplating an override; deviations require a new ADR plus an audit-allowlist edit.
+
+**ADRs are for big architectural locks** (runtime, framework, data layer, auth, provider model) — the choices that are expensive to reverse and that other work builds on. **Don't spin up an ADR for an iterating product/UX solution**: capture it succinctly in [`DECISIONS.md`](DECISIONS.md) (newest-first, supersede by appending) and build. When a `DECISIONS.md` entry relaxes or overrides a point in an ADR, say so in the entry rather than authoring a whole new ADR.
 
 - Cloudflare Workers as the runtime ([ADR-001](docs/adr/001-cloudflare-workers-runtime.md))
 - TanStack Start as the framework ([ADR-002](docs/adr/002-tanstack-start-framework.md))
