@@ -85,6 +85,7 @@ function TunnelsPage() {
         <DataTable
           columns={columns}
           data={tunnels}
+          gridKey="tunnels"
           onRowClick={(tunnel) =>
             navigate({ to: '/tunnels/$tunnelSlug', params: { tunnelSlug: tunnel.slug } })
           }

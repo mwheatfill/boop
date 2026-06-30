@@ -141,7 +141,7 @@ function ChannelsList({ activeSlug }: { activeSlug: string }) {
           }
         />
       ) : (
-        <DataTable columns={channelColumns(isAdmin)} data={channels} />
+        <DataTable columns={channelColumns(isAdmin)} data={channels} gridKey="channels" />
       )}
     </div>
   )

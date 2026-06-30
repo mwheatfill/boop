@@ -75,7 +75,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/components/ui/**"],
+      "includes": ["src/components/ui/**", "src/components/data-table/**"],
       "linter": {
         "rules": {
           "a11y": {

@@ -160,7 +160,7 @@ function JobsPage() {
           />
         )
       ) : (
-        <DataTable columns={columnsFor()} data={jobs} />
+        <DataTable columns={columnsFor()} data={jobs} gridKey="jobs" />
       )}
     </div>
   )

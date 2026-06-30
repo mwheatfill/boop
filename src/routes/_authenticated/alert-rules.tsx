@@ -152,7 +152,7 @@ function AlertRulesList({ activeSlug }: { activeSlug: string }) {
           }
         />
       ) : (
-        <DataTable columns={columnsFor(channelNameById)} data={rules} />
+        <DataTable columns={columnsFor(channelNameById)} data={rules} gridKey="alert-rules" />
       )}
     </div>
   )

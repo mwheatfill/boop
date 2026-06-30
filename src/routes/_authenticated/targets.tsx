@@ -149,6 +149,7 @@ function TargetsList({ activeSlug }: { activeSlug: string }) {
         <DataTable
           columns={targetColumns}
           data={targets}
+          gridKey="targets"
           {...(isAdmin ? { onRowClick: (target: Target) => setEditing(target) } : {})}
         />
       )}
