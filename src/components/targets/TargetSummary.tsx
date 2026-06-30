@@ -14,7 +14,7 @@ export function TargetSummary({
     <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary">{target.method}</Badge>
-        <Badge variant="outline">{isTunnel ? 'Private (Tunnel)' : 'Public'}</Badge>
+        <Badge variant="outline">{isTunnel ? 'Private' : 'Public'}</Badge>
         {target.health ? <TargetHealthBadge health={target.health} /> : null}
       </div>
       <span className="break-all font-mono text-xs text-muted-foreground">{address}</span>

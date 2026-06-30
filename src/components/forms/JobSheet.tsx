@@ -8,12 +8,14 @@ import {
   Code2,
   Crosshair,
   LayoutTemplate,
+  Pencil,
   Plus,
   Tag,
 } from 'lucide-react'
 import { type ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Section } from '@/components/Section'
+import { TargetPicker } from '@/components/targets/TargetPicker'
 import { TargetSummary } from '@/components/targets/TargetSummary'
 import { TemplateGallery } from '@/components/templates/TemplateGallery'
 import { Button } from '@/components/ui/button'
@@ -421,7 +423,6 @@ export function JobSheet({
     ...targetRecents.recents,
     ...targets.filter((t) => !recentTargetSlugs.has(t.slug)),
   ]
-  const targetOptions = orderedTargets.map((t) => ({ value: t.slug, label: t.name }))
 
   const recentWorkspaceSlugs = new Set(workspaceRecents.recents.map((w) => w.slug))
   const workspaceOptions = [
@@ -558,13 +559,39 @@ export function JobSheet({
 
                   {targets.length > 0 ? (
                     <form.AppField name="targetSlug">
-                      {(f) => (
-                        <f.SelectField
-                          label="Target"
-                          placeholder="Select a Target"
-                          options={targetOptions}
-                        />
-                      )}
+                      {(f) => {
+                        const selectedTarget = orderedTargets.find((t) => t.slug === f.state.value)
+                        return (
+                          <Field>
+                            <FieldLabel>Target</FieldLabel>
+                            <div className="flex items-center gap-2">
+                              <div className="min-w-0 flex-1">
+                                <TargetPicker
+                                  targets={orderedTargets}
+                                  value={f.state.value}
+                                  onChange={(slug) => f.handleChange(slug)}
+                                />
+                              </div>
+                              {isAdmin && selectedTarget ? (
+                                <TargetSheet
+                                  target={selectedTarget}
+                                  owner={{ workspaceSlug }}
+                                  trigger={
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      aria-label={`Edit ${selectedTarget.name}`}
+                                    >
+                                      <Pencil aria-hidden />
+                                    </Button>
+                                  }
+                                />
+                              ) : null}
+                            </div>
+                          </Field>
+                        )
+                      }}
                     </form.AppField>
                   ) : (
                     <Field>

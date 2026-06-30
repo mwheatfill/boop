@@ -249,7 +249,7 @@ export function TargetSheet({
                 </Badge>
               ) : (
                 <Badge variant="secondary" className="shrink-0">
-                  {target.reachability === 'tunnel' ? 'Tunnel' : 'Public'}
+                  {target.reachability === 'tunnel' ? 'Private' : 'Public'}
                 </Badge>
               )
             ) : null}
@@ -272,7 +272,7 @@ export function TargetSheet({
                     <div className="flex flex-col gap-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="secondary">{method}</Badge>
-                        <Badge variant="outline">{isTunnel ? 'Private (Tunnel)' : 'Public'}</Badge>
+                        <Badge variant="outline">{isTunnel ? 'Private' : 'Public'}</Badge>
                         {isEdit && target.health ? (
                           <TargetHealthBadge health={target.health} />
                         ) : null}
