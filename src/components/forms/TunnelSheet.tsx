@@ -129,16 +129,20 @@ export function TunnelSheet({ tunnel, trigger, open: openProp, onOpenChange }: T
               <Waypoints className="size-5" />
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <SheetTitle className="truncate text-base">
-                {provisioned ? 'Install the connector' : isEdit ? tunnel.name : 'New tunnel'}
+              <SheetTitle
+                className={
+                  isEdit && !provisioned ? 'truncate font-mono text-sm' : 'truncate text-base'
+                }
+              >
+                {provisioned ? 'Install the connector' : isEdit ? tunnel.hostname : 'New tunnel'}
               </SheetTitle>
-              <SheetDescription className="text-xs">
-                {provisioned
-                  ? 'Run one of these on a host inside the private network.'
-                  : isEdit
-                    ? 'Rename it, or install the connector.'
+              {provisioned || !isEdit ? (
+                <SheetDescription className="text-xs">
+                  {provisioned
+                    ? 'Run one of these on a host inside the private network.'
                     : 'One connector per site. Install it once, then point Private Targets at this tunnel.'}
-              </SheetDescription>
+                </SheetDescription>
+              ) : null}
             </div>
             {isEdit && !provisioned ? <TunnelStateBadge state={tunnel.state} /> : null}
           </SheetHeader>
@@ -173,16 +177,12 @@ export function TunnelSheet({ tunnel, trigger, open: openProp, onOpenChange }: T
                         label="Name"
                         placeholder="Acme HQ"
                         autoFocus
-                        description={
-                          isEdit ? (
-                            <>
-                              Fixed hostname{' '}
-                              <code className="font-mono text-foreground">{tunnel.hostname}</code>
-                            </>
-                          ) : (
-                            'A site or network, not a single service. Internal addresses are set per Target.'
-                          )
-                        }
+                        {...(isEdit
+                          ? {}
+                          : {
+                              description:
+                                'A site or network, not a single service. Internal addresses are set per Target.',
+                            })}
                       />
                     )}
                   </form.AppField>

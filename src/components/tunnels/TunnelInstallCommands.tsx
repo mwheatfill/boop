@@ -41,7 +41,10 @@ function platforms(token: string): Platform[] {
 export function TunnelInstallCommands({ installToken }: { installToken: string }) {
   const list = platforms(installToken)
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-muted-foreground">
+        Needs outbound UDP 7844 to Cloudflare; one connector per host.
+      </p>
       <Tabs defaultValue="windows">
         <TabsList className="w-full">
           {list.map((p) => (
@@ -52,32 +55,38 @@ export function TunnelInstallCommands({ installToken }: { installToken: string }
         </TabsList>
         {list.map((p) => (
           <TabsContent key={p.id} value={p.id} className="flex flex-col gap-3 pt-1">
-            <CommandBlock title="Install" platform={p.label} command={p.install} />
+            <CommandBlock
+              title="Install"
+              platform={p.label}
+              command={p.install}
+              {...(p.id === 'windows' ? { note: 'PowerShell as Administrator' } : {})}
+            />
             <CommandBlock title="Uninstall" platform={p.label} command={p.uninstall} />
           </TabsContent>
         ))}
       </Tabs>
-      <p className="text-xs text-muted-foreground">
-        Needs outbound UDP 7844 to Cloudflare; one connector per host. On Windows, run PowerShell as
-        Administrator.
-      </p>
     </div>
   )
 }
 
 function CommandBlock({
   title,
+  note,
   platform,
   command,
 }: {
   title: string
+  note?: string
   platform: string
   command: string
 }) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-muted-foreground">{title}</span>
+        <span className="text-xs font-medium text-muted-foreground">
+          {title}
+          {note ? <span className="font-normal"> ({note})</span> : null}
+        </span>
         <Button
           type="button"
           size="icon-xs"
