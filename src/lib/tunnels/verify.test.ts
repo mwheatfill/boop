@@ -110,6 +110,38 @@ describe('runTunnelVerify', () => {
     const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
     expect(row?.lastVerifyOutcome).toBe('unknown')
   })
+
+  it('probes the named Target (not the representative) when a targetId is given', async () => {
+    const db = createTestDb()
+    const { workspaceId, tunnelId } = await seedTunnel(db)
+    await seedActiveTarget(db, workspaceId, tunnelId)
+    const namedId = newId('tgt')
+    await db.insert(targets).values({
+      id: namedId,
+      workspaceId,
+      name: 'Health',
+      slug: 'health',
+      url: 'https://health.t.tunnels.test/health.json',
+      method: 'GET',
+      reachability: 'tunnel',
+      tunnelId,
+      internalOrigin: 'http://10.0.0.2:80',
+    })
+    await createSecret({ db, kek: KEK }, workspaceId, { name: 'cid', plaintext: 'CID' })
+    await createSecret({ db, kek: KEK }, workspaceId, { name: 'csec', plaintext: 'CSEC' })
+
+    let probedUrl = ''
+    const capture = (async (url: string) => {
+      probedUrl = String(url)
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const result = await runTunnelVerify({ db, kek: KEK, fetchImpl: capture }, tunnelId, namedId)
+    expect(result.outcome).toBe('ok')
+    expect(probedUrl).toBe('https://health.t.tunnels.test/health.json')
+    const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
+    expect(row?.lastVerifyOutcome).toBe('ok')
+  })
 })
 
 async function seedTargetOnTunnel(db: Db, workspaceId: string, tunnelId: string) {

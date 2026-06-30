@@ -3,10 +3,11 @@ import { createServerFn } from '@tanstack/react-start'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
+import { logWarn } from '@/lib/log'
 import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
 import { getProviderConfig } from '@/lib/tunnels/provider'
 import { syncTunnelIngress } from '@/lib/tunnels/provision'
-import { runTargetVerify } from '@/lib/tunnels/verify'
+import { runTargetVerify, runTunnelVerify } from '@/lib/tunnels/verify'
 import { z } from '@/shared/schemas/openapi'
 import type { Target } from '@/shared/schemas/target'
 import { TargetCreateInput, TargetUpdateInput } from '@/shared/schemas/target'
@@ -88,6 +89,16 @@ export const createTargetFn = createServerFn({ method: 'POST' })
     try {
       const target = await createTarget(db, workspaceSlug, input)
       await syncTunnels(db, [target.tunnelId])
+      // Probe the new Target now so its health resolves immediately instead of
+      // sitting at "Checking" until a manual Verify or first Run. Best-effort.
+      if (target.reachability === 'tunnel' && target.tunnelId) {
+        try {
+          const kek = (await env.BOOP_SECRETS_KEK?.get()) ?? ''
+          await runTunnelVerify({ db, kek }, target.tunnelId, target.id)
+        } catch {
+          logWarn('target.create_verify_failed', { targetId: target.id })
+        }
+      }
       return { ok: true, data: target }
     } catch (err) {
       const failure = asMutationFailure(err)

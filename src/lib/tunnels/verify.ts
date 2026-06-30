@@ -89,6 +89,7 @@ export interface RunTunnelVerifyDeps {
 export async function runTunnelVerify(
   deps: RunTunnelVerifyDeps,
   tunnelId: string,
+  targetId?: string,
 ): Promise<TunnelVerifyResult> {
   const { db, kek } = deps
   const fetchImpl = deps.fetchImpl ?? fetch
@@ -97,15 +98,18 @@ export async function runTunnelVerify(
   const tunnel = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
   if (!tunnel) throw new NotFoundError('Tunnel', tunnelId)
 
-  // Verify a representative active Target route (the connector has no single
-  // origin; each private Target is its own route through this tunnel).
-  const target = (
-    await db
-      .select()
-      .from(targets)
-      .where(and(eq(targets.tunnelId, tunnelId), eq(targets.status, 'active')))
-      .limit(1)
-  )[0]
+  // Probe the named Target when given (e.g. right after it's created), else a
+  // representative active route (the connector has no single origin; each private
+  // Target is its own route through this tunnel).
+  const target = targetId
+    ? (await db.select().from(targets).where(eq(targets.id, targetId)).limit(1))[0]
+    : (
+        await db
+          .select()
+          .from(targets)
+          .where(and(eq(targets.tunnelId, tunnelId), eq(targets.status, 'active')))
+          .limit(1)
+      )[0]
 
   let result: TunnelVerifyResult
   if (!target) {
