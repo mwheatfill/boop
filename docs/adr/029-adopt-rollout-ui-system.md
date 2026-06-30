@@ -19,7 +19,7 @@ Adopt mcc's UI system wholesale. Retain ADR-022's **flat-shadcn-token-contract**
 | Concern | Choice | Over |
 |---|---|---|
 | Theme source | mcc's `app.css`: tweakcn export, teal primary `#08CDBE`, radius `0.625rem` (standard shadcn), Inter/Lora, shadow scale, `--viz-positive/warning/critical/neutral` | boop's stock-green theme; re-deriving a boop-specific palette |
-| Accent / brand | **One teal accent.** No brand-vs-UI-accent split | ADR-022's cool-blue-UI + warm-orange-chart split (retired; never shipped) |
+| Accent / brand | **One accent**, recolored to the boop logo orange (`oklch(0.7 0.19 50)`) — see DESIGN.md § 3. No brand-vs-UI-accent split | ADR-022's cool-blue-UI + warm-orange-chart split (retired; never shipped) |
 | Token contract | Flat shadcn OKLCH per token, `:root` + `.dark`, `@theme inline`. Keep boop's `--info` extension (mcc omits it; badge/JobModal/codemirror use it) | re-introducing a derivation layer |
 | Form composition | shadcn `Field` + `Select` / `Combobox` / `InputGroup`, grouped into `Section`s | ADR-023's modal-with-inline-pills; hand-rolled pill inputs |
 | Editor surface | Uniform right-side **`Sheet`** for all six entity create/edit; `AlertDialog` for destructive confirms. Plain open/close state (row click / "New"); **no route-masking**. Container + craft rules in `docs/ui-craft.md` (adopted from rollout) | ADR-023's centered modal + `createRouteMask`; the masking's share/refresh `location.state` edge cases |

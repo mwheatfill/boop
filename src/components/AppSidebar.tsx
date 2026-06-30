@@ -115,12 +115,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <Link to="/" className="flex items-center gap-2 px-2 py-1.5">
-          <span
-            aria-hidden
-            className="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-semibold"
-          >
-            b
-          </span>
+          <img src="/boop-logo.png" alt="" className="size-6 shrink-0" />
           <span className="text-sm font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
             boop
           </span>
