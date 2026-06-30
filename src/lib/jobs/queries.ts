@@ -26,6 +26,8 @@ function toJobSummary(row: JoinedJobRow, lastRun?: typeof runs.$inferSelect): Jo
     id: row.id,
     slug: row.slug,
     name: row.name,
+    targetSlug: row.target.slug,
+    targetName: row.target.name,
     workspaceSlug: row.workspace.slug,
     workspaceName: row.workspace.name,
     triggerKind: row.triggerKind as TriggerKind,

@@ -2671,6 +2671,12 @@
           "name": {
             "type": "string"
           },
+          "targetSlug": {
+            "type": "string"
+          },
+          "targetName": {
+            "type": "string"
+          },
           "workspaceSlug": {
             "type": "string"
           },
@@ -2785,6 +2791,8 @@
           "id",
           "slug",
           "name",
+          "targetSlug",
+          "targetName",
           "workspaceSlug",
           "workspaceName",
           "triggerKind",

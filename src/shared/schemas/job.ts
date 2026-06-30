@@ -121,6 +121,8 @@ export const JobSummarySchema = z
     id: z.string(),
     slug: z.string(),
     name: z.string(),
+    targetSlug: z.string(),
+    targetName: z.string(),
     workspaceSlug: z.string(),
     workspaceName: z.string(),
     triggerKind: z.enum(TRIGGER_KINDS),

@@ -1,7 +1,8 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { queryOptions, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Plus } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
+import { useState } from 'react'
 import { z } from 'zod'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
@@ -12,6 +13,7 @@ import { isAdmin } from '@/lib/auth/is-admin'
 import { formatInTimezone } from '@/lib/format'
 import { triggerKindLabel } from '@/lib/jobs/format'
 import { effectiveTimezone } from '@/lib/jobs/queries'
+import { jobQueryOptions } from '@/lib/jobs/query-options'
 import { listAllJobsFn } from '@/lib/jobs/server-fns'
 import type { JobSummary } from '@/shared/schemas/job'
 
@@ -33,20 +35,17 @@ export const Route = createFileRoute('/_authenticated/jobs')({
   component: JobsPage,
 })
 
-function columnsFor(): ColumnDef<JobSummary>[] {
-  return [
+function columnsFor(onEdit: ((job: JobSummary) => void) | null): ColumnDef<JobSummary>[] {
+  const cols: ColumnDef<JobSummary>[] = [
     {
       accessorKey: 'name',
       header: 'Job',
-      cell: ({ row }) => (
-        <Link
-          to="/jobs/$jobSlug"
-          params={{ jobSlug: row.original.slug }}
-          className="font-medium text-foreground hover:underline"
-        >
-          {row.original.name}
-        </Link>
-      ),
+      cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span>,
+    },
+    {
+      accessorKey: 'targetName',
+      header: 'Target',
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.targetName}</span>,
     },
     {
       id: 'triggerKind',
@@ -77,14 +76,68 @@ function columnsFor(): ColumnDef<JobSummary>[] {
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
   ]
+  if (onEdit) {
+    cols.push({
+      id: 'actions',
+      enableHiding: false,
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Edit ${row.original.name}`}
+            className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover/row:opacity-100"
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit(row.original)
+            }}
+          >
+            <Pencil aria-hidden />
+          </Button>
+        </div>
+      ),
+    })
+  }
+  return cols
+}
+
+// Editing from a row needs the full Job (the list only has a summary), so fetch it
+// on demand, then open the edit sheet once loaded.
+function JobEditSheet({
+  workspaceSlug,
+  jobSlug,
+  isAdmin: admin,
+  onClose,
+}: {
+  workspaceSlug: string
+  jobSlug: string
+  isAdmin: boolean
+  onClose: () => void
+}) {
+  const { data: job } = useQuery(jobQueryOptions(workspaceSlug, jobSlug))
+  if (!job) return null
+  return (
+    <JobSheet
+      job={job}
+      isAdmin={admin}
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+    />
+  )
 }
 
 function JobsPage() {
   const navigate = Route.useNavigate()
   const search = Route.useSearch()
   const { currentUser, workspaceSlug } = Route.useRouteContext()
+  const admin = isAdmin(currentUser)
   const archived = Boolean(search.archived)
   const { data: jobs } = useSuspenseQuery(allJobsQueryOptions({ includeArchived: archived }))
+  const [editing, setEditing] = useState<{ workspaceSlug: string; jobSlug: string } | null>(null)
 
   return (
     <div className="flex flex-col gap-6">
@@ -106,7 +159,7 @@ function JobsPage() {
           </Button>
           <JobSheet
             owner={{ workspaceSlug }}
-            isAdmin={isAdmin(currentUser)}
+            isAdmin={admin}
             trigger={
               <Button size="sm">
                 <Plus aria-hidden /> New Job
@@ -128,7 +181,7 @@ function JobsPage() {
             archived ? undefined : (
               <JobSheet
                 owner={{ workspaceSlug }}
-                isAdmin={isAdmin(currentUser)}
+                isAdmin={admin}
                 trigger={
                   <Button>
                     <Plus aria-hidden /> New Job
@@ -139,8 +192,19 @@ function JobsPage() {
           }
         />
       ) : (
-        <DataTable columns={columnsFor()} data={jobs} gridKey="jobs" />
+        <DataTable
+          columns={columnsFor(
+            admin ? (j) => setEditing({ workspaceSlug: j.workspaceSlug, jobSlug: j.slug }) : null,
+          )}
+          data={jobs}
+          gridKey="jobs"
+          onRowClick={(j) => navigate({ to: '/jobs/$jobSlug', params: { jobSlug: j.slug } })}
+        />
       )}
+
+      {editing ? (
+        <JobEditSheet {...editing} isAdmin={admin} onClose={() => setEditing(null)} />
+      ) : null}
     </div>
   )
 }
