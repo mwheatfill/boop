@@ -16,7 +16,6 @@ import { type ReactElement, useCallback, useEffect, useMemo, useState } from 're
 import { toast } from 'sonner'
 import { Section } from '@/components/Section'
 import { TargetPicker } from '@/components/targets/TargetPicker'
-import { TargetSummary } from '@/components/targets/TargetSummary'
 import { TemplateGallery } from '@/components/templates/TemplateGallery'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -564,7 +563,7 @@ export function JobSheet({
                         return (
                           <Field>
                             <FieldLabel>Target</FieldLabel>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-start gap-2">
                               <div className="min-w-0 flex-1">
                                 <TargetPicker
                                   targets={orderedTargets}
@@ -620,13 +619,6 @@ export function JobSheet({
                       }}
                     />
                   ) : null}
-
-                  <form.Subscribe selector={(s) => s.values.targetSlug}>
-                    {(targetSlug) => {
-                      const selected = targets.find((t) => t.slug === targetSlug)
-                      return selected ? <TargetSummary target={selected} /> : null
-                    }}
-                  </form.Subscribe>
                 </Section>
 
                 <Section icon={Clock} title="Trigger">
