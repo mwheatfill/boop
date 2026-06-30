@@ -1,5 +1,16 @@
 import { queryOptions } from '@tanstack/react-query'
-import { listTargetsForTunnelFn, listTargetsForWorkspaceFn } from '@/lib/targets/server-fns'
+import {
+  getTargetFn,
+  listTargetsForTunnelFn,
+  listTargetsForWorkspaceFn,
+} from '@/lib/targets/server-fns'
+
+export function targetQueryOptions(workspaceSlug: string, targetSlug: string) {
+  return queryOptions({
+    queryKey: ['workspaces', workspaceSlug, 'targets', targetSlug],
+    queryFn: () => getTargetFn({ data: { workspaceSlug, targetSlug } }),
+  })
+}
 
 export function listTargetsQueryOptions(workspaceSlug: string) {
   return queryOptions({

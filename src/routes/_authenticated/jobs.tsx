@@ -8,6 +8,7 @@ import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { JobSheet } from '@/components/forms/JobSheet'
 import { StatusBadge } from '@/components/StatusBadge'
+import { TargetCell } from '@/components/targets/TargetOption'
 import { Button } from '@/components/ui/button'
 import { isAdmin } from '@/lib/auth/is-admin'
 import { formatInTimezone } from '@/lib/format'
@@ -43,9 +44,10 @@ function columnsFor(onEdit: ((job: JobSummary) => void) | null): ColumnDef<JobSu
       cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span>,
     },
     {
-      accessorKey: 'targetName',
+      id: 'target',
+      accessorFn: (row) => row.target.name,
       header: 'Target',
-      cell: ({ row }) => <span className="text-muted-foreground">{row.original.targetName}</span>,
+      cell: ({ row }) => <TargetCell target={row.original.target} />,
     },
     {
       id: 'triggerKind',

@@ -1,6 +1,7 @@
 import { cronSchema } from './cron'
 import { nameField, slugField } from './fields'
 import { z } from './openapi'
+import { TargetRefSchema } from './target'
 import { tzSchema } from './timezone'
 import { VariableMapSchema } from './workspace-variables'
 
@@ -92,6 +93,7 @@ export const JobSchema = z
     targetId: z.string(),
     targetSlug: z.string(),
     targetName: z.string(),
+    target: TargetRefSchema,
     name: z.string(),
     slug: z.string(),
     triggerKind: z.enum(TRIGGER_KINDS),
@@ -121,8 +123,7 @@ export const JobSummarySchema = z
     id: z.string(),
     slug: z.string(),
     name: z.string(),
-    targetSlug: z.string(),
-    targetName: z.string(),
+    target: TargetRefSchema,
     workspaceSlug: z.string(),
     workspaceName: z.string(),
     triggerKind: z.enum(TRIGGER_KINDS),

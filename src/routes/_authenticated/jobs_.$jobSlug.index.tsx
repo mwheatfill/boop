@@ -1,4 +1,4 @@
-import { queryOptions, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { queryOptions, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Pencil, Play } from 'lucide-react'
 import { useState } from 'react'
@@ -10,12 +10,14 @@ import { JobActionsMenu } from '@/components/forms/JobActionsMenu'
 import { JobSheet } from '@/components/forms/JobSheet'
 import { RecentRunsPanel } from '@/components/forms/RecentRunsPanel'
 import { SaveJobTemplateModal } from '@/components/forms/SaveJobTemplateModal'
+import { TargetSheet } from '@/components/forms/TargetSheet'
 import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
 import { useShortcut } from '@/components/keyboard/use-shortcut'
 import { PinButton } from '@/components/PinButton'
 import { StatusBadge } from '@/components/StatusBadge'
+import { TargetOption } from '@/components/targets/TargetOption'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { isAdmin } from '@/lib/auth/is-admin'
 import { triggerSummaryWithTimezone } from '@/lib/jobs/format'
 import {
@@ -27,6 +29,7 @@ import {
   runJobNowFn,
 } from '@/lib/jobs/server-fns'
 import { useTrackRecentVisit } from '@/lib/recents/use-track-recent-visit'
+import { targetQueryOptions } from '@/lib/targets/query-options'
 
 const jobOptions = (workspaceSlug: string, jobSlug: string) =>
   queryOptions({
@@ -49,6 +52,9 @@ function JobDetailPage() {
   const [archiveBlock, setArchiveBlock] = useState<string | null>(null)
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [editingTarget, setEditingTarget] = useState(false)
+  // Fetch the full Target (health + the edit record); fall back to the Job's ref while loading.
+  const { data: fullTarget } = useQuery(targetQueryOptions(workspaceSlug, job.targetSlug))
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['workspaces', workspaceSlug] })
@@ -208,16 +214,36 @@ function JobDetailPage() {
         </div>
       </section>
 
-      <Card>
+      <Card className="group/target relative">
         <CardHeader>
           <CardTitle className="text-sm">Target</CardTitle>
-          <CardDescription>
-            <Link to="/targets" className="font-medium text-foreground hover:underline">
-              {job.targetName}
-            </Link>
-          </CardDescription>
         </CardHeader>
+        <CardContent>
+          <TargetOption target={fullTarget ?? job.target} />
+        </CardContent>
+        {isAdmin(currentUser) ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Edit Target"
+            className="absolute top-3 right-3 opacity-0 transition-opacity focus-visible:opacity-100 group-hover/target:opacity-100"
+            onClick={() => setEditingTarget(true)}
+          >
+            <Pencil aria-hidden />
+          </Button>
+        ) : null}
       </Card>
+      {editingTarget && fullTarget ? (
+        <TargetSheet
+          owner={{ workspaceSlug }}
+          target={fullTarget}
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditingTarget(false)
+          }}
+        />
+      ) : null}
 
       {job.triggerKind === 'webhook' ? (
         <WebhookSecretPanel workspaceSlug={workspaceSlug} jobSlug={jobSlug} />

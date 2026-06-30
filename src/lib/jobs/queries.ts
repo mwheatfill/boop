@@ -3,6 +3,7 @@ import type { Database } from '@/lib/db/client'
 import { jobs, runs, targets, workspaces } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
 import type { Job, JobSummary, TriggerKind } from '@/shared/schemas/job'
+import type { TargetRef } from '@/shared/schemas/target'
 
 interface ListFilters {
   workspaceId?: string
@@ -21,13 +22,23 @@ function effectiveTz(job: { triggerTimezone: string | null }, workspaceTimezone:
   return job.triggerTimezone ?? workspaceTimezone
 }
 
+function targetRef(t: typeof targets.$inferSelect): TargetRef {
+  return {
+    slug: t.slug,
+    name: t.name,
+    method: t.method as TargetRef['method'],
+    reachability: t.reachability as TargetRef['reachability'],
+    url: t.url,
+    internalOrigin: t.internalOrigin,
+  }
+}
+
 function toJobSummary(row: JoinedJobRow, lastRun?: typeof runs.$inferSelect): JobSummary {
   return {
     id: row.id,
     slug: row.slug,
     name: row.name,
-    targetSlug: row.target.slug,
-    targetName: row.target.name,
+    target: targetRef(row.target),
     workspaceSlug: row.workspace.slug,
     workspaceName: row.workspace.name,
     triggerKind: row.triggerKind as TriggerKind,
@@ -53,6 +64,7 @@ function toJob(row: JoinedJobRow): Job {
     targetId: row.targetId,
     targetSlug: row.target.slug,
     targetName: row.target.name,
+    target: targetRef(row.target),
     name: row.name,
     slug: row.slug,
     triggerKind: row.triggerKind as TriggerKind,

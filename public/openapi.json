@@ -23,6 +23,59 @@
         "maxLength": 4096,
         "example": "acme-123"
       },
+      "TargetRef": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "example": "primary-api"
+          },
+          "name": {
+            "type": "string",
+            "example": "Primary API"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE",
+              "HEAD"
+            ]
+          },
+          "reachability": {
+            "type": "string",
+            "enum": [
+              "public",
+              "tunnel"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "example": "https://api.acme.com/healthz"
+          },
+          "internalOrigin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "method",
+          "reachability",
+          "url",
+          "internalOrigin"
+        ]
+      },
       "CronExpression": {
         "type": "string",
         "description": "Five-field cron expression with one-minute granularity. Seconds and year fields not supported.",
@@ -896,6 +949,60 @@
           "$ref": "#/components/schemas/VariableValue"
         },
         "description": "Operator-defined variables. Keys match ^[a-z][a-z0-9_]{0,63}$. Up to 64 entries. Workspace-level entries are inherited by Jobs; Job-level entries override by name."
+      },
+      "TargetRefOutput": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "example": "primary-api"
+          },
+          "name": {
+            "type": "string",
+            "example": "Primary API"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE",
+              "HEAD"
+            ]
+          },
+          "reachability": {
+            "type": "string",
+            "enum": [
+              "public",
+              "tunnel"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "example": "https://api.acme.com/healthz"
+          },
+          "internalOrigin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "method",
+          "reachability",
+          "url",
+          "internalOrigin"
+        ],
+        "additionalProperties": false
       },
       "ChannelConfigTeamsOutput": {
         "type": "object",
@@ -2521,6 +2628,9 @@
           "targetName": {
             "type": "string"
           },
+          "target": {
+            "$ref": "#/components/schemas/TargetRefOutput"
+          },
           "name": {
             "type": "string"
           },
@@ -2639,6 +2749,7 @@
           "targetId",
           "targetSlug",
           "targetName",
+          "target",
           "name",
           "slug",
           "triggerKind",
@@ -2671,11 +2782,8 @@
           "name": {
             "type": "string"
           },
-          "targetSlug": {
-            "type": "string"
-          },
-          "targetName": {
-            "type": "string"
+          "target": {
+            "$ref": "#/components/schemas/TargetRefOutput"
           },
           "workspaceSlug": {
             "type": "string"
@@ -2791,8 +2899,7 @@
           "id",
           "slug",
           "name",
-          "targetSlug",
-          "targetName",
+          "target",
           "workspaceSlug",
           "workspaceName",
           "triggerKind",

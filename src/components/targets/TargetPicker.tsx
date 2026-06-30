@@ -1,6 +1,5 @@
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { useState } from 'react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -13,25 +12,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import type { Target } from '@/shared/schemas/target'
-import { TargetHealthBadge } from './TargetHealthBadge'
-
-// Name + context (method, Public/Private, health, address). Shared by the trigger
-// (the current selection) and each dropdown option, so both read the same.
-function TargetOption({ target }: { target: Target }) {
-  const isTunnel = target.reachability === 'tunnel'
-  const address = (isTunnel ? target.internalOrigin : target.url) || '—'
-  return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1 text-left">
-      <span className="font-medium text-foreground">{target.name}</span>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Badge variant="secondary">{target.method}</Badge>
-        <Badge variant="outline">{isTunnel ? 'Private' : 'Public'}</Badge>
-        {target.health ? <TargetHealthBadge health={target.health} /> : null}
-      </div>
-      <span className="break-all font-mono text-xs text-muted-foreground">{address}</span>
-    </div>
-  )
-}
+import { TargetOption } from './TargetOption'
 
 export function TargetPicker({
   targets,

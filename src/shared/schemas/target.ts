@@ -49,6 +49,19 @@ export const TargetSchema = z
 
 export type Target = z.infer<typeof TargetSchema>
 
+// The display facts a Target carries when referenced from another entity (a Job's
+// target): enough to show its identity + context without the full record.
+export const TargetRefSchema = TargetSchema.pick({
+  slug: true,
+  name: true,
+  method: true,
+  reachability: true,
+  url: true,
+  internalOrigin: true,
+}).meta({ id: 'TargetRef' })
+
+export type TargetRef = z.infer<typeof TargetRefSchema>
+
 const targetMutableFields = {
   name: nameField,
   // Optional: public targets supply url; tunnel targets supply internalOrigin and
