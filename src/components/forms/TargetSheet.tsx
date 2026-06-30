@@ -186,14 +186,14 @@ export function TargetSheet({
       }),
     onSuccess: async (result) => {
       if (!result.ok) {
-        toast.error(result.message ?? 'Active Jobs still use this Target.')
+        toast.error(result.message ?? 'Could not delete the Target.')
         return
       }
       await invalidateTargets()
-      toast.success('Target archived')
+      toast.success('Target deleted', { description: 'Find it in the Recycle Bin.' })
       setOpen(false)
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : 'Archive failed'),
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Delete failed'),
   })
 
   const restore = useMutation({
@@ -245,7 +245,7 @@ export function TargetSheet({
             {isEdit ? (
               target.status === 'archived' ? (
                 <Badge variant="outline" className="shrink-0">
-                  Archived
+                  Deleted
                 </Badge>
               ) : (
                 <Badge variant="secondary" className="shrink-0">
@@ -457,12 +457,12 @@ export function TargetSheet({
                 <ConfirmDialog
                   trigger={
                     <Button type="button" variant="ghost" className="text-destructive">
-                      Archive
+                      Delete
                     </Button>
                   }
-                  title={`Archive ${target.name}?`}
-                  description="It's hidden from the list and you can restore it later. Active Jobs that use it block this."
-                  confirmLabel="Archive Target"
+                  title={`Delete ${target.name}?`}
+                  description="This also deletes any Jobs that call this Target. Everything moves to the Recycle Bin, where you can restore it later."
+                  confirmLabel="Delete Target"
                   onConfirm={() => archive.mutate()}
                 />
               )

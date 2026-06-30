@@ -179,7 +179,7 @@ function JobDetailPage() {
                   return
                 }
                 await refresh()
-                toast.success('Archived')
+                toast.success('Job deleted', { description: 'Find it in the Recycle Bin.' })
                 await goTo({ to: '/jobs' })
               }}
               onRestore={simpleAction(restoreJobFn, 'Restored')}

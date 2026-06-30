@@ -1,14 +1,8 @@
-import { and, eq } from 'drizzle-orm'
-import { canArchiveTarget } from '@/lib/archive-policy/archive-policy'
+import { and, eq, ne } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { targets, tunnels } from '@/lib/db/schema'
-import {
-  ArchiveBlockedError,
-  FieldValidationError,
-  isUniqueConstraintViolation,
-  NotFoundError,
-} from '@/lib/errors'
+import { jobs, targets, tunnels } from '@/lib/db/schema'
+import { FieldValidationError, isUniqueConstraintViolation, NotFoundError } from '@/lib/errors'
 import { tunnelTargetHostname } from '@/lib/tunnels/provision'
 import { normalizeSlug, resolveWorkspaceId } from '@/lib/workspaces/resolve'
 import type { Target, TargetCreateInput, TargetUpdateInput } from '@/shared/schemas/target'
@@ -162,11 +156,15 @@ export async function archiveTarget(
   targetSlug: string,
 ): Promise<Target> {
   const target = await getTargetBySlug(db, workspaceSlug, targetSlug)
-  const check = await canArchiveTarget(db, target.id)
-  if (!check.ok) throw new ArchiveBlockedError(check.blockingCount, 'target')
+  const now = new Date()
+  // The Target's Jobs can't run without it, so delete them too (to the Recycle Bin).
+  await db
+    .update(jobs)
+    .set({ status: 'archived', updatedAt: now })
+    .where(and(eq(jobs.targetId, target.id), ne(jobs.status, 'archived')))
   await db
     .update(targets)
-    .set({ status: 'archived', updatedAt: new Date() })
+    .set({ status: 'archived', updatedAt: now })
     .where(eq(targets.id, target.id))
   return getTargetBySlug(db, workspaceSlug, targetSlug)
 }

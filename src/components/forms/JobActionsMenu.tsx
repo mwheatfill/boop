@@ -41,7 +41,9 @@ export function JobActionsMenu({
           <DropdownMenuItem onClick={onResume}>Resume</DropdownMenuItem>
         ) : null}
         {status !== 'archived' ? (
-          <DropdownMenuItem onClick={onArchive}>Archive</DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onClick={onArchive}>
+            Delete
+          </DropdownMenuItem>
         ) : (
           <DropdownMenuItem onClick={onRestore}>Restore</DropdownMenuItem>
         )}

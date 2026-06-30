@@ -79,12 +79,9 @@ function ChannelsPage() {
 }
 
 function ChannelsList({ activeSlug }: { activeSlug: string }) {
-  const search = Route.useSearch()
-  const archived = Boolean(search.archived)
-  const navigate = Route.useNavigate()
   const { currentUser } = Route.useRouteContext()
   const isAdmin = currentUser.role === 'admin'
-  const { data: channels } = useSuspenseQuery(listChannelsQueryOptions(activeSlug, archived))
+  const { data: channels } = useSuspenseQuery(listChannelsQueryOptions(activeSlug, false))
 
   return (
     <div className="flex flex-col gap-6">
@@ -94,13 +91,6 @@ function ChannelsList({ activeSlug }: { activeSlug: string }) {
           <p className="text-sm text-muted-foreground">Where boop sends alerts.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate({ search: (prev) => ({ ...prev, archived: !archived }) })}
-          >
-            {archived ? 'Hide archived' : 'Show archived'}
-          </Button>
           {isAdmin ? (
             <ChannelSheet
               owner={{ workspaceSlug: activeSlug }}
@@ -117,14 +107,10 @@ function ChannelsList({ activeSlug }: { activeSlug: string }) {
       {channels.length === 0 ? (
         <EmptyState
           icon={SendHorizonal}
-          title={archived ? 'No archived Channels.' : 'No Channels yet.'}
-          description={
-            archived
-              ? 'Toggle off "Show archived" to see active Channels.'
-              : 'Create a Channel so alerts have somewhere to go.'
-          }
+          title="No Channels yet."
+          description="Create a Channel so alerts have somewhere to go."
           action={
-            !archived && isAdmin ? (
+            isAdmin ? (
               <ChannelSheet
                 owner={{ workspaceSlug: activeSlug }}
                 trigger={

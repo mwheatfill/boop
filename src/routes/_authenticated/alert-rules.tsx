@@ -89,12 +89,9 @@ function AlertRulesPage() {
 }
 
 function AlertRulesList({ activeSlug }: { activeSlug: string }) {
-  const search = Route.useSearch()
-  const archived = Boolean(search.archived)
-  const navigate = Route.useNavigate()
   const { currentUser } = Route.useRouteContext()
   const isAdmin = currentUser.role === 'admin'
-  const { data: rules } = useSuspenseQuery(listAlertRulesQueryOptions(activeSlug, archived))
+  const { data: rules } = useSuspenseQuery(listAlertRulesQueryOptions(activeSlug, false))
   const { data: channels } = useSuspenseQuery(listChannelsQueryOptions(activeSlug, true))
   const channelNameById = new Map(channels.map((c) => [c.id, c.name]))
 
@@ -106,13 +103,6 @@ function AlertRulesList({ activeSlug }: { activeSlug: string }) {
           <p className="text-sm text-muted-foreground">When to send alerts, and where.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate({ search: (prev) => ({ ...prev, archived: !archived }) })}
-          >
-            {archived ? 'Hide archived' : 'Show archived'}
-          </Button>
           <AlertRuleSheet
             owner={{ workspaceSlug: activeSlug }}
             isAdmin={isAdmin}
@@ -128,24 +118,18 @@ function AlertRulesList({ activeSlug }: { activeSlug: string }) {
       {rules.length === 0 ? (
         <EmptyState
           icon={Bell}
-          title={archived ? 'No archived rules.' : 'No alert rules yet.'}
-          description={
-            archived
-              ? 'Toggle off "Show archived" to see active rules.'
-              : 'Connect a condition to one or more Channels to start sending alerts.'
-          }
+          title="No alert rules yet."
+          description="Connect a condition to one or more Channels to start sending alerts."
           action={
-            !archived ? (
-              <AlertRuleSheet
-                owner={{ workspaceSlug: activeSlug }}
-                isAdmin={isAdmin}
-                trigger={
-                  <Button>
-                    <Plus aria-hidden /> New Alert Rule
-                  </Button>
-                }
-              />
-            ) : undefined
+            <AlertRuleSheet
+              owner={{ workspaceSlug: activeSlug }}
+              isAdmin={isAdmin}
+              trigger={
+                <Button>
+                  <Plus aria-hidden /> New Alert Rule
+                </Button>
+              }
+            />
           }
         />
       ) : (

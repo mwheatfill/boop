@@ -1,8 +1,9 @@
+import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { newId } from '@/lib/db/ids'
 import { jobs, tunnels } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
-import { ArchiveBlockedError, FieldValidationError, NotFoundError } from '@/lib/errors'
+import { FieldValidationError, NotFoundError } from '@/lib/errors'
 import { createWorkspace } from '@/lib/workspaces/commands'
 import { archiveTarget, createTarget, restoreTarget, updateTarget } from './commands'
 
@@ -197,12 +198,13 @@ describe('archiveTarget', () => {
     expect(archived.status).toBe('archived')
   })
 
-  it('blocks when an active job references the target, with the blocking count', async () => {
+  it('cascade-archives the Target’s active Jobs when deleted', async () => {
     const db = createTestDb()
     const workspace = await createWorkspace(db, workspaceInput)
     const target = await createTarget(db, 'acme', targetInput)
+    const jobId = newId('job')
     await db.insert(jobs).values({
-      id: newId('job'),
+      id: jobId,
       workspaceId: workspace.id,
       targetId: target.id,
       name: 'Daily',
@@ -212,14 +214,10 @@ describe('archiveTarget', () => {
       triggerTimezone: 'UTC',
       status: 'active',
     })
-    let thrown: unknown
-    try {
-      await archiveTarget(db, 'acme', 'primary-api')
-    } catch (err) {
-      thrown = err
-    }
-    expect(thrown).toBeInstanceOf(ArchiveBlockedError)
-    expect((thrown as ArchiveBlockedError).blockingCount).toBe(1)
+    const archived = await archiveTarget(db, 'acme', 'primary-api')
+    expect(archived.status).toBe('archived')
+    const job = (await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1))[0]
+    expect(job?.status).toBe('archived')
   })
 })
 

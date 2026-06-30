@@ -1,14 +1,8 @@
 import { and, eq } from 'drizzle-orm'
-import { canArchiveChannel } from '@/lib/archive-policy/archive-policy'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
 import { channels } from '@/lib/db/schema'
-import {
-  ArchiveBlockedError,
-  FieldValidationError,
-  isUniqueConstraintViolation,
-  NotFoundError,
-} from '@/lib/errors'
+import { FieldValidationError, isUniqueConstraintViolation, NotFoundError } from '@/lib/errors'
 import { normalizeSlug, resolveWorkspaceId } from '@/lib/workspaces/resolve'
 import type { Channel, ChannelCreateInput, ChannelUpdateInput } from '@/shared/schemas/channel'
 import { getChannelBySlug } from './queries'
@@ -73,8 +67,8 @@ export async function archiveChannel(
   channelSlug: string,
 ): Promise<Channel> {
   const channel = await getChannelBySlug(db, workspaceSlug, channelSlug)
-  const check = await canArchiveChannel(db, channel.id)
-  if (!check.ok) throw new ArchiveBlockedError(check.blockingCount, 'channel')
+  // Alert rules that reference this Channel simply skip it once it's gone, so a
+  // delete never blocks. The id is left in their channelIds and ignored at dispatch.
   await db
     .update(channels)
     .set({ status: 'archived', updatedAt: new Date() })

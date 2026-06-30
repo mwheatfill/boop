@@ -63,11 +63,12 @@ export function ChannelDetailView({
           {isActive ? (
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
+              className="text-destructive"
               disabled={archive.isPending}
               onClick={archive.onClick}
             >
-              Archive
+              Delete
             </Button>
           ) : (
             <Button size="sm" disabled={restore.isPending} onClick={restore.onClick}>

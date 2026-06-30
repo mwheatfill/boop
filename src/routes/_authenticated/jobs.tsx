@@ -152,13 +152,6 @@ function JobsPage() {
           <Button render={<Link to="/" />} variant="outline" size="sm">
             ← Dashboard
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate({ search: (prev) => ({ ...prev, archived: !archived }) })}
-          >
-            {archived ? 'Hide archived' : 'Show archived'}
-          </Button>
           <JobSheet
             owner={{ workspaceSlug }}
             isAdmin={admin}
@@ -173,24 +166,18 @@ function JobsPage() {
 
       {jobs.length === 0 ? (
         <EmptyState
-          title={archived ? 'No archived Jobs.' : 'No Jobs yet.'}
-          description={
-            archived
-              ? 'Toggle off "Show archived" to see active Jobs.'
-              : 'Create a Job to schedule calls to a Target.'
-          }
+          title="No Jobs yet."
+          description="Create a Job to schedule calls to a Target."
           action={
-            archived ? undefined : (
-              <JobSheet
-                owner={{ workspaceSlug }}
-                isAdmin={admin}
-                trigger={
-                  <Button>
-                    <Plus aria-hidden /> New Job
-                  </Button>
-                }
-              />
-            )
+            <JobSheet
+              owner={{ workspaceSlug }}
+              isAdmin={admin}
+              trigger={
+                <Button>
+                  <Plus aria-hidden /> New Job
+                </Button>
+              }
+            />
           }
         />
       ) : (

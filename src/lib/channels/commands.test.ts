@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { newId } from '@/lib/db/ids'
 import { alertRules, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
-import { ArchiveBlockedError, FieldValidationError, NotFoundError } from '@/lib/errors'
+import { FieldValidationError, NotFoundError } from '@/lib/errors'
 import { archiveChannel, createChannel, restoreChannel, updateChannel } from './commands'
 
 async function seedWorkspace(db: ReturnType<typeof createTestDb>) {
@@ -65,7 +65,7 @@ describe('archiveChannel', () => {
     expect(archived.status).toBe('archived')
   })
 
-  it('blocks when an active rule references the channel', async () => {
+  it('deletes the Channel even when an active rule references it', async () => {
     const db = createTestDb()
     const workspaceId = await seedWorkspace(db)
     const channel = await createChannel(db, 'acme', teamsInput)
@@ -78,14 +78,8 @@ describe('archiveChannel', () => {
       config: '{}',
       channelIds: JSON.stringify([channel.id]),
     })
-    let thrown: unknown
-    try {
-      await archiveChannel(db, 'acme', 'ops-teams')
-    } catch (err) {
-      thrown = err
-    }
-    expect(thrown).toBeInstanceOf(ArchiveBlockedError)
-    expect((thrown as ArchiveBlockedError).blockingCount).toBe(1)
+    const archived = await archiveChannel(db, 'acme', 'ops-teams')
+    expect(archived.status).toBe('archived')
   })
 })
 

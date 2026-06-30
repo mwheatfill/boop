@@ -87,12 +87,9 @@ function TargetsPage() {
 }
 
 function TargetsList({ activeSlug }: { activeSlug: string }) {
-  const search = Route.useSearch()
-  const archived = Boolean(search.archived)
-  const navigate = Route.useNavigate()
   const { currentUser } = Route.useRouteContext()
   const isAdmin = currentUser.role === 'admin'
-  const { data: targets } = useSuspenseQuery(targetsQueryOptions(activeSlug, archived))
+  const { data: targets } = useSuspenseQuery(targetsQueryOptions(activeSlug, false))
   const [editing, setEditing] = useState<Target | null>(null)
 
   return (
@@ -103,13 +100,6 @@ function TargetsList({ activeSlug }: { activeSlug: string }) {
           <p className="text-sm text-muted-foreground">The URLs your Jobs call.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate({ search: (prev) => ({ ...prev, archived: !archived }) })}
-          >
-            {archived ? 'Hide archived' : 'Show archived'}
-          </Button>
           {isAdmin ? (
             <TargetSheet
               owner={{ workspaceSlug: activeSlug }}
@@ -126,14 +116,10 @@ function TargetsList({ activeSlug }: { activeSlug: string }) {
       {targets.length === 0 ? (
         <EmptyState
           icon={TargetIcon}
-          title={archived ? 'No archived Targets.' : 'No Targets yet.'}
-          description={
-            archived
-              ? 'Toggle off "Show archived" to see active Targets.'
-              : 'Add a Target so Jobs have somewhere to call.'
-          }
+          title="No Targets yet."
+          description="Add a Target so Jobs have somewhere to call."
           action={
-            !archived && isAdmin ? (
+            isAdmin ? (
               <TargetSheet
                 owner={{ workspaceSlug: activeSlug }}
                 trigger={

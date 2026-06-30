@@ -31,10 +31,10 @@ function ChannelDetailPage() {
     mutationFn: () => archiveChannelFn({ data: { workspaceSlug, channelSlug } }),
     onSuccess: async (result) => {
       if (!result.ok) {
-        toast.error(result.message ?? 'Cannot archive')
+        toast.error(result.message ?? 'Could not delete the Channel')
         return
       }
-      toast.success('Archived')
+      toast.success('Channel deleted', { description: 'Find it in the Recycle Bin.' })
       await queryClient.invalidateQueries({ queryKey: ['workspaces', workspaceSlug, 'channels'] })
       await goTo({ to: '/channels' })
     },

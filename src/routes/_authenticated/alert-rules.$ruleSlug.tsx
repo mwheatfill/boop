@@ -36,7 +36,7 @@ function AlertRuleDetailPage() {
   const archive = useMutation({
     mutationFn: () => archiveAlertRuleFn({ data: { workspaceSlug, ruleSlug } }),
     onSuccess: async () => {
-      toast.success('Archived')
+      toast.success('Alert rule deleted', { description: 'Find it in the Recycle Bin.' })
       await queryClient.invalidateQueries({
         queryKey: ['workspaces', workspaceSlug, 'alert-rules'],
       })

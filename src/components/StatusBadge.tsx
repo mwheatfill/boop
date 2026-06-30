@@ -1,4 +1,4 @@
-import { Archive, CircleCheck, CirclePause } from 'lucide-react'
+import { CircleCheck, CirclePause, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 type LifecycleStatus = 'active' | 'paused' | 'archived'
@@ -9,7 +9,7 @@ const config: Record<
 > = {
   active: { variant: 'success', label: 'Active', Icon: CircleCheck },
   paused: { variant: 'warning', label: 'Paused', Icon: CirclePause },
-  archived: { variant: 'outline', label: 'Archived', Icon: Archive },
+  archived: { variant: 'outline', label: 'Deleted', Icon: Trash2 },
 }
 
 export function StatusBadge({ status }: { status: LifecycleStatus }) {
