@@ -264,37 +264,41 @@ export interface DecommissionTunnelDeps {
   now?: () => Date
 }
 
-// Deleting an already-gone Cloudflare resource is success for teardown.
-async function ignoreMissing(op: () => Promise<unknown>): Promise<void> {
-  try {
-    await op()
-  } catch (err) {
-    if (err instanceof CloudflareApiError && err.status === 404) return
-    throw err
-  }
-}
-
 // Cloudflare teardown only (DNS, Access app + policy, Service Token, cert, tunnel,
-// then the stored secrets). Deleting an already-gone resource is success. Shared by
-// purge; not run on a soft delete.
+// then the stored secrets). Best-effort: an already-gone resource (404) is success, and
+// any other failure (e.g. a transient cert-service error like 1406) is logged and
+// skipped, so one stuck resource never blocks the rest of the teardown or the tunnel's
+// removal. The tunnel is torn down even if an earlier step fails.
 async function teardownTunnelCloud(
   deps: DecommissionTunnelDeps,
   row: typeof tunnels.$inferSelect,
 ): Promise<void> {
   const { db, cf, zoneId } = deps
   const now = deps.now ?? (() => new Date())
+  const attempt = async (step: string, op: () => Promise<unknown>): Promise<void> => {
+    try {
+      await op()
+    } catch (err) {
+      if (err instanceof CloudflareApiError && err.status === 404) return
+      logError('tunnel.teardown_step_failed', err, { tunnelId: row.id, step })
+    }
+  }
   if (row.cfDnsRecordId) {
-    await ignoreMissing(() => cf.deleteDnsRecord(zoneId, row.cfDnsRecordId as string))
+    await attempt('dns', () => cf.deleteDnsRecord(zoneId, row.cfDnsRecordId as string))
   }
-  await ignoreMissing(() => cf.deleteAccessApp(row.cfAccessAppId))
-  await ignoreMissing(() => cf.deleteAccessPolicy(row.cfAccessPolicyId))
-  await ignoreMissing(() => cf.deleteServiceToken(row.cfServiceTokenId))
+  await attempt('access_app', () => cf.deleteAccessApp(row.cfAccessAppId))
+  await attempt('access_policy', () => cf.deleteAccessPolicy(row.cfAccessPolicyId))
+  await attempt('service_token', () => cf.deleteServiceToken(row.cfServiceTokenId))
   if (row.cfCertPackId) {
-    await ignoreMissing(() => cf.deleteCertPack(zoneId, row.cfCertPackId as string))
+    await attempt('cert_pack', () => cf.deleteCertPack(zoneId, row.cfCertPackId as string))
   }
-  await ignoreMissing(() => cf.deleteTunnel(row.cfTunnelId))
-  await revokeSecret({ db, now }, row.workspaceId, row.clientIdSecretName)
-  await revokeSecret({ db, now }, row.workspaceId, row.clientSecretSecretName)
+  await attempt('tunnel', () => cf.deleteTunnel(row.cfTunnelId))
+  await attempt('secret_client_id', () =>
+    revokeSecret({ db, now }, row.workspaceId, row.clientIdSecretName),
+  )
+  await attempt('secret_client_secret', () =>
+    revokeSecret({ db, now }, row.workspaceId, row.clientSecretSecretName),
+  )
 }
 
 // Permanent delete: tears down the Cloudflare tunnel and everything that rides it. A

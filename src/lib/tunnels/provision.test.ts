@@ -213,6 +213,26 @@ describe('deleteTunnel', () => {
       (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0],
     ).toBeUndefined()
   })
+
+  it('still deletes the tunnel when a Cloudflare step fails for a non-404 reason', async () => {
+    const db = createTestDb()
+    const workspaceId = await seedWorkspace(db)
+    const tunnelId = await seedTunnel(db, workspaceId)
+    const cf = stubCf({
+      deleteCertPack: vi.fn(async () => {
+        throw new CloudflareApiError(400, 'DELETE cert', [
+          { code: 1406, message: 'Bad response certificate service' },
+        ])
+      }),
+    })
+
+    await deleteTunnel({ db, cf, zoneId: 'z1' }, tunnelId)
+
+    expect(cf.deleteTunnel).toHaveBeenCalledWith('cf_tnl')
+    expect(
+      (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0],
+    ).toBeUndefined()
+  })
 })
 
 describe('syncTunnelIngress', () => {

@@ -62,7 +62,7 @@ export function TunnelActions({
   const remove = useMutation({
     mutationFn: () => deleteTunnelFn({ data: { tunnelId: tunnel.id } }),
     onSuccess: () => {
-      toast.success('Tunnel deleted', { description: 'Find it in the Recycle Bin.' })
+      toast.success('Tunnel deleted', { description: 'Removed it and its Cloudflare resources.' })
       setConfirming(false)
       void invalidate()
       onRemoved()
