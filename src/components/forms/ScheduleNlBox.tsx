@@ -36,11 +36,11 @@ export function ScheduleNlBox({ timezone, onApply }: ScheduleNlBoxProps) {
       }
       setMessage(
         result.reason === 'ai_unavailable'
-          ? `AI is not configured. ${result.detail ?? 'Set the Foundry env vars in .dev.vars.'}`
-          : (result.detail ?? 'Could not interpret that schedule.'),
+          ? "Schedule suggestions aren't available right now. Set it manually below."
+          : "Couldn't read that one. Try rephrasing, or set it manually below.",
       )
     },
-    onError: () => setMessage('Could not reach the AI provider.'),
+    onError: () => setMessage("Couldn't reach the suggestion service. Set it manually below."),
   })
 
   const submit = () => {
