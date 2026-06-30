@@ -47,11 +47,11 @@ Every surface passes this before it is "done."
 - An entity surface gets a **header anchor**: an icon or avatar + the name + a status/type badge. Not a bare title.
 
 **Sections & rhythm**
-- Group fields into **labeled sections** with an icon-anchored header (`Section`). Sections are visually separated (a `Separator` or `Card`), not floating labels on a flat wall.
+- Group fields into **`Section` cards** — each section is a `Card` (icon + title header, optional hint, content) so sections never blend together on a tall sheet.
 - Spacing scale: `gap-6` between sections, `gap-3`/`gap-4` within a section, `gap-1.5`/`gap-2` between tight items. **No dead space**: nothing floats orphaned from its label, and there is never a screen of empty vertical void.
 
 **Hierarchy**
-- One clear title. Section headers are `uppercase text-xs text-muted-foreground` *with an icon*. Labels are muted; values are foreground. Do not give everything the same weight.
+- One clear title. Section headers are a `CardTitle` (normal-weight `text-sm`/`text-base`) with a muted leading icon — not tiny uppercase. Labels are muted; values are foreground. Do not give everything the same weight.
 
 **Lists are lists**
 - A list of entities (targets, variables, recipients) is **rows** (icon + name + secondary + a remove/action), not a raw `<textarea>` dump. Bulk paste is a *secondary* affordance, not the primary surface.
@@ -86,7 +86,7 @@ Every surface passes this before it is "done."
 </SheetContent>
 ```
 
-**`Section`** (`src/components/Section.tsx`, added in Phase 2): icon + `uppercase text-xs` title + optional hint + content, separated from its neighbors. Shared; every editor uses it.
+**`Section`** (`src/components/Section.tsx`): a shadcn `Card` (`size="sm"`) with an icon + title header, optional hint (`CardDescription`), and content. Shared; every editor/detail surface uses it, so each section reads as its own card.
 
 ---
 
