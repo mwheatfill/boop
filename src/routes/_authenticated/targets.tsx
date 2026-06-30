@@ -41,7 +41,7 @@ const targetColumns: ColumnDef<Target>[] = [
     header: 'Name',
     cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span>,
   },
-  { accessorKey: 'method', header: 'Method' },
+  { accessorKey: 'method', header: 'Method', meta: { label: 'Method', filterVariant: 'select' } },
   {
     accessorKey: 'url',
     header: 'Address',
@@ -53,7 +53,11 @@ const targetColumns: ColumnDef<Target>[] = [
       </span>
     ),
   },
-  { accessorKey: 'reachability', header: 'Reachability' },
+  {
+    accessorKey: 'reachability',
+    header: 'Reachability',
+    meta: { label: 'Reachability', filterVariant: 'select' },
+  },
   {
     accessorKey: 'health',
     header: 'Health',
@@ -63,6 +67,7 @@ const targetColumns: ColumnDef<Target>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
+    meta: { label: 'Status', filterVariant: 'select' },
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
 ]

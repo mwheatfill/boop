@@ -49,7 +49,7 @@ function channelColumns(isAdmin: boolean): ColumnDef<Channel>[] {
         ),
     },
     { accessorKey: 'slug', header: 'Slug' },
-    { accessorKey: 'kind', header: 'Kind' },
+    { accessorKey: 'kind', header: 'Kind', meta: { label: 'Kind', filterVariant: 'select' } },
     {
       accessorKey: 'lastUsedAt',
       header: 'Last used',
@@ -58,6 +58,7 @@ function channelColumns(isAdmin: boolean): ColumnDef<Channel>[] {
     {
       accessorKey: 'status',
       header: 'Status',
+      meta: { label: 'Status', filterVariant: 'select' },
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
   ]

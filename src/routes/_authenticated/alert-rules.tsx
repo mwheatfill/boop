@@ -51,6 +51,7 @@ function columnsFor(channelNameById: Map<string, string>): ColumnDef<AlertRule>[
     {
       accessorKey: 'kind',
       header: 'Predicate',
+      meta: { label: 'Predicate', filterVariant: 'select' },
       cell: ({ row }) => summarizeRuleConfig(row.original.config),
     },
     {
@@ -62,6 +63,7 @@ function columnsFor(channelNameById: Map<string, string>): ColumnDef<AlertRule>[
     {
       accessorKey: 'status',
       header: 'Status',
+      meta: { label: 'Status', filterVariant: 'select' },
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
   ]

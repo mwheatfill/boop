@@ -52,7 +52,11 @@ function columnsFor(): ColumnDef<JobSummary>[] {
         </Link>
       ),
     },
-    { accessorKey: 'triggerKind', header: 'Trigger' },
+    {
+      accessorKey: 'triggerKind',
+      header: 'Trigger',
+      meta: { label: 'Trigger', filterVariant: 'select' },
+    },
     {
       accessorKey: 'nextFireAt',
       header: 'Next run',
@@ -72,6 +76,7 @@ function columnsFor(): ColumnDef<JobSummary>[] {
     {
       accessorKey: 'status',
       header: 'Status',
+      meta: { label: 'Status', filterVariant: 'select' },
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
   ]

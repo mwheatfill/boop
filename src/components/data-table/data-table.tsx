@@ -17,9 +17,13 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   type ColumnDef,
+  type ColumnFiltersState,
   type ColumnOrderState,
+  type FilterFn,
   flexRender,
   getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
   getSortedRowModel,
   type Header,
@@ -34,14 +38,24 @@ import {
   ChevronsUpDown,
   GripVertical,
   Search,
+  X,
 } from 'lucide-react'
 import { type CSSProperties, type ReactNode, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { DataTableFacetedFilter } from './data-table-faceted-filter'
 import { DataTableViewOptions } from './data-table-view-options'
 import { DataTableViews } from './data-table-views'
+import './types'
 import type { TableViewState } from './use-table-views'
+
+// Multi-select facet: keep rows whose value is in the chosen set. The table default
+// for every column; only flagged (meta.filterVariant) columns expose a filter UI.
+const facetedFilterFn: FilterFn<unknown> = (row, columnId, filterValue) => {
+  if (!Array.isArray(filterValue) || filterValue.length === 0) return true
+  return filterValue.includes(String(row.getValue(columnId)))
+}
 
 function columnId<TData, TValue>(col: ColumnDef<TData, TValue>): string {
   if (col.id) return col.id
@@ -72,21 +86,30 @@ export function DataTable<TData, TValue>({
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(() =>
     columns.map(columnId).filter(Boolean),
   )
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [density, setDensity] = useState<'compact' | 'spacious'>('compact')
 
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, columnVisibility, columnOrder, globalFilter },
+    defaultColumn: { filterFn: facetedFilterFn as FilterFn<TData> },
+    state: { sorting, columnVisibility, columnOrder, columnFilters, globalFilter },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
+    onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
   })
+
+  const filterColumns = table
+    .getAllColumns()
+    .filter((c) => c.columnDef.meta?.filterVariant === 'select' && c.getCanFilter())
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -110,11 +133,13 @@ export function DataTable<TData, TValue>({
     columnVisibility,
     columnOrder,
     sorting: sorting.map((s) => ({ id: s.id, desc: s.desc })),
+    columnFilters: columnFilters.map((f) => ({ id: f.id, value: f.value })),
   })
   const apply = (s: TableViewState) => {
     setColumnVisibility(s.columnVisibility ?? {})
     setColumnOrder(s.columnOrder ?? columns.map(columnId).filter(Boolean))
     setSorting(s.sorting ?? [])
+    setColumnFilters((s.columnFilters as ColumnFiltersState | undefined) ?? [])
   }
 
   return (
@@ -129,6 +154,18 @@ export function DataTable<TData, TValue>({
             className="h-8 w-56 pl-8"
           />
         </div>
+        {filterColumns.map((column) => (
+          <DataTableFacetedFilter
+            key={column.id}
+            column={column}
+            title={column.columnDef.meta?.label ?? column.id}
+          />
+        ))}
+        {columnFilters.length > 0 ? (
+          <Button variant="ghost" size="sm" className="h-8" onClick={() => setColumnFilters([])}>
+            Reset <X className="size-4" />
+          </Button>
+        ) : null}
         <div className="ml-auto flex items-center gap-2">
           {gridKey ? <DataTableViews gridKey={gridKey} capture={capture} apply={apply} /> : null}
           <DataTableViewOptions table={table} />

@@ -31,6 +31,7 @@ const columns: ColumnDef<Tunnel>[] = [
   {
     accessorKey: 'state',
     header: 'Status',
+    meta: { label: 'Status', filterVariant: 'select' },
     cell: ({ row }) => <TunnelStateBadge state={row.original.state} />,
   },
 ]
