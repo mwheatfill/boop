@@ -1,6 +1,42 @@
-import { Copy } from 'lucide-react'
+import { Container, Copy, Monitor, Terminal } from 'lucide-react'
+import type { ComponentType } from 'react'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { copyToClipboard } from '@/lib/clipboard'
+
+interface Platform {
+  id: string
+  label: string
+  icon: ComponentType<{ className?: string }>
+  install: string
+  uninstall: string
+}
+
+function platforms(token: string): Platform[] {
+  return [
+    {
+      id: 'windows',
+      label: 'Windows',
+      icon: Monitor,
+      install: `New-Item -ItemType Directory -Force C:\\Cloudflared\\bin > $null; Invoke-WebRequest https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe -OutFile C:\\Cloudflared\\bin\\cloudflared.exe; C:\\Cloudflared\\bin\\cloudflared.exe service install ${token}`,
+      uninstall: `C:\\Cloudflared\\bin\\cloudflared.exe service uninstall`,
+    },
+    {
+      id: 'linux',
+      label: 'Linux',
+      icon: Terminal,
+      install: `sudo cloudflared service install ${token}`,
+      uninstall: `sudo cloudflared service uninstall`,
+    },
+    {
+      id: 'docker',
+      label: 'Docker',
+      icon: Container,
+      install: `docker run -d --name cloudflared cloudflare/cloudflared:latest tunnel --no-autoupdate run --token ${token}`,
+      uninstall: `docker rm -f cloudflared`,
+    },
+  ]
+}
 
 export function TunnelInstallCommands({
   hostname,
@@ -9,49 +45,66 @@ export function TunnelInstallCommands({
   hostname: string
   installToken: string
 }) {
-  const windows = `New-Item -ItemType Directory -Force C:\\Cloudflared\\bin > $null; Invoke-WebRequest https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe -OutFile C:\\Cloudflared\\bin\\cloudflared.exe; C:\\Cloudflared\\bin\\cloudflared.exe service install ${installToken}`
-  const shell = `sudo cloudflared service install ${installToken}`
-  const docker = `docker run cloudflare/cloudflared:latest tunnel --no-autoupdate run --token ${installToken}`
-
   return (
-    <>
-      <div className="flex flex-col gap-4 rounded-md border border-border bg-card p-4">
-        <CommandBlock label="Windows (PowerShell, as Administrator)" command={windows} />
-        <CommandBlock label="Linux / systemd" command={shell} />
-        <CommandBlock label="Docker" command={docker} />
-        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-          <p className="font-medium text-foreground">Before you run it</p>
-          <p>
-            On Windows, open PowerShell as Administrator; cloudflared installs as a Windows service.
-            The internal origin points at IIS (e.g. http://localhost or the server's LAN address).
-          </p>
-          <p>The host needs outbound access to Cloudflare on UDP port 7844 (TCP 7844 fallback).</p>
-          <p>Only one cloudflared service runs per host; reuse a host by adding routes.</p>
-        </div>
+    <div className="flex flex-col gap-4">
+      <Tabs defaultValue="windows">
+        <TabsList className="w-full">
+          {platforms(installToken).map((p) => (
+            <TabsTrigger key={p.id} value={p.id}>
+              <p.icon /> {p.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {platforms(installToken).map((p) => (
+          <TabsContent key={p.id} value={p.id} className="flex flex-col gap-3 pt-1">
+            <CommandBlock title="Install" platform={p.label} command={p.install} />
+            <CommandBlock title="Uninstall" platform={p.label} command={p.uninstall} />
+          </TabsContent>
+        ))}
+      </Tabs>
+
+      <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+        <p className="font-medium text-foreground">Before you run it</p>
+        <p>
+          On Windows, run PowerShell as Administrator. The host needs outbound access to Cloudflare
+          on UDP port 7844 (TCP 7844 fallback).
+        </p>
+        <p>One cloudflared service runs per host; reuse a host by adding routes.</p>
       </div>
+
       <p className="text-sm text-muted-foreground">
         Hostname: <code className="font-mono text-xs text-foreground">{hostname}</code>
       </p>
-    </>
+    </div>
   )
 }
 
-function CommandBlock({ label, command }: { label: string; command: string }) {
+function CommandBlock({
+  title,
+  platform,
+  command,
+}: {
+  title: string
+  platform: string
+  command: string
+}) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
-        <code className="flex-1 overflow-x-auto font-mono text-xs">{command}</code>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-muted-foreground">{title}</span>
         <Button
           type="button"
-          size="xs"
-          variant="outline"
-          aria-label={`Copy ${label}`}
-          onClick={() => void copyToClipboard(command, `${label} copied`)}
+          size="icon-xs"
+          variant="ghost"
+          aria-label={`Copy ${platform} ${title.toLowerCase()} command`}
+          onClick={() => void copyToClipboard(command, `${title} command copied`)}
         >
           <Copy aria-hidden />
         </Button>
       </div>
+      <pre className="overflow-x-auto rounded-md border border-border bg-muted/30 px-3 py-2">
+        <code className="font-mono text-xs">{command}</code>
+      </pre>
     </div>
   )
 }
