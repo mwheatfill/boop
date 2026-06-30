@@ -10,9 +10,9 @@
 @custom-variant data-horizontal (&[data-orientation="horizontal"]);
 @custom-variant data-vertical (&[data-orientation="vertical"]);
 
-/* Theme structure adopted wholesale from the rollout app (mcc); see ADR-029.
-   Primary recolored to the boop logo orange (oklch(0.7 0.19 50)). --success/--warning/
-   --info/--viz-* are project extensions the export omits; --info is boop-only. */
+/* Theme structure adopted wholesale from the rollout app (mcc); see ADR-029. Teal
+   UI accent (--primary #08CDBE); the orange boop brand lives in the logo and --chart-1.
+   --success/--warning/--info/--viz-* are project extensions; --info is boop-only. */
 :root {
   --background: oklch(0.994 0 0);
   --foreground: oklch(0 0 0);
@@ -20,14 +20,14 @@
   --card-foreground: oklch(0 0 0);
   --popover: oklch(0.9911 0 0);
   --popover-foreground: oklch(0 0 0);
-  --primary: oklch(0.7 0.19 50);
+  --primary: oklch(0.75 0.13 182);
   --primary-foreground: oklch(0 0 0);
   --secondary: oklch(0.96 0 0);
   --secondary-foreground: oklch(0.1344 0 0);
   --muted: oklch(0.9702 0 0);
   --muted-foreground: oklch(0.4386 0 0);
-  --accent: oklch(0.95 0.04 50);
-  --accent-foreground: oklch(0.52 0.16 50);
+  --accent: oklch(0.95 0.03 182);
+  --accent-foreground: oklch(0.5 0.11 182);
   --destructive: oklch(0.6665 0.2111 2.8306);
   --destructive-foreground: oklch(1 0 0);
   --success: oklch(0.62 0.15 150);
@@ -38,7 +38,7 @@
   --info-foreground: oklch(0.98 0.003 235);
   --border: oklch(0.9722 0.0034 247.8581);
   --input: oklch(0.9401 0 0);
-  --ring: oklch(0.7 0.19 50);
+  --ring: oklch(0.75 0.13 182);
   --chart-1: oklch(0.7 0.19 50);
   --chart-2: oklch(0.8979 0.1884 146.5522);
   --chart-3: oklch(0.6658 0.2215 29.2981);
@@ -52,8 +52,8 @@
   --sidebar-foreground: oklch(0 0 0);
   --sidebar-primary: oklch(0 0 0);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.95 0.04 50);
-  --sidebar-accent-foreground: oklch(0.52 0.16 50);
+  --sidebar-accent: oklch(0.95 0.04 182);
+  --sidebar-accent-foreground: oklch(0.5 0.12 182);
   --sidebar-border: oklch(0.9401 0 0);
   --sidebar-ring: oklch(0 0 0);
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
@@ -90,13 +90,13 @@
   --card-foreground: oklch(0.9551 0 0);
   --popover: oklch(0.221 0.0015 197.0452);
   --popover-foreground: oklch(0.9551 0 0);
-  --primary: oklch(0.7 0.19 50);
+  --primary: oklch(0.75 0.13 182);
   --primary-foreground: oklch(0 0 0);
   --secondary: oklch(0.27 0 0);
   --secondary-foreground: oklch(0.9551 0 0);
   --muted: oklch(0.2653 0.0037 286.1465);
   --muted-foreground: oklch(0.6731 0 0);
-  --accent: oklch(0.32 0.08 50);
+  --accent: oklch(0.3 0.06 182);
   --accent-foreground: oklch(0.997 0 0);
   --destructive: oklch(0.7425 0.1696 1.0847);
   --destructive-foreground: oklch(1 0 0);
@@ -108,7 +108,7 @@
   --info-foreground: oklch(0.18 0.012 235);
   --border: oklch(0.2138 0.0019 286.2347);
   --input: oklch(0.3523 0 0);
-  --ring: oklch(0.7 0.19 50);
+  --ring: oklch(0.75 0.13 182);
   --chart-1: oklch(0.7 0.19 50);
   --chart-2: oklch(0.9173 0.1562 144.8458);
   --chart-3: oklch(0.8531 0.0883 357.425);
@@ -120,12 +120,12 @@
   --viz-neutral: oklch(0.6 0.035 257);
   --sidebar: oklch(0.1448 0 0);
   --sidebar-foreground: oklch(0.9551 0 0);
-  --sidebar-primary: oklch(0.7 0.19 50);
+  --sidebar-primary: oklch(0.75 0.13 182);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.32 0.09 50);
-  --sidebar-accent-foreground: oklch(0.8 0.15 55);
+  --sidebar-accent: oklch(0.3 0.07 182);
+  --sidebar-accent-foreground: oklch(0.75 0.13 182);
   --sidebar-border: oklch(0.3452 0.0098 241.941);
-  --sidebar-ring: oklch(0.7 0.19 50);
+  --sidebar-ring: oklch(0.75 0.13 182);
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-serif: Lora, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;

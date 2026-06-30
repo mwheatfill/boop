@@ -14,7 +14,7 @@ The audience is developers and IT operators. They expect dense information when 
 
 **Linear-leaning, not Linear-orthodox.** boop adopts Linear's structural patterns: monochrome chrome, flush tiled grids, sharp data edges, dense rows, keyboard-first interaction, command palette, inline feedback over toasts, evolution over revolution.
 
-**Shared UI system with the rollout app.** boop's theme structure and primitives are adopted wholesale from the sibling rollout app (`mcc`), per [ADR-029](docs/adr/029-adopt-rollout-ui-system.md). A single **orange** accent (`--primary`), drawn from the boop brand logo, carries every action affordance; chrome is otherwise monochrome. Operators see one color carry one meaning; nothing competes with operational state. There is no separate brand palette.
+**Shared UI system with the rollout app.** boop's theme structure and primitives are adopted wholesale from the sibling rollout app (`mcc`), per [ADR-029](docs/adr/029-adopt-rollout-ui-system.md). The UI accent (`--primary`) is **teal** and carries every action affordance; chrome is otherwise monochrome. The **orange boop brand** lives in the logo and the chart palette, not the chrome — a deliberate brand-vs-UI-accent split (the Linear model). Operators see teal carry action; the brand surfaces in data viz, not in operational state.
 
 ## 3. Visual tokens
 
@@ -24,7 +24,7 @@ Flat shadcn OKLCH tokens on `base-vega` (Base UI), adopted wholesale from the ro
 
 **Mode structure is light-first; dark is the user default.** `:root` carries light values; `.dark` overrides. `next-themes` `defaultTheme="dark"` keeps the user-facing default unchanged.
 
-**Single orange accent.** `--primary` / `--ring` are the boop logo orange (`oklch(0.7 0.19 50)`) in both modes, on black `--primary-foreground`. There is no separate brand palette; the accent is the one action color across CTAs, focus rings, selected rows, links, and the command palette highlight.
+**Teal UI accent.** `--primary` / `--ring` are teal (`oklch(0.75 0.13 182)`, `#08CDBE`) in both modes — the one action color across CTAs, focus rings, selected rows, links, and the command palette highlight. The orange boop brand is **not** in the chrome; it lives in the logo and `--chart-1` (see below). Changing `--primary` is a single-line edit; the brand-vs-UI split is a convention, not a derivation layer.
 
 **Project token extensions** beyond shadcn's canonical set:
 - **Semantic states:** `--success`, `--warning`, `--info` and their foregrounds. `--info` is boop-only (the rollout app omits it); preserve it on any wholesale theme paste.
@@ -43,7 +43,7 @@ Flat shadcn OKLCH tokens on `base-vega` (Base UI), adopted wholesale from the ro
 
 **Radius is `0.625rem`** (the standard shadcn default) for default-radius surfaces; `--radius-sm` / `--radius-md` / `--radius-lg` / `--radius-xl` derive from it. Radius applies to floating overlays and interactive controls; data surfaces stay square (see § 5 for the no-rounded-data-surface rule).
 
-**Chart palette** is `--chart-1..5` (orange, green, red, blue, amber); `--chart-1` is the brand orange (matches `--primary`).
+**Chart palette** is `--chart-1..5` (orange, green, red, blue, amber). `--chart-1` is the boop **brand orange** (`oklch(0.7 0.19 50)`) — this is where the brand color surfaces in-product (data viz, dashboard accents), distinct from the teal UI accent.
 
 **Fonts:** Inter Variable (sans, bundled via `@fontsource-variable/inter`), Lora (serif display, referenced not bundled — falls back to system serif), and the system mono stack. Set in `--font-sans` / `--font-serif` / `--font-mono`.
 
@@ -89,9 +89,9 @@ The active Workspace is a retained `ws` search param (defaults to the first Work
 - **Default:** internal component borders (`--border`, inputs, buttons, table headers).
 - **Subtle:** lightest separators (table rows, activity items, detail panel internals). Often `oklch(1 0 0 / 0.04)` in dark mode.
 
-**Filter chips sit at the top of the content area** as pill-shaped buttons. Active filter has a filled background (orange tint at low chroma); inactive filters are outlined only. The "All" chip is always present and reads as the cleared state.
+**Filter chips sit at the top of the content area** as pill-shaped buttons. Active filter has a filled background (teal tint at low chroma); inactive filters are outlined only. The "All" chip is always present and reads as the cleared state.
 
-**Primary action top-right.** "Create new Job," "Add Customer," "Send test alert" land at the top-right corner of the content area, opposite the filters. Always the same hue: `--primary` (orange).
+**Primary action top-right.** "Create new Job," "Add Customer," "Send test alert" land at the top-right corner of the content area, opposite the filters. Always the same hue: `--primary` (teal).
 
 **Selected-row indicator** is a 1px left border in `--primary` at low chroma, plus a subtle background tint. Not a full-color flood.
 
@@ -168,7 +168,7 @@ The most common ways to break this design system. Each undermines the core aesth
 - **Rounded data surfaces.** `border-radius` on table containers, grid cells, list items, content sections is wrong. Round corners only on buttons, inputs, badges / pills, and floating overlays.
 - **Max-width content containers.** `max-width: 800px; margin: 0 auto;` fights the grid. Content fills its column; the sidebar + content layout handles width.
 - **Tables for non-tabular data.** Activity feeds, comments, narrative content — render as styled row lists with typography hierarchy. Reserve `<table>` for genuinely columnar data.
-- **Color absence as "restraint."** "Color restraint" means small and intentional, not "zero color." Status colors, the orange primary accent, and the chart palette are all in scope. The right amount is "where it carries meaning, nowhere else."
+- **Color absence as "restraint."** "Color restraint" means small and intentional, not "zero color." Status colors, the teal primary accent, and the orange brand in the chart palette are all in scope. The right amount is "where it carries meaning, nowhere else."
 - **Bland empty states.** "No items found" is not an empty state. Pick the right variant from § 9 (with-CTA / icon-only / inline).
 - **Hand-rolled choice inputs.** No bespoke pill pickers or one-off combobox wrappers. Compose from the registry primitives (`Field`, `Select`, `Combobox`, `InputGroup`); the drift audit (`scripts/audit-patterns/shadcn.ts`) diffs every `ui/*.tsx` against the live `base-vega` registry. See [ADR-029](docs/adr/029-adopt-rollout-ui-system.md).
 - **`--accent` as a duplicate of `--secondary`.** `--accent` is the faint tint for hovered items in dropdowns and contextual emphasis. `--secondary` is the larger muted surface. Treating them as identical loses the dropdown-item hover affordance.
@@ -183,7 +183,7 @@ ADRs that govern interface decisions:
 - [ADR-013](docs/adr/013-forms-and-validation.md) — Forms + validation (TanStack Form, React 19 actions, Zod).
 - [ADR-018](docs/adr/018-navigation-ia.md) — Navigation IA (Customer-nested URLs, Jobs-first surfaces).
 - [ADR-019](docs/adr/019-soft-delete-policy.md) — Soft-delete policy (archive UX, "Show archived" toggle).
-- [ADR-029](docs/adr/029-adopt-rollout-ui-system.md) — Adopt the rollout app's UI system (theme structure + shadcn primitives wholesale; primary later recolored to the boop logo orange; supersedes ADR-022 theme values + ADR-023).
+- [ADR-029](docs/adr/029-adopt-rollout-ui-system.md) — Adopt the rollout app's UI system (theme structure + shadcn primitives wholesale; teal UI accent, orange boop brand in the logo + chart palette; supersedes ADR-022 theme values + ADR-023).
 - [ADR-022](docs/adr/022-design-language-pass-2.md) — Design language pass 2 (flat shadcn token contract; superseded theme values, see ADR-029).
 
 Project-internal:
