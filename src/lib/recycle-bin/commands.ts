@@ -17,11 +17,10 @@ const PURGE = {
 // Permanently removes a soft-deleted row. Only operates on items already in the bin
 // (status='archived'). A Job's children (runs, attempts, alert rules, webhook secrets)
 // cascade via their FKs; a Target blocks while any Job still references it (FK is
-// restrict — purge those Jobs first). Tunnels purge via purgeTunnel (Cloudflare
-// teardown) in the server fn.
+// restrict, so purge those Jobs first).
 export async function purgeDeleted(
   db: Database,
-  kind: Exclude<DeletedKind, 'tunnel'>,
+  kind: DeletedKind,
   workspaceSlug: string,
   slug: string,
 ): Promise<PurgeResult> {

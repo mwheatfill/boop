@@ -3,7 +3,6 @@ import { createServerFn } from '@tanstack/react-start'
 import { adminMiddleware } from '@/lib/auth/admin-middleware'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
-import { enterIntervalMode } from '@/lib/dispatch/trigger-modes'
 import { getDefaultWorkspace } from '@/lib/workspaces/queries'
 import { z } from '@/shared/schemas/openapi'
 import { TunnelCreateInput } from '@/shared/schemas/tunnel'
@@ -12,7 +11,6 @@ import {
   deleteTunnel,
   getTunnelInstall,
   provisionTunnel,
-  restoreTunnel,
   rotateTunnelCredentials,
   updateTunnel,
 } from './provision'
@@ -93,25 +91,9 @@ export const deleteTunnelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator((data) => tunnelIdInput.parse(data))
   .handler(async ({ data }) => {
-    await deleteTunnel(createDb(env.DB), data.tunnelId)
-    return { ok: true as const }
-  })
-
-const tunnelSlugPair = z.object({
-  workspaceSlug: z.string().min(1),
-  tunnelSlug: z.string().min(1),
-})
-
-export const restoreTunnelFn = createServerFn({ method: 'POST' })
-  .middleware([adminMiddleware])
-  .inputValidator((data) => tunnelSlugPair.parse(data))
-  .handler(async ({ data }) => {
-    const { rearmJobIds } = await restoreTunnel(
-      createDb(env.DB),
-      data.workspaceSlug,
-      data.tunnelSlug,
-    )
-    for (const jobId of rearmJobIds) await enterIntervalMode(env, jobId)
+    const db = createDb(env.DB)
+    const provider = getProviderConfig(providerEnv())
+    await deleteTunnel({ db, cf: provider.cf, zoneId: provider.zoneId }, data.tunnelId)
     return { ok: true as const }
   })
 

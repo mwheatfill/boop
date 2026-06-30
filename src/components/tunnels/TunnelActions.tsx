@@ -19,6 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { deleteTunnelFn, rotateTunnelCredentialsFn, verifyTunnelFn } from '@/lib/tunnels/server-fns'
 import type { Tunnel } from '@/shared/schemas/tunnel'
 
@@ -35,6 +37,7 @@ export function TunnelActions({
 }) {
   const queryClient = useQueryClient()
   const [confirming, setConfirming] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['tunnels'] })
 
   const verify = useMutation({
@@ -101,21 +104,37 @@ export function TunnelActions({
         </DropdownMenu>
       ) : null}
 
-      <AlertDialog open={confirming} onOpenChange={setConfirming}>
+      <AlertDialog
+        open={confirming}
+        onOpenChange={(open) => {
+          setConfirming(open)
+          if (!open) setConfirmText('')
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {tunnel.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This also deletes its Targets and their Jobs. Everything moves to the Recycle Bin and
-              you can restore it. The connector keeps running until you delete it permanently from
-              the bin.
+              This permanently removes the Cloudflare tunnel, and deletes the Targets that use it
+              and their Jobs. It can't be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="confirm-tunnel-delete" className="text-sm text-muted-foreground">
+              Type <span className="font-medium text-foreground">{tunnel.name}</span> to confirm
+            </Label>
+            <Input
+              id="confirm-tunnel-delete"
+              autoComplete="off"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.currentTarget.value)}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={remove.isPending}
+              disabled={remove.isPending || confirmText !== tunnel.name}
               onClick={(e) => {
                 e.preventDefault()
                 remove.mutate()

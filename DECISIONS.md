@@ -4,6 +4,16 @@ A running log of design and product decisions that are too small or too fast-mov
 
 ---
 
+## 2026-06-30: Deleting a tunnel is permanent (supersedes the "tunnels in the Recycle Bin / teardown on purge" part of the entry below)
+
+**What:** Deleting a tunnel tears down its Cloudflare resources (tunnel, DNS, Access app + policy, cert, Service Token) immediately and removes the Targets that ride it and their Jobs. It is permanent and does **not** go to the Recycle Bin. Everything else still soft-deletes to the bin; only tunnels are permanent, because they own live cloud infrastructure and are the root dependency of their Targets and Jobs.
+
+**Why:** A "deleted" tunnel that kept serving traffic with live credentials until a separate purge was a security and UX trap. Delete should mean the path is actually gone. Instant restore isn't worth leaving a private route open.
+
+**UX:** the confirm says, in plain language, that it permanently removes the Cloudflare tunnel plus its Targets and Jobs and can't be undone, and it requires typing the tunnel name to proceed (ui-craft § 1: type the resource name for high-stakes actions).
+
+---
+
 ## 2026-06-30: Delete + Recycle Bin (replaces the "Archive" concept; relaxes ADR-019; defers ADR-028 teardown to purge)
 
 **What:** The primary destructive verb is **Delete**, and it's soft by default: the item moves to a **Recycle Bin** and is recoverable. There is no separate user-facing "Archive / keep around" idea; the existing `status='archived'` value stays as the internal soft-deleted state, surfaced as **"Deleted."** (Renaming the enum is a 7-table D1 CHECK migration, not worth it.)

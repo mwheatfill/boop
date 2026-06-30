@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
-import { alertRules, channels, jobs, targets, tunnels, workspaces } from '@/lib/db/schema'
+import { alertRules, channels, jobs, targets, workspaces } from '@/lib/db/schema'
 
-export const DELETED_KINDS = ['job', 'target', 'tunnel', 'channel', 'alert-rule'] as const
+export const DELETED_KINDS = ['job', 'target', 'channel', 'alert-rule'] as const
 export type DeletedKind = (typeof DELETED_KINDS)[number]
 
 export interface DeletedItem {
@@ -15,18 +15,17 @@ export interface DeletedItem {
 }
 
 // Everything currently soft-deleted (status='archived'), across the entities with a
-// Recycle Bin home (jobs, targets, tunnels, channels, alert rules).
+// Recycle Bin home (jobs, targets, channels, alert rules). Tunnels are permanent-delete
+// (Cloudflare teardown), so they never appear here.
 export async function listDeleted(db: Database): Promise<DeletedItem[]> {
-  const cols = (
-    t: typeof jobs | typeof targets | typeof tunnels | typeof channels | typeof alertRules,
-  ) => ({
+  const cols = (t: typeof jobs | typeof targets | typeof channels | typeof alertRules) => ({
     id: t.id,
     name: t.name,
     slug: t.slug,
     workspaceSlug: workspaces.slug,
     updatedAt: t.updatedAt,
   })
-  const [j, t, tu, c, r] = await Promise.all([
+  const [j, t, c, r] = await Promise.all([
     db
       .select(cols(jobs))
       .from(jobs)
@@ -37,11 +36,6 @@ export async function listDeleted(db: Database): Promise<DeletedItem[]> {
       .from(targets)
       .innerJoin(workspaces, eq(workspaces.id, targets.workspaceId))
       .where(eq(targets.status, 'archived')),
-    db
-      .select(cols(tunnels))
-      .from(tunnels)
-      .innerJoin(workspaces, eq(workspaces.id, tunnels.workspaceId))
-      .where(eq(tunnels.status, 'archived')),
     db
       .select(cols(channels))
       .from(channels)
@@ -65,7 +59,6 @@ export async function listDeleted(db: Database): Promise<DeletedItem[]> {
   return [
     ...tag('job', j),
     ...tag('target', t),
-    ...tag('tunnel', tu),
     ...tag('channel', c),
     ...tag('alert-rule', r),
   ].sort((a, b) => (a.deletedAt < b.deletedAt ? 1 : -1))

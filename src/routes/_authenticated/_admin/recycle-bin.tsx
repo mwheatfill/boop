@@ -26,12 +26,10 @@ import type { DeletedItem, DeletedKind } from '@/lib/recycle-bin/queries'
 import { listDeletedQueryOptions } from '@/lib/recycle-bin/query-options'
 import { purgeDeletedFn } from '@/lib/recycle-bin/server-fns'
 import { restoreTargetFn } from '@/lib/targets/server-fns'
-import { restoreTunnelFn } from '@/lib/tunnels/server-fns'
 
 const KIND_LABEL: Record<DeletedKind, string> = {
   job: 'Job',
   target: 'Target',
-  tunnel: 'Tunnel',
   channel: 'Channel',
   'alert-rule': 'Alert rule',
 }
@@ -39,7 +37,6 @@ const KIND_LABEL: Record<DeletedKind, string> = {
 const restoreByKind: Record<DeletedKind, (item: DeletedItem) => Promise<unknown>> = {
   job: (i) => restoreJobFn({ data: { workspaceSlug: i.workspaceSlug, jobSlug: i.slug } }),
   target: (i) => restoreTargetFn({ data: { workspaceSlug: i.workspaceSlug, targetSlug: i.slug } }),
-  tunnel: (i) => restoreTunnelFn({ data: { workspaceSlug: i.workspaceSlug, tunnelSlug: i.slug } }),
   channel: (i) =>
     restoreChannelFn({ data: { workspaceSlug: i.workspaceSlug, channelSlug: i.slug } }),
   'alert-rule': (i) =>

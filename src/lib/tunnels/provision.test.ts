@@ -3,15 +3,13 @@ import { describe, expect, it, vi } from 'vitest'
 import type { CloudflareApi } from '@/lib/cloudflare-api/client'
 import { CloudflareApiError } from '@/lib/cloudflare-api/errors'
 import { newId } from '@/lib/db/ids'
-import { targets, tunnels, workspaces } from '@/lib/db/schema'
+import { jobs, targets, tunnels, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { createTarget } from '@/lib/targets/commands'
 import { fetchActiveSecretPlaintext, listActiveSecrets } from '@/lib/workspace-secrets/commands'
 import {
   deleteTunnel,
   provisionTunnel,
-  purgeTunnel,
-  restoreTunnel,
   rotateTunnelCredentials,
   syncTunnelIngress,
 } from './provision'
@@ -128,7 +126,7 @@ describe('provisionTunnel', () => {
   })
 })
 
-describe('tunnel delete / purge / restore', () => {
+describe('deleteTunnel', () => {
   async function seedTunnel(db: ReturnType<typeof createTestDb>, workspaceId: string) {
     const id = newId('tnl')
     await db.insert(tunnels).values({
@@ -168,77 +166,52 @@ describe('tunnel delete / purge / restore', () => {
     return id
   }
 
-  it('deleteTunnel soft-deletes the tunnel and its Targets, never touching Cloudflare', async () => {
+  it('tears down Cloudflare and hard-deletes the tunnel, its Targets, and their Jobs', async () => {
     const db = createTestDb()
     const workspaceId = await seedWorkspace(db)
     const tunnelId = await seedTunnel(db, workspaceId)
     const targetId = await seedTarget(db, workspaceId, tunnelId)
+    const jobId = newId('job')
+    await db.insert(jobs).values({
+      id: jobId,
+      workspaceId,
+      targetId,
+      name: 'Daily',
+      slug: 'daily',
+      triggerKind: 'cron',
+      cronExpression: '* * * * *',
+      triggerTimezone: 'UTC',
+      status: 'active',
+    })
     const cf = stubCf()
 
-    await deleteTunnel(db, tunnelId)
+    await deleteTunnel({ db, cf, zoneId: 'z1' }, tunnelId)
 
-    expect(cf.deleteTunnel).not.toHaveBeenCalled()
-    const tunnel = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
-    expect(tunnel?.status).toBe('archived')
-    const target = (await db.select().from(targets).where(eq(targets.id, targetId)).limit(1))[0]
-    expect(target?.status).toBe('archived')
-  })
-
-  it('purgeTunnel tears down Cloudflare and hard-deletes the row', async () => {
-    const db = createTestDb()
-    const workspaceId = await seedWorkspace(db)
-    const tunnelId = await seedTunnel(db, workspaceId)
-    await deleteTunnel(db, tunnelId)
-    const cf = stubCf()
-
-    const result = await purgeTunnel({ db, cf, zoneId: 'z1' }, 'acme', 'acme-hq')
-
-    expect(result.ok).toBe(true)
     expect(cf.deleteDnsRecord).toHaveBeenCalledWith('z1', 'dns')
     expect(cf.deleteTunnel).toHaveBeenCalledWith('cf_tnl')
-    const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
-    expect(row).toBeUndefined()
+    expect(
+      (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0],
+    ).toBeUndefined()
+    expect(
+      (await db.select().from(targets).where(eq(targets.id, targetId)).limit(1))[0],
+    ).toBeUndefined()
+    expect((await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1))[0]).toBeUndefined()
   })
 
-  it('purgeTunnel ignores already-deleted Cloudflare resources (404)', async () => {
+  it('ignores already-deleted Cloudflare resources (404) during teardown', async () => {
     const db = createTestDb()
     const workspaceId = await seedWorkspace(db)
     const tunnelId = await seedTunnel(db, workspaceId)
-    await deleteTunnel(db, tunnelId)
     const cf = stubCf({
       deleteAccessApp: vi.fn(async () => {
         throw new CloudflareApiError(404, 'DELETE app', [{ code: 1, message: 'not found' }])
       }),
     })
 
-    const result = await purgeTunnel({ db, cf, zoneId: 'z1' }, 'acme', 'acme-hq')
-    expect(result.ok).toBe(true)
-  })
-
-  it('purgeTunnel blocks while a Target still references the tunnel', async () => {
-    const db = createTestDb()
-    const workspaceId = await seedWorkspace(db)
-    const tunnelId = await seedTunnel(db, workspaceId)
-    await seedTarget(db, workspaceId, tunnelId)
-    await deleteTunnel(db, tunnelId)
-    const cf = stubCf()
-
-    const result = await purgeTunnel({ db, cf, zoneId: 'z1' }, 'acme', 'acme-hq')
-
-    expect(result.ok).toBe(false)
-    expect(cf.deleteTunnel).not.toHaveBeenCalled()
-  })
-
-  it('restoreTunnel brings a deleted tunnel back to active', async () => {
-    const db = createTestDb()
-    const workspaceId = await seedWorkspace(db)
-    const tunnelId = await seedTunnel(db, workspaceId)
-    await deleteTunnel(db, tunnelId)
-
-    await restoreTunnel(db, 'acme', 'acme-hq')
-
-    const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
-    expect(row?.status).toBe('active')
+    await deleteTunnel({ db, cf, zoneId: 'z1' }, tunnelId)
+    expect(
+      (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0],
+    ).toBeUndefined()
   })
 })
 
