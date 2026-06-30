@@ -38,42 +38,28 @@ function platforms(token: string): Platform[] {
   ]
 }
 
-export function TunnelInstallCommands({
-  hostname,
-  installToken,
-}: {
-  hostname: string
-  installToken: string
-}) {
+export function TunnelInstallCommands({ installToken }: { installToken: string }) {
+  const list = platforms(installToken)
   return (
     <div className="flex flex-col gap-4">
       <Tabs defaultValue="windows">
         <TabsList className="w-full">
-          {platforms(installToken).map((p) => (
+          {list.map((p) => (
             <TabsTrigger key={p.id} value={p.id}>
               <p.icon /> {p.label}
             </TabsTrigger>
           ))}
         </TabsList>
-        {platforms(installToken).map((p) => (
+        {list.map((p) => (
           <TabsContent key={p.id} value={p.id} className="flex flex-col gap-3 pt-1">
             <CommandBlock title="Install" platform={p.label} command={p.install} />
             <CommandBlock title="Uninstall" platform={p.label} command={p.uninstall} />
           </TabsContent>
         ))}
       </Tabs>
-
-      <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-        <p className="font-medium text-foreground">Before you run it</p>
-        <p>
-          On Windows, run PowerShell as Administrator. The host needs outbound access to Cloudflare
-          on UDP port 7844 (TCP 7844 fallback).
-        </p>
-        <p>One cloudflared service runs per host; reuse a host by adding routes.</p>
-      </div>
-
-      <p className="text-sm text-muted-foreground">
-        Hostname: <code className="font-mono text-xs text-foreground">{hostname}</code>
+      <p className="text-xs text-muted-foreground">
+        Needs outbound UDP 7844 to Cloudflare; one connector per host. On Windows, run PowerShell as
+        Administrator.
       </p>
     </div>
   )

@@ -136,7 +136,7 @@ export function TunnelSheet({ tunnel, trigger, open: openProp, onOpenChange }: T
                 {provisioned
                   ? 'Run one of these on a host inside the private network.'
                   : isEdit
-                    ? "Rename this tunnel. The address and hostname don't change."
+                    ? 'Rename it, or install the connector.'
                     : 'One connector per site. Install it once, then point Private Targets at this tunnel.'}
               </SheetDescription>
             </div>
@@ -162,10 +162,7 @@ export function TunnelSheet({ tunnel, trigger, open: openProp, onOpenChange }: T
                     </>
                   )}
                 </div>
-                <TunnelInstallCommands
-                  hostname={provisioned.hostname}
-                  installToken={provisioned.installToken}
-                />
+                <TunnelInstallCommands installToken={provisioned.installToken} />
               </Section>
             ) : (
               <>
@@ -179,9 +176,8 @@ export function TunnelSheet({ tunnel, trigger, open: openProp, onOpenChange }: T
                         description={
                           isEdit ? (
                             <>
-                              Hostname{' '}
-                              <code className="font-mono text-foreground">{tunnel.hostname}</code>{' '}
-                              can't change.
+                              Fixed hostname{' '}
+                              <code className="font-mono text-foreground">{tunnel.hostname}</code>
                             </>
                           ) : (
                             'A site or network, not a single service. Internal addresses are set per Target.'
@@ -203,10 +199,7 @@ export function TunnelSheet({ tunnel, trigger, open: openProp, onOpenChange }: T
                     hint="Run one of these on a host inside the private network."
                   >
                     {installData ? (
-                      <TunnelInstallCommands
-                        hostname={installData.hostname}
-                        installToken={installData.installToken}
-                      />
+                      <TunnelInstallCommands installToken={installData.installToken} />
                     ) : (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Loader2 className="size-4 animate-spin" aria-hidden /> Loading install
