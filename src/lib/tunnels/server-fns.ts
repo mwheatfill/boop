@@ -8,9 +8,10 @@ import { z } from '@/shared/schemas/openapi'
 import { TunnelCreateInput } from '@/shared/schemas/tunnel'
 import { getProviderConfig, type ProviderEnv } from './provider'
 import {
-  decommissionTunnel,
+  deleteTunnel,
   getTunnelInstall,
   provisionTunnel,
+  restoreTunnel,
   rotateTunnelCredentials,
   updateTunnel,
 } from './provision'
@@ -87,13 +88,24 @@ export const provisionTunnelFn = createServerFn({ method: 'POST' })
     )
   })
 
-export const decommissionTunnelFn = createServerFn({ method: 'POST' })
+export const deleteTunnelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator((data) => tunnelIdInput.parse(data))
   .handler(async ({ data }) => {
-    const db = createDb(env.DB)
-    const provider = getProviderConfig(providerEnv())
-    await decommissionTunnel({ db, cf: provider.cf, zoneId: provider.zoneId }, data.tunnelId)
+    await deleteTunnel(createDb(env.DB), data.tunnelId)
+    return { ok: true as const }
+  })
+
+const tunnelSlugPair = z.object({
+  workspaceSlug: z.string().min(1),
+  tunnelSlug: z.string().min(1),
+})
+
+export const restoreTunnelFn = createServerFn({ method: 'POST' })
+  .middleware([adminMiddleware])
+  .inputValidator((data) => tunnelSlugPair.parse(data))
+  .handler(async ({ data }) => {
+    await restoreTunnel(createDb(env.DB), data.workspaceSlug, data.tunnelSlug)
     return { ok: true as const }
   })
 

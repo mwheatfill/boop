@@ -1,13 +1,13 @@
-import { and, eq } from 'drizzle-orm'
-import { canDecommissionTunnel } from '@/lib/archive-policy/archive-policy'
+import { and, eq, inArray, ne } from 'drizzle-orm'
 import type { CloudflareApi, OriginRequest } from '@/lib/cloudflare-api/client'
 import { CloudflareApiError } from '@/lib/cloudflare-api/errors'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { targets, tunnels } from '@/lib/db/schema'
-import { ArchiveBlockedError, NotFoundError } from '@/lib/errors'
+import { jobs, targets, tunnels } from '@/lib/db/schema'
+import { NotFoundError } from '@/lib/errors'
 import { logError, logInfo } from '@/lib/log'
 import { createSecret, revokeSecret, rotateSecret } from '@/lib/workspace-secrets/commands'
+import { resolveWorkspaceId } from '@/lib/workspaces/resolve'
 
 export interface ProvisionTunnelDeps {
   db: Database
@@ -275,43 +275,106 @@ async function ignoreMissing(op: () => Promise<unknown>): Promise<void> {
   }
 }
 
-export async function decommissionTunnel(
+// Cloudflare teardown only (DNS, Access app + policy, Service Token, cert, tunnel,
+// then the stored secrets). Deleting an already-gone resource is success. Shared by
+// purge; not run on a soft delete.
+async function teardownTunnelCloud(
   deps: DecommissionTunnelDeps,
-  tunnelId: string,
+  row: typeof tunnels.$inferSelect,
 ): Promise<void> {
   const { db, cf, zoneId } = deps
   const now = deps.now ?? (() => new Date())
+  if (row.cfDnsRecordId) {
+    await ignoreMissing(() => cf.deleteDnsRecord(zoneId, row.cfDnsRecordId as string))
+  }
+  await ignoreMissing(() => cf.deleteAccessApp(row.cfAccessAppId))
+  await ignoreMissing(() => cf.deleteAccessPolicy(row.cfAccessPolicyId))
+  await ignoreMissing(() => cf.deleteServiceToken(row.cfServiceTokenId))
+  if (row.cfCertPackId) {
+    await ignoreMissing(() => cf.deleteCertPack(zoneId, row.cfCertPackId as string))
+  }
+  await ignoreMissing(() => cf.deleteTunnel(row.cfTunnelId))
+  await revokeSecret({ db, now }, row.workspaceId, row.clientIdSecretName)
+  await revokeSecret({ db, now }, row.workspaceId, row.clientSecretSecretName)
+}
 
+// Soft delete: the Tunnel, its Targets, and their Jobs move to the Recycle Bin. The
+// connector and Cloudflare resources stay up so restore is instant; the Cloudflare
+// teardown waits until purge.
+export async function deleteTunnel(db: Database, tunnelId: string): Promise<void> {
   const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
   if (!row) throw new NotFoundError('Tunnel', tunnelId)
-
-  const check = await canDecommissionTunnel(db, tunnelId)
-  if (!check.ok) throw new ArchiveBlockedError(check.blockingCount, 'tunnel')
-
-  try {
-    if (row.cfDnsRecordId) {
-      await ignoreMissing(() => cf.deleteDnsRecord(zoneId, row.cfDnsRecordId as string))
-    }
-    await ignoreMissing(() => cf.deleteAccessApp(row.cfAccessAppId))
-    await ignoreMissing(() => cf.deleteAccessPolicy(row.cfAccessPolicyId))
-    await ignoreMissing(() => cf.deleteServiceToken(row.cfServiceTokenId))
-    if (row.cfCertPackId) {
-      await ignoreMissing(() => cf.deleteCertPack(zoneId, row.cfCertPackId as string))
-    }
-    await ignoreMissing(() => cf.deleteTunnel(row.cfTunnelId))
-
-    await revokeSecret({ db, now }, row.workspaceId, row.clientIdSecretName)
-    await revokeSecret({ db, now }, row.workspaceId, row.clientSecretSecretName)
-
-    const archivedAt = now()
+  const now = new Date()
+  const targetRows = await db
+    .select({ id: targets.id })
+    .from(targets)
+    .where(and(eq(targets.tunnelId, tunnelId), ne(targets.status, 'archived')))
+  const targetIds = targetRows.map((t) => t.id)
+  if (targetIds.length > 0) {
     await db
-      .update(tunnels)
-      .set({ status: 'archived', archivedAt, updatedAt: archivedAt })
-      .where(eq(tunnels.id, tunnelId))
+      .update(jobs)
+      .set({ status: 'archived', updatedAt: now })
+      .where(and(inArray(jobs.targetId, targetIds), ne(jobs.status, 'archived')))
+    await db
+      .update(targets)
+      .set({ status: 'archived', updatedAt: now })
+      .where(inArray(targets.id, targetIds))
+  }
+  await db
+    .update(tunnels)
+    .set({ status: 'archived', archivedAt: now, updatedAt: now })
+    .where(eq(tunnels.id, tunnelId))
+  logInfo('tunnel.deleted', { workspaceId: row.workspaceId, slug: row.slug })
+}
 
-    logInfo('tunnel.decommissioned', { workspaceId: row.workspaceId, slug: row.slug })
+export async function restoreTunnel(
+  db: Database,
+  workspaceSlug: string,
+  tunnelSlug: string,
+): Promise<void> {
+  const workspaceId = await resolveWorkspaceId(db, workspaceSlug)
+  const result = await db
+    .update(tunnels)
+    .set({ status: 'active', archivedAt: null, updatedAt: new Date() })
+    .where(and(eq(tunnels.workspaceId, workspaceId), eq(tunnels.slug, tunnelSlug)))
+    .returning({ id: tunnels.id })
+  if (result.length === 0) throw new NotFoundError('Tunnel', `${workspaceSlug}/${tunnelSlug}`)
+}
+
+// Permanent: run the Cloudflare teardown, then hard-delete the row. Blocks while any
+// Target still references it (FK is restrict) — purge those Targets first.
+export async function purgeTunnel(
+  deps: DecommissionTunnelDeps,
+  workspaceSlug: string,
+  tunnelSlug: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { db } = deps
+  const workspaceId = await resolveWorkspaceId(db, workspaceSlug)
+  const row = (
+    await db
+      .select()
+      .from(tunnels)
+      .where(and(eq(tunnels.workspaceId, workspaceId), eq(tunnels.slug, tunnelSlug)))
+      .limit(1)
+  )[0]
+  if (!row) throw new NotFoundError('Tunnel', `${workspaceSlug}/${tunnelSlug}`)
+  if (row.status !== 'archived') {
+    return { ok: false, message: 'Delete this Tunnel before deleting it permanently.' }
+  }
+  const refs = await db.select({ id: targets.id }).from(targets).where(eq(targets.tunnelId, row.id))
+  if (refs.length > 0) {
+    return {
+      ok: false,
+      message: `This Tunnel still has ${refs.length} Target(s). Delete those permanently first.`,
+    }
+  }
+  try {
+    await teardownTunnelCloud(deps, row)
+    await db.delete(tunnels).where(eq(tunnels.id, row.id))
+    logInfo('tunnel.purged', { workspaceId: row.workspaceId, slug: row.slug })
+    return { ok: true }
   } catch (err) {
-    logError('tunnel.decommission_failed', err, { workspaceId: row.workspaceId, slug: row.slug })
+    logError('tunnel.purge_failed', err, { workspaceId: row.workspaceId, slug: row.slug })
     throw err
   }
 }

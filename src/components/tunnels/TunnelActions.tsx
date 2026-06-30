@@ -19,11 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  decommissionTunnelFn,
-  rotateTunnelCredentialsFn,
-  verifyTunnelFn,
-} from '@/lib/tunnels/server-fns'
+import { deleteTunnelFn, rotateTunnelCredentialsFn, verifyTunnelFn } from '@/lib/tunnels/server-fns'
 import type { Tunnel } from '@/shared/schemas/tunnel'
 
 export function TunnelActions({
@@ -61,14 +57,14 @@ export function TunnelActions({
   })
 
   const remove = useMutation({
-    mutationFn: () => decommissionTunnelFn({ data: { tunnelId: tunnel.id } }),
+    mutationFn: () => deleteTunnelFn({ data: { tunnelId: tunnel.id } }),
     onSuccess: () => {
-      toast.success(`Removed ${tunnel.name}`)
+      toast.success('Tunnel deleted', { description: 'Find it in the Recycle Bin.' })
       setConfirming(false)
       void invalidate()
       onRemoved()
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : 'Remove failed'),
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Delete failed'),
   })
 
   return (
@@ -99,7 +95,7 @@ export function TunnelActions({
               Rotate credentials
             </DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={() => setConfirming(true)}>
-              Remove…
+              Delete…
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -108,10 +104,11 @@ export function TunnelActions({
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove {tunnel.name}?</AlertDialogTitle>
+            <AlertDialogTitle>Delete {tunnel.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes the Cloudflare Tunnel, Access app, Service Token, and DNS record, then
-              archives it. Archive any Targets that use this tunnel first.
+              This also deletes its Targets and their Jobs. Everything moves to the Recycle Bin and
+              you can restore it. The connector keeps running until you delete it permanently from
+              the bin.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -124,7 +121,7 @@ export function TunnelActions({
                 remove.mutate()
               }}
             >
-              {remove.isPending ? 'Removing' : 'Remove tunnel'}
+              {remove.isPending ? 'Deleting' : 'Delete tunnel'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

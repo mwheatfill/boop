@@ -5,12 +5,13 @@ import { CloudflareApiError } from '@/lib/cloudflare-api/errors'
 import { newId } from '@/lib/db/ids'
 import { targets, tunnels, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
-import { ArchiveBlockedError } from '@/lib/errors'
 import { createTarget } from '@/lib/targets/commands'
 import { fetchActiveSecretPlaintext, listActiveSecrets } from '@/lib/workspace-secrets/commands'
 import {
-  decommissionTunnel,
+  deleteTunnel,
   provisionTunnel,
+  purgeTunnel,
+  restoreTunnel,
   rotateTunnelCredentials,
   syncTunnelIngress,
 } from './provision'
@@ -127,7 +128,7 @@ describe('provisionTunnel', () => {
   })
 })
 
-describe('decommissionTunnel', () => {
+describe('tunnel delete / purge / restore', () => {
   async function seedTunnel(db: ReturnType<typeof createTestDb>, workspaceId: string) {
     const id = newId('tnl')
     await db.insert(tunnels).values({
@@ -148,46 +149,14 @@ describe('decommissionTunnel', () => {
     return id
   }
 
-  it('tears down Cloudflare resources and archives the row', async () => {
-    const db = createTestDb()
-    const workspaceId = await seedWorkspace(db)
-    const tunnelId = await seedTunnel(db, workspaceId)
-    const cf = stubCf()
-
-    await decommissionTunnel({ db, cf, zoneId: 'z1' }, tunnelId)
-
-    expect(cf.deleteDnsRecord).toHaveBeenCalledWith('z1', 'dns')
-    expect(cf.deleteAccessApp).toHaveBeenCalledWith('app')
-    expect(cf.deleteAccessPolicy).toHaveBeenCalledWith('pol')
-    expect(cf.deleteServiceToken).toHaveBeenCalledWith('st')
-    expect(cf.deleteCertPack).toHaveBeenCalledWith('z1', 'cert')
-    expect(cf.deleteTunnel).toHaveBeenCalledWith('cf_tnl')
-
-    const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
-    expect(row?.status).toBe('archived')
-  })
-
-  it('ignores already-deleted Cloudflare resources (404) during teardown', async () => {
-    const db = createTestDb()
-    const workspaceId = await seedWorkspace(db)
-    const tunnelId = await seedTunnel(db, workspaceId)
-    const cf = stubCf({
-      deleteAccessApp: vi.fn(async () => {
-        throw new CloudflareApiError(404, 'DELETE app', [{ code: 1, message: 'not found' }])
-      }),
-    })
-
-    await expect(decommissionTunnel({ db, cf, zoneId: 'z1' }, tunnelId)).resolves.toBeUndefined()
-    const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
-    expect(row?.status).toBe('archived')
-  })
-
-  it('blocks decommission while an active Target references the tunnel', async () => {
-    const db = createTestDb()
-    const workspaceId = await seedWorkspace(db)
-    const tunnelId = await seedTunnel(db, workspaceId)
+  async function seedTarget(
+    db: ReturnType<typeof createTestDb>,
+    workspaceId: string,
+    tunnelId: string,
+  ) {
+    const id = newId('tgt')
     await db.insert(targets).values({
-      id: newId('tgt'),
+      id,
       workspaceId,
       name: 'API',
       slug: 'api',
@@ -196,12 +165,80 @@ describe('decommissionTunnel', () => {
       reachability: 'tunnel',
       tunnelId,
     })
+    return id
+  }
+
+  it('deleteTunnel soft-deletes the tunnel and its Targets, never touching Cloudflare', async () => {
+    const db = createTestDb()
+    const workspaceId = await seedWorkspace(db)
+    const tunnelId = await seedTunnel(db, workspaceId)
+    const targetId = await seedTarget(db, workspaceId, tunnelId)
     const cf = stubCf()
 
-    await expect(decommissionTunnel({ db, cf, zoneId: 'z1' }, tunnelId)).rejects.toBeInstanceOf(
-      ArchiveBlockedError,
-    )
+    await deleteTunnel(db, tunnelId)
+
     expect(cf.deleteTunnel).not.toHaveBeenCalled()
+    const tunnel = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
+    expect(tunnel?.status).toBe('archived')
+    const target = (await db.select().from(targets).where(eq(targets.id, targetId)).limit(1))[0]
+    expect(target?.status).toBe('archived')
+  })
+
+  it('purgeTunnel tears down Cloudflare and hard-deletes the row', async () => {
+    const db = createTestDb()
+    const workspaceId = await seedWorkspace(db)
+    const tunnelId = await seedTunnel(db, workspaceId)
+    await deleteTunnel(db, tunnelId)
+    const cf = stubCf()
+
+    const result = await purgeTunnel({ db, cf, zoneId: 'z1' }, 'acme', 'acme-hq')
+
+    expect(result.ok).toBe(true)
+    expect(cf.deleteDnsRecord).toHaveBeenCalledWith('z1', 'dns')
+    expect(cf.deleteTunnel).toHaveBeenCalledWith('cf_tnl')
+    const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
+    expect(row).toBeUndefined()
+  })
+
+  it('purgeTunnel ignores already-deleted Cloudflare resources (404)', async () => {
+    const db = createTestDb()
+    const workspaceId = await seedWorkspace(db)
+    const tunnelId = await seedTunnel(db, workspaceId)
+    await deleteTunnel(db, tunnelId)
+    const cf = stubCf({
+      deleteAccessApp: vi.fn(async () => {
+        throw new CloudflareApiError(404, 'DELETE app', [{ code: 1, message: 'not found' }])
+      }),
+    })
+
+    const result = await purgeTunnel({ db, cf, zoneId: 'z1' }, 'acme', 'acme-hq')
+    expect(result.ok).toBe(true)
+  })
+
+  it('purgeTunnel blocks while a Target still references the tunnel', async () => {
+    const db = createTestDb()
+    const workspaceId = await seedWorkspace(db)
+    const tunnelId = await seedTunnel(db, workspaceId)
+    await seedTarget(db, workspaceId, tunnelId)
+    await deleteTunnel(db, tunnelId)
+    const cf = stubCf()
+
+    const result = await purgeTunnel({ db, cf, zoneId: 'z1' }, 'acme', 'acme-hq')
+
+    expect(result.ok).toBe(false)
+    expect(cf.deleteTunnel).not.toHaveBeenCalled()
+  })
+
+  it('restoreTunnel brings a deleted tunnel back to active', async () => {
+    const db = createTestDb()
+    const workspaceId = await seedWorkspace(db)
+    const tunnelId = await seedTunnel(db, workspaceId)
+    await deleteTunnel(db, tunnelId)
+
+    await restoreTunnel(db, 'acme', 'acme-hq')
+
+    const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
+    expect(row?.status).toBe('active')
   })
 })
 

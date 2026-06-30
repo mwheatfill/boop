@@ -22,9 +22,11 @@ async function resolveWorkspaceId(db: Database, slug: string): Promise<string> {
 // bin (status='archived'). Job children (runs, attempts, alert rules, webhook
 // secrets) cascade via their FKs; Targets block while any Job still references
 // them (FK is restrict — purge those Jobs first).
+// Tunnels purge through purgeTunnel (Cloudflare teardown) in the server fn; this
+// handles the rest.
 export async function purgeDeleted(
   db: Database,
-  kind: DeletedKind,
+  kind: Exclude<DeletedKind, 'tunnel'>,
   workspaceSlug: string,
   slug: string,
 ): Promise<PurgeResult> {
