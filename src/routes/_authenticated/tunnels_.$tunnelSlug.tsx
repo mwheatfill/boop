@@ -68,6 +68,7 @@ function TunnelDetailPage() {
             <TunnelActions
               tunnel={tunnel}
               isAdmin={isAdmin}
+              targetCount={ridingTargets.length}
               onEdit={() => setEditing(true)}
               onRemoved={() => navigate({ to: '/tunnels' })}
             />

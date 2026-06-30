@@ -4,7 +4,7 @@ import { CloudflareApiError } from '@/lib/cloudflare-api/errors'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
 import { jobs, targets, tunnels } from '@/lib/db/schema'
-import { NotFoundError } from '@/lib/errors'
+import { FieldValidationError, NotFoundError } from '@/lib/errors'
 import { logError, logInfo } from '@/lib/log'
 import { createSecret, revokeSecret, rotateSecret } from '@/lib/workspace-secrets/commands'
 
@@ -329,4 +329,60 @@ export async function deleteTunnel(deps: DecommissionTunnelDeps, tunnelId: strin
     logError('tunnel.delete_failed', err, { workspaceId: row.workspaceId, slug: row.slug })
     throw err
   }
+}
+
+// Reassigns every active Target on `fromTunnelId` to `toTunnelId`, re-deriving each
+// Target's public URL from the new tunnel's hostname. The caller re-syncs both tunnels'
+// ingress. Lets an operator keep a tunnel's Targets (and their Jobs) before permanently
+// deleting it.
+export async function moveTargetsToTunnel(
+  db: Database,
+  fromTunnelId: string,
+  toTunnelId: string,
+): Promise<number> {
+  if (fromTunnelId === toTunnelId) {
+    throw new FieldValidationError({ toTunnelId: ['Pick a different tunnel.'] })
+  }
+  const from = (await db.select().from(tunnels).where(eq(tunnels.id, fromTunnelId)).limit(1))[0]
+  if (!from) throw new NotFoundError('Tunnel', fromTunnelId)
+  const to = (
+    await db
+      .select()
+      .from(tunnels)
+      .where(
+        and(
+          eq(tunnels.id, toTunnelId),
+          eq(tunnels.workspaceId, from.workspaceId),
+          eq(tunnels.status, 'active'),
+        ),
+      )
+      .limit(1)
+  )[0]
+  if (!to) throw new FieldValidationError({ toTunnelId: ['Tunnel not found.'] })
+
+  const movable = await db
+    .select()
+    .from(targets)
+    .where(and(eq(targets.tunnelId, fromTunnelId), eq(targets.status, 'active')))
+  const now = new Date()
+  for (const t of movable) {
+    let pathSuffix = ''
+    if (t.internalOrigin) {
+      try {
+        const origin = new URL(t.internalOrigin)
+        pathSuffix = (origin.pathname === '/' ? '' : origin.pathname) + origin.search
+      } catch {
+        pathSuffix = ''
+      }
+    }
+    await db
+      .update(targets)
+      .set({
+        tunnelId: to.id,
+        url: `https://${tunnelTargetHostname(to.hostname, t.slug)}${pathSuffix}`,
+        updatedAt: now,
+      })
+      .where(eq(targets.id, t.id))
+  }
+  return movable.length
 }

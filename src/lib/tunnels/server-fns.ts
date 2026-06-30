@@ -10,8 +10,10 @@ import { getProviderConfig, type ProviderEnv } from './provider'
 import {
   deleteTunnel,
   getTunnelInstall,
+  moveTargetsToTunnel,
   provisionTunnel,
   rotateTunnelCredentials,
+  syncTunnelIngress,
   updateTunnel,
 } from './provision'
 import { getTunnelBySlug, listTunnels } from './queries'
@@ -95,6 +97,23 @@ export const deleteTunnelFn = createServerFn({ method: 'POST' })
     const provider = getProviderConfig(providerEnv())
     await deleteTunnel({ db, cf: provider.cf, zoneId: provider.zoneId }, data.tunnelId)
     return { ok: true as const }
+  })
+
+const moveTargetsInput = z.object({
+  fromTunnelId: z.string().min(1),
+  toTunnelId: z.string().min(1),
+})
+
+export const moveTargetsToTunnelFn = createServerFn({ method: 'POST' })
+  .middleware([adminMiddleware])
+  .inputValidator((data) => moveTargetsInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = createDb(env.DB)
+    const provider = getProviderConfig(providerEnv())
+    const moved = await moveTargetsToTunnel(db, data.fromTunnelId, data.toTunnelId)
+    await syncTunnelIngress({ db, cf: provider.cf }, data.fromTunnelId)
+    await syncTunnelIngress({ db, cf: provider.cf }, data.toTunnelId)
+    return { ok: true as const, moved }
   })
 
 export const rotateTunnelCredentialsFn = createServerFn({ method: 'POST' })

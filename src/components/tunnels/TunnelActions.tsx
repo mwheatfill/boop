@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { MoreHorizontal, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { MoveTargetsDialog } from '@/components/tunnels/MoveTargetsDialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,17 +28,20 @@ import type { Tunnel } from '@/shared/schemas/tunnel'
 export function TunnelActions({
   tunnel,
   isAdmin,
+  targetCount,
   onEdit,
   onRemoved,
 }: {
   tunnel: Tunnel
   isAdmin: boolean
+  targetCount: number
   onEdit: () => void
   onRemoved: () => void
 }) {
   const queryClient = useQueryClient()
   const [confirming, setConfirming] = useState(false)
   const [confirmText, setConfirmText] = useState('')
+  const [moving, setMoving] = useState(false)
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['tunnels'] })
 
   const verify = useMutation({
@@ -97,6 +101,9 @@ export function TunnelActions({
             <DropdownMenuItem disabled={rotate.isPending} onClick={() => rotate.mutate()}>
               Rotate credentials
             </DropdownMenuItem>
+            {targetCount > 0 ? (
+              <DropdownMenuItem onClick={() => setMoving(true)}>Move Targets…</DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem variant="destructive" onClick={() => setConfirming(true)}>
               Delete…
             </DropdownMenuItem>
@@ -117,6 +124,7 @@ export function TunnelActions({
             <AlertDialogDescription>
               This permanently removes the Cloudflare tunnel, and deletes the Targets that use it
               and their Jobs. It can't be undone.
+              {targetCount > 0 ? ' To keep them, cancel and choose Move Targets first.' : ''}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex flex-col gap-1.5">
@@ -145,6 +153,13 @@ export function TunnelActions({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <MoveTargetsDialog
+        tunnel={tunnel}
+        targetCount={targetCount}
+        open={moving}
+        onOpenChange={setMoving}
+      />
     </div>
   )
 }

@@ -10,7 +10,7 @@ A running log of design and product decisions that are too small or too fast-mov
 
 **Why:** A "deleted" tunnel that kept serving traffic with live credentials until a separate purge was a security and UX trap. Delete should mean the path is actually gone. Instant restore isn't worth leaving a private route open.
 
-**UX:** the confirm says, in plain language, that it permanently removes the Cloudflare tunnel plus its Targets and Jobs and can't be undone, and it requires typing the tunnel name to proceed (ui-craft § 1: type the resource name for high-stakes actions).
+**UX:** the confirm says, in plain language, that it permanently removes the Cloudflare tunnel plus its Targets and Jobs and can't be undone, and it requires typing the tunnel name to proceed (ui-craft § 1: type the resource name for high-stakes actions). To keep the Targets instead, **Move Targets** reassigns them to another tunnel (re-deriving each Target's URL + re-syncing both tunnels' ingress) so the source tunnel can then be deleted empty.
 
 ---
 

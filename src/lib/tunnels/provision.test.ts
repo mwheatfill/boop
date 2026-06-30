@@ -9,6 +9,7 @@ import { createTarget } from '@/lib/targets/commands'
 import { fetchActiveSecretPlaintext, listActiveSecrets } from '@/lib/workspace-secrets/commands'
 import {
   deleteTunnel,
+  moveTargetsToTunnel,
   provisionTunnel,
   rotateTunnelCredentials,
   syncTunnelIngress,
@@ -126,7 +127,7 @@ describe('provisionTunnel', () => {
   })
 })
 
-describe('deleteTunnel', () => {
+describe('deleteTunnel / moveTargetsToTunnel', () => {
   async function seedTunnel(db: ReturnType<typeof createTestDb>, workspaceId: string) {
     const id = newId('tnl')
     await db.insert(tunnels).values({
@@ -232,6 +233,45 @@ describe('deleteTunnel', () => {
     expect(
       (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0],
     ).toBeUndefined()
+  })
+
+  it('moveTargetsToTunnel reassigns Targets and re-derives their URLs', async () => {
+    const db = createTestDb()
+    const workspaceId = await seedWorkspace(db)
+    const fromId = await seedTunnel(db, workspaceId)
+    const toId = newId('tnl')
+    await db.insert(tunnels).values({
+      id: toId,
+      workspaceId,
+      name: 'Acme DR',
+      slug: 'acme-dr',
+      hostname: 'acme-dr.tunnels.test',
+      cfTunnelId: 'cf_tnl2',
+      cfAccessAppId: 'app2',
+      cfAccessPolicyId: 'pol2',
+      cfServiceTokenId: 'st2',
+      clientIdSecretName: 'cf_access_acme-dr_client_id',
+      clientSecretSecretName: 'cf_access_acme-dr_client_secret',
+    })
+    const targetId = newId('tgt')
+    await db.insert(targets).values({
+      id: targetId,
+      workspaceId,
+      name: 'API',
+      slug: 'api',
+      url: 'https://api.acme-hq.tunnels.test/health',
+      method: 'GET',
+      reachability: 'tunnel',
+      tunnelId: fromId,
+      internalOrigin: 'http://10.0.0.1/health',
+    })
+
+    const moved = await moveTargetsToTunnel(db, fromId, toId)
+
+    expect(moved).toBe(1)
+    const t = (await db.select().from(targets).where(eq(targets.id, targetId)).limit(1))[0]
+    expect(t?.tunnelId).toBe(toId)
+    expect(t?.url).toBe('https://api.acme-dr.tunnels.test/health')
   })
 })
 
