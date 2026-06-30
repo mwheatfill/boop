@@ -25,8 +25,6 @@ interface TriggerPickerProps {
   webhookEditJobSlug?: string
 }
 
-const DEFAULT_CRON = '0 9 * * *'
-
 function matchesPreset(value: TriggerPickerValue, preset: SchedulePreset): boolean {
   if (preset.kind !== value.triggerKind) return false
   return preset.kind === 'cron'
@@ -77,7 +75,12 @@ export function TriggerPicker({
   workspaceTimezone,
   webhookEditJobSlug,
 }: TriggerPickerProps) {
-  const tab = value.triggerKind === 'webhook' ? 'webhook' : 'schedule'
+  const tab =
+    value.triggerKind === 'webhook'
+      ? 'webhook'
+      : value.triggerKind === 'manual'
+        ? 'manual'
+        : 'schedule'
   const timezone = value.triggerTimezone || workspaceTimezone
   const [aiSummary, setAiSummary] = useState<string | null>(null)
   const description = describeSchedule(value, aiSummary)
@@ -88,15 +91,10 @@ export function TriggerPicker({
       : value.cronExpression.trim() !== ''
 
   const selectTab = (next: string) => {
-    if (next === 'webhook') {
-      onChange({ ...value, triggerKind: 'webhook' })
-    } else if (value.triggerKind === 'webhook') {
-      onChange({
-        ...value,
-        triggerKind: 'cron',
-        cronExpression: value.cronExpression || DEFAULT_CRON,
-      })
-    }
+    if (next === 'webhook') onChange({ ...value, triggerKind: 'webhook' })
+    else if (next === 'manual') onChange({ ...value, triggerKind: 'manual' })
+    else if (value.triggerKind === 'webhook' || value.triggerKind === 'manual')
+      onChange({ ...value, triggerKind: 'cron' })
   }
 
   return (
@@ -104,6 +102,7 @@ export function TriggerPicker({
       <TabsList>
         <TabsTrigger value="schedule">Schedule</TabsTrigger>
         <TabsTrigger value="webhook">Webhook</TabsTrigger>
+        <TabsTrigger value="manual">Manual</TabsTrigger>
       </TabsList>
 
       <TabsContent value="schedule" className="flex flex-col gap-3">
@@ -169,6 +168,12 @@ export function TriggerPicker({
         {webhookEditJobSlug ? (
           <WebhookSecretPanel workspaceSlug={workspaceSlug} jobSlug={webhookEditJobSlug} />
         ) : null}
+      </TabsContent>
+
+      <TabsContent value="manual" className="flex flex-col gap-3">
+        <p className="text-sm text-muted-foreground">
+          Runs only when you start it with Run now. No automatic schedule.
+        </p>
       </TabsContent>
     </Tabs>
   )

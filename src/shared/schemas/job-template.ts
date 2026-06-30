@@ -44,7 +44,7 @@ const templateMutableFields = {
   tag: z.enum(JOB_TEMPLATE_TAGS).default('custom'),
   icon: z.string().trim().min(1).max(64).optional(),
   description: z.string().trim().max(240).optional(),
-  triggerKind: z.enum(['cron', 'interval', 'webhook']),
+  triggerKind: z.enum(['cron', 'interval', 'webhook', 'manual']),
   triggerConfig: triggerConfigSchema,
   targetRef: z.string().trim().min(1).max(128),
   bodyTemplate: z
@@ -75,7 +75,7 @@ export const JobTemplateSchema = z
     tag: z.enum(JOB_TEMPLATE_TAGS),
     icon: z.string().nullable(),
     description: z.string().nullable(),
-    triggerKind: z.enum(['cron', 'interval', 'webhook']),
+    triggerKind: z.enum(['cron', 'interval', 'webhook', 'manual']),
     triggerConfig: triggerConfigSchema,
     targetRef: z.string(),
     bodyTemplate: z.string(),

@@ -230,7 +230,9 @@ export function JobSheet({
               }
             : value.triggerKind === 'interval'
               ? { triggerKind: 'interval' as const, intervalSeconds: value.intervalSeconds }
-              : { triggerKind: 'webhook' as const }
+              : value.triggerKind === 'manual'
+                ? { triggerKind: 'manual' as const }
+                : { triggerKind: 'webhook' as const }
 
         const base = {
           name: value.name,

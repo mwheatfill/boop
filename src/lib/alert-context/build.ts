@@ -89,6 +89,7 @@ interface BuildMissedAlertContextInput {
 function scheduleOf(job: JobRow): string {
   if (job.triggerKind === 'cron') return job.cronExpression ?? 'cron'
   if (job.triggerKind === 'interval') return `${job.intervalSeconds ?? 0}s interval`
+  if (job.triggerKind === 'manual') return 'manual'
   return 'webhook'
 }
 

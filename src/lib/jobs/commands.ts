@@ -15,6 +15,7 @@ export interface JobsDeps {
   enterIntervalMode: (jobId: string) => Promise<void>
   enterCronMode: (jobId: string) => Promise<void>
   enterWebhookMode: (jobId: string) => Promise<void>
+  enterManualMode: (jobId: string) => Promise<void>
   now?: () => Date
 }
 
@@ -70,6 +71,7 @@ async function performModeChange(
   if (modeChange === 'interval') await deps.enterIntervalMode(jobId)
   else if (modeChange === 'cron') await deps.enterCronMode(jobId)
   else if (modeChange === 'webhook') await deps.enterWebhookMode(jobId)
+  else if (modeChange === 'manual') await deps.enterManualMode(jobId)
 }
 
 const columnFieldMap: Record<TriggerColumn, keyof TriggerColumns> = {

@@ -4,7 +4,7 @@ import { z } from './openapi'
 import { tzSchema } from './timezone'
 import { VariableMapSchema } from './workspace-variables'
 
-export const TRIGGER_KINDS = ['cron', 'interval', 'webhook'] as const
+export const TRIGGER_KINDS = ['cron', 'interval', 'webhook', 'manual'] as const
 export type TriggerKind = (typeof TRIGGER_KINDS)[number]
 
 export const JOB_STATUSES = ['active', 'paused', 'archived'] as const
@@ -24,10 +24,15 @@ const webhookTriggerInput = z.object({
   triggerKind: z.literal('webhook'),
 })
 
+const manualTriggerInput = z.object({
+  triggerKind: z.literal('manual'),
+})
+
 export const TriggerInput = z.discriminatedUnion('triggerKind', [
   cronTriggerInput,
   intervalTriggerInput,
   webhookTriggerInput,
+  manualTriggerInput,
 ])
 
 export type TriggerInput = z.infer<typeof TriggerInput>

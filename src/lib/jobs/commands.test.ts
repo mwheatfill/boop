@@ -30,7 +30,7 @@ function createCaptureQueue() {
 }
 
 function createTriggerCapture() {
-  const calls: { kind: 'interval' | 'cron' | 'webhook'; jobId: string }[] = []
+  const calls: { kind: 'interval' | 'cron' | 'webhook' | 'manual'; jobId: string }[] = []
   return {
     calls,
     enterIntervalMode: async (jobId: string) => {
@@ -42,13 +42,16 @@ function createTriggerCapture() {
     enterWebhookMode: async (jobId: string) => {
       calls.push({ kind: 'webhook', jobId })
     },
+    enterManualMode: async (jobId: string) => {
+      calls.push({ kind: 'manual', jobId })
+    },
   }
 }
 
 async function makeDeps(db: Database): Promise<{
   deps: JobsDeps
   sent: DispatchMessage[]
-  triggerCalls: { kind: 'interval' | 'cron' | 'webhook'; jobId: string }[]
+  triggerCalls: { kind: 'interval' | 'cron' | 'webhook' | 'manual'; jobId: string }[]
 }> {
   const { queue, sent } = createCaptureQueue()
   const triggers = createTriggerCapture()
@@ -59,6 +62,7 @@ async function makeDeps(db: Database): Promise<{
       enterIntervalMode: triggers.enterIntervalMode,
       enterCronMode: triggers.enterCronMode,
       enterWebhookMode: triggers.enterWebhookMode,
+      enterManualMode: triggers.enterManualMode,
     },
     sent,
     triggerCalls: triggers.calls,

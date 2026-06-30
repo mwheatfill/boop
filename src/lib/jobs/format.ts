@@ -17,6 +17,7 @@ const TRIGGER_KIND_LABELS: Record<TriggerKind, string> = {
   cron: 'Schedule',
   interval: 'Schedule',
   webhook: 'Webhook',
+  manual: 'Manual',
 }
 
 export function triggerKindLabel(kind: TriggerKind): string {
@@ -44,6 +45,7 @@ function cronLabel(expression: string | null): string {
 export function triggerSummary(t: TriggerShape): string {
   if (t.triggerKind === 'cron') return cronLabel(t.cronExpression) || 'Schedule'
   if (t.triggerKind === 'interval') return intervalLabel(t.intervalSeconds ?? 0)
+  if (t.triggerKind === 'manual') return 'Manual'
   return 'Webhook'
 }
 

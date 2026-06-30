@@ -63,3 +63,7 @@ export async function enterCronMode(env: TriggerEnv, jobId: string): Promise<voi
 export async function enterWebhookMode(env: TriggerEnv, jobId: string): Promise<void> {
   await clearAlarm(env, jobId)
 }
+
+export async function enterManualMode(env: TriggerEnv, jobId: string): Promise<void> {
+  await clearAlarm(env, jobId)
+}

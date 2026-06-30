@@ -1,4 +1,4 @@
-export type TriggerKind = 'cron' | 'interval' | 'webhook'
+export type TriggerKind = 'cron' | 'interval' | 'webhook' | 'manual'
 
 export type TriggerColumn = 'cron_expression' | 'interval_seconds' | 'trigger_timezone'
 
@@ -34,7 +34,7 @@ export function planTriggerTransition({
   if (oldKind === 'cron') columnsToNull.push(...cronColumns)
   if (oldKind === 'interval') {
     columnsToNull.push(...intervalColumns)
-    if (newKind === 'webhook') columnsToNull.push('trigger_timezone')
+    if (newKind === 'webhook' || newKind === 'manual') columnsToNull.push('trigger_timezone')
   }
 
   return { modeChange: newKind, columnsToNull }

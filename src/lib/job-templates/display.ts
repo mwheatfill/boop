@@ -15,6 +15,7 @@ export function templateTagLabel(tag: JobTemplateTag): string {
 
 export function humanizeTemplateSchedule(template: JobTemplate): string {
   if (template.triggerKind === 'webhook') return 'Starts from an inbound webhook'
+  if (template.triggerKind === 'manual') return 'Runs only when you trigger it'
   if (template.triggerKind === 'interval') {
     const seconds = Number(template.triggerConfig.intervalSeconds ?? 0)
     if (seconds >= 3600 && seconds % 3600 === 0) return `Runs every ${seconds / 3600}h`

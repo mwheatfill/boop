@@ -21,7 +21,7 @@ export interface JobAlarmDeps {
 
 export interface JobAlarmRow {
   status: 'active' | 'paused' | 'archived'
-  triggerKind: 'cron' | 'interval' | 'webhook'
+  triggerKind: 'cron' | 'interval' | 'webhook' | 'manual'
   intervalSeconds: number | null
 }
 

@@ -2532,7 +2532,8 @@
             "enum": [
               "cron",
               "interval",
-              "webhook"
+              "webhook",
+              "manual"
             ]
           },
           "cronExpression": {
@@ -2681,7 +2682,8 @@
             "enum": [
               "cron",
               "interval",
-              "webhook"
+              "webhook",
+              "manual"
             ]
           },
           "cronExpression": {
@@ -2897,6 +2899,19 @@
                   "triggerKind"
                 ],
                 "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "triggerKind": {
+                    "type": "string",
+                    "const": "manual"
+                  }
+                },
+                "required": [
+                  "triggerKind"
+                ],
+                "additionalProperties": false
               }
             ],
             "type": "object"
@@ -3007,6 +3022,19 @@
                   "triggerKind"
                 ],
                 "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "triggerKind": {
+                    "type": "string",
+                    "const": "manual"
+                  }
+                },
+                "required": [
+                  "triggerKind"
+                ],
+                "additionalProperties": false
               }
             ],
             "type": "object"
@@ -3101,7 +3129,8 @@
             "enum": [
               "cron",
               "interval",
-              "webhook"
+              "webhook",
+              "manual"
             ]
           },
           "triggerConfig": {
@@ -3238,7 +3267,8 @@
             "enum": [
               "cron",
               "interval",
-              "webhook"
+              "webhook",
+              "manual"
             ]
           },
           "triggerConfig": {
@@ -3352,7 +3382,8 @@
             "enum": [
               "cron",
               "interval",
-              "webhook"
+              "webhook",
+              "manual"
             ]
           },
           "triggerConfig": {

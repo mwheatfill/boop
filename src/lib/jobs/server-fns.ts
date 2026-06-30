@@ -2,7 +2,12 @@ import { env } from 'cloudflare:workers'
 import { createServerFn } from '@tanstack/react-start'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
-import { enterCronMode, enterIntervalMode, enterWebhookMode } from '@/lib/dispatch/trigger-modes'
+import {
+  enterCronMode,
+  enterIntervalMode,
+  enterManualMode,
+  enterWebhookMode,
+} from '@/lib/dispatch/trigger-modes'
 import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
 import { type Job, JobCreateInput, JobUpdateInput } from '@/shared/schemas/job'
 import { z } from '@/shared/schemas/openapi'
@@ -25,6 +30,7 @@ function makeDeps(): JobsDeps {
     enterIntervalMode: (jobId) => enterIntervalMode(env, jobId),
     enterCronMode: (jobId) => enterCronMode(env, jobId),
     enterWebhookMode: (jobId) => enterWebhookMode(env, jobId),
+    enterManualMode: (jobId) => enterManualMode(env, jobId),
   }
 }
 
