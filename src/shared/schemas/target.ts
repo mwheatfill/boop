@@ -88,3 +88,8 @@ export type TargetCreateInput = z.infer<typeof TargetCreateInput>
 export const TargetUpdateInput = z.object(targetMutableFields).meta({ id: 'TargetUpdateInput' })
 
 export type TargetUpdateInput = z.infer<typeof TargetUpdateInput>
+
+export const TargetIdInput = z
+  .object({ targetId: z.string().min(1) })
+  .meta({ id: 'TargetIdInput', description: 'References a Target by its id.' })
+export type TargetIdInput = z.infer<typeof TargetIdInput>

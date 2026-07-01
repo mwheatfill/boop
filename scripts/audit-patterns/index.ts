@@ -3,6 +3,7 @@
 
 import { writeFileSync } from 'node:fs'
 import { runDesignAudit } from './design'
+import { runOpenapiContractAudit } from './openapi-contract'
 import { runPreferencesAudit } from './preferences'
 import { runShadcnAudit } from './shadcn'
 import { runTanstackAudit } from './tanstack'
@@ -97,7 +98,7 @@ function renderText(results: AuditResult[], summary: Summary): string {
 }
 
 async function main() {
-  // shadcn + workflows hit the network; tanstack + preferences + design are sync.
+  // shadcn + workflows hit the network; the rest are sync.
   // Promise.all with a mixed list resolves the sync values inline.
   const results = await Promise.all([
     runShadcnAudit(),
@@ -105,6 +106,7 @@ async function main() {
     runPreferencesAudit(),
     runWorkflowsAudit(),
     runDesignAudit(),
+    runOpenapiContractAudit(),
   ])
   const summary = summarize(results)
 

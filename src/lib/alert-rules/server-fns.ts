@@ -8,7 +8,12 @@ import {
   AlertRuleCreateInput,
   AlertRuleUpdateInput,
 } from '@/shared/schemas/alert-rule'
-import { z } from '@/shared/schemas/openapi'
+import type { z } from '@/shared/schemas/openapi'
+import {
+  AlertRuleSlugPairInput,
+  IncludeArchivedInput,
+  WorkspaceSlugInput,
+} from '@/shared/schemas/resource-refs'
 import { archiveAlertRule, createAlertRule, restoreAlertRule, updateAlertRule } from './commands'
 import {
   countWorkspaceRulesForJob,
@@ -16,17 +21,10 @@ import {
   listAlertRulesForWorkspace,
 } from './queries'
 
-const slugPair = z.object({
-  workspaceSlug: z.string().min(1),
-  ruleSlug: z.string().min(1),
-})
-
 export const listAlertRulesForWorkspaceFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .inputValidator((data: { workspaceSlug: string; includeArchived?: boolean }) =>
-    z
-      .object({ workspaceSlug: z.string().min(1), includeArchived: z.boolean().optional() })
-      .parse(data),
+    WorkspaceSlugInput.extend(IncludeArchivedInput.shape).parse(data),
   )
   .handler(async ({ data }) =>
     listAlertRulesForWorkspace(
@@ -38,16 +36,14 @@ export const listAlertRulesForWorkspaceFn = createServerFn({ method: 'GET' })
 
 export const getAlertRuleFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .inputValidator((data) => slugPair.parse(data))
+  .inputValidator((data) => AlertRuleSlugPairInput.parse(data))
   .handler(async ({ data }) =>
     getAlertRuleBySlug(createDb(env.DB), data.workspaceSlug, data.ruleSlug),
   )
 
 export const countWorkspaceRulesFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .inputValidator((data: { workspaceSlug: string }) =>
-    z.object({ workspaceSlug: z.string().min(1) }).parse(data),
-  )
+  .inputValidator((data: { workspaceSlug: string }) => WorkspaceSlugInput.parse(data))
   .handler(async ({ data }) => ({
     count: await countWorkspaceRulesForJob(createDb(env.DB), data.workspaceSlug),
   }))
@@ -55,10 +51,7 @@ export const countWorkspaceRulesFn = createServerFn({ method: 'GET' })
 export const createAlertRuleFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .inputValidator((data: { workspaceSlug: string } & z.infer<typeof AlertRuleCreateInput>) =>
-    z
-      .object({ workspaceSlug: z.string().min(1) })
-      .extend(AlertRuleCreateInput.shape)
-      .parse(data),
+    WorkspaceSlugInput.extend(AlertRuleCreateInput.shape).parse(data),
   )
   .handler(async ({ data }): Promise<MutationResult<AlertRule>> => {
     const { workspaceSlug, ...input } = data
@@ -76,7 +69,7 @@ export const updateAlertRuleFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .inputValidator(
     (data: { workspaceSlug: string; ruleSlug: string } & z.infer<typeof AlertRuleUpdateInput>) =>
-      slugPair.extend(AlertRuleUpdateInput.shape).parse(data),
+      AlertRuleSlugPairInput.extend(AlertRuleUpdateInput.shape).parse(data),
   )
   .handler(async ({ data }): Promise<MutationResult<AlertRule>> => {
     const { workspaceSlug, ruleSlug, ...input } = data
@@ -92,7 +85,7 @@ export const updateAlertRuleFn = createServerFn({ method: 'POST' })
 
 export const archiveAlertRuleFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data) => slugPair.parse(data))
+  .inputValidator((data) => AlertRuleSlugPairInput.parse(data))
   .handler(async ({ data }) => ({
     ok: true as const,
     data: await archiveAlertRule(createDb(env.DB), data.workspaceSlug, data.ruleSlug),
@@ -100,7 +93,7 @@ export const archiveAlertRuleFn = createServerFn({ method: 'POST' })
 
 export const restoreAlertRuleFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data) => slugPair.parse(data))
+  .inputValidator((data) => AlertRuleSlugPairInput.parse(data))
   .handler(async ({ data }) => ({
     ok: true as const,
     data: await restoreAlertRule(createDb(env.DB), data.workspaceSlug, data.ruleSlug),

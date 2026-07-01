@@ -10,7 +10,12 @@ import {
 } from '@/lib/dispatch/trigger-modes'
 import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
 import { type Job, JobCreateInput, JobUpdateInput } from '@/shared/schemas/job'
-import { z } from '@/shared/schemas/openapi'
+import type { z } from '@/shared/schemas/openapi'
+import {
+  JobSlugPairInput,
+  OptionalWorkspaceScopeInput,
+  WorkspaceSlugInput,
+} from '@/shared/schemas/resource-refs'
 import {
   archiveJob,
   createJob,
@@ -34,21 +39,10 @@ function makeDeps(): JobsDeps {
   }
 }
 
-const workspaceOnly = z.object({ workspaceSlug: z.string().min(1) })
-const jobSlugPair = z.object({
-  workspaceSlug: z.string().min(1),
-  jobSlug: z.string().min(1),
-})
-
 export const listAllJobsFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .inputValidator((data: { workspaceSlug?: string; includeArchived?: boolean } | undefined) =>
-    z
-      .object({
-        workspaceSlug: z.string().min(1).optional(),
-        includeArchived: z.boolean().optional(),
-      })
-      .parse(data ?? {}),
+    OptionalWorkspaceScopeInput.parse(data ?? {}),
   )
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
@@ -61,13 +55,13 @@ export const listAllJobsFn = createServerFn({ method: 'GET' })
 
 export const getJobFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .inputValidator((data) => jobSlugPair.parse(data))
+  .inputValidator((data) => JobSlugPairInput.parse(data))
   .handler(async ({ data }) => getJobDetail(createDb(env.DB), data.workspaceSlug, data.jobSlug))
 
 export const createJobFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .inputValidator((data: { workspaceSlug: string } & z.infer<typeof JobCreateInput>) =>
-    workspaceOnly.extend(JobCreateInput.shape).parse(data),
+    WorkspaceSlugInput.extend(JobCreateInput.shape).parse(data),
   )
   .handler(async ({ data }): Promise<MutationResult<Job>> => {
     const { workspaceSlug, ...input } = data
@@ -85,7 +79,7 @@ export const updateJobFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .inputValidator(
     (data: { workspaceSlug: string; jobSlug: string } & z.infer<typeof JobUpdateInput>) =>
-      jobSlugPair.extend(JobUpdateInput.shape).parse(data),
+      JobSlugPairInput.extend(JobUpdateInput.shape).parse(data),
   )
   .handler(async ({ data }): Promise<MutationResult<Job>> => {
     const { workspaceSlug, jobSlug, ...input } = data
@@ -115,25 +109,25 @@ async function statusChange(
 
 export const pauseJobFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data) => jobSlugPair.parse(data))
+  .inputValidator((data) => JobSlugPairInput.parse(data))
   .handler(({ data }) => statusChange(pauseJob, data))
 
 export const resumeJobFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data) => jobSlugPair.parse(data))
+  .inputValidator((data) => JobSlugPairInput.parse(data))
   .handler(({ data }) => statusChange(resumeJob, data))
 
 export const archiveJobFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data) => jobSlugPair.parse(data))
+  .inputValidator((data) => JobSlugPairInput.parse(data))
   .handler(({ data }) => statusChange(archiveJob, data))
 
 export const restoreJobFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data) => jobSlugPair.parse(data))
+  .inputValidator((data) => JobSlugPairInput.parse(data))
   .handler(({ data }) => statusChange(restoreJob, data))
 
 export const runJobNowFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data) => jobSlugPair.parse(data))
+  .inputValidator((data) => JobSlugPairInput.parse(data))
   .handler(({ data }) => statusChange(runJobNow, data))

@@ -128,3 +128,35 @@ export const RunsListResponseSchema = z
   .meta({ id: 'RunsListResponse' })
 
 export type RunsListResponse = z.infer<typeof RunsListResponseSchema>
+
+export const RunsForJobInput = z
+  .object({
+    jobId: z.string().min(1),
+    cursor: z.string().optional(),
+    limit: z.int().min(1).max(100).optional(),
+  })
+  .meta({
+    id: 'RunsForJobInput',
+    description: 'Cursor-paginated request for the runs of a single job.',
+  })
+export type RunsForJobInput = z.infer<typeof RunsForJobInput>
+
+export const RunRef = z
+  .object({
+    workspaceSlug: z.string().min(1),
+    jobSlug: z.string().min(1),
+    runId: z.string().min(1),
+  })
+  .meta({ id: 'RunRef', description: 'Addresses a Run by workspace slug, job slug, and run id.' })
+export type RunRef = z.infer<typeof RunRef>
+
+export const AttemptBodyPreviewInput = z
+  .object({
+    attemptId: z.string().min(1),
+    kind: z.enum(['request', 'response']),
+  })
+  .meta({
+    id: 'AttemptBodyPreviewInput',
+    description: 'Requests a size-capped preview of the request or response body of one attempt.',
+  })
+export type AttemptBodyPreviewInput = z.infer<typeof AttemptBodyPreviewInput>

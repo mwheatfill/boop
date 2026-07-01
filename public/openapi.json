@@ -4598,6 +4598,464 @@
         "additionalProperties": false,
         "description": "Returned exactly once from create and rotate. boop never returns the plaintext again."
       },
+      "WorkspaceSecretRef": {
+        "type": "object",
+        "properties": {
+          "workspaceSlug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspaceSlug",
+          "name"
+        ],
+        "additionalProperties": false,
+        "description": "Addresses a Workspace-scoped secret by workspace slug and secret name."
+      },
+      "SlugInput": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "slug"
+        ],
+        "additionalProperties": false,
+        "description": "References a resource by its slug within the default workspace."
+      },
+      "IdInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false,
+        "description": "References a resource by its opaque id."
+      },
+      "WorkspaceSlugInput": {
+        "type": "object",
+        "properties": {
+          "workspaceSlug": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "workspaceSlug"
+        ],
+        "additionalProperties": false,
+        "description": "References a workspace by slug, scoping a listing or child-resource operation."
+      },
+      "IncludeArchivedInput": {
+        "type": "object",
+        "properties": {
+          "includeArchived": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Toggles whether archived (soft-deleted) rows are included in a listing."
+      },
+      "OptionalWorkspaceScopeInput": {
+        "type": "object",
+        "properties": {
+          "workspaceSlug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "includeArchived": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Optionally scopes a listing to one workspace and toggles archived rows."
+      },
+      "TargetSlugPairInput": {
+        "type": "object",
+        "properties": {
+          "workspaceSlug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetSlug": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "workspaceSlug",
+          "targetSlug"
+        ],
+        "additionalProperties": false,
+        "description": "Addresses a Target by workspace slug and target slug."
+      },
+      "ChannelSlugPairInput": {
+        "type": "object",
+        "properties": {
+          "workspaceSlug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "channelSlug": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "workspaceSlug",
+          "channelSlug"
+        ],
+        "additionalProperties": false,
+        "description": "Addresses a Channel by workspace slug and channel slug."
+      },
+      "AlertRuleSlugPairInput": {
+        "type": "object",
+        "properties": {
+          "workspaceSlug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ruleSlug": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "workspaceSlug",
+          "ruleSlug"
+        ],
+        "additionalProperties": false,
+        "description": "Addresses an alert rule by workspace slug and rule slug."
+      },
+      "JobSlugPairInput": {
+        "type": "object",
+        "properties": {
+          "workspaceSlug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "jobSlug": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "workspaceSlug",
+          "jobSlug"
+        ],
+        "additionalProperties": false,
+        "description": "Addresses a Job by workspace slug and job slug."
+      },
+      "TargetIdInput": {
+        "type": "object",
+        "properties": {
+          "targetId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "targetId"
+        ],
+        "additionalProperties": false,
+        "description": "References a Target by its id."
+      },
+      "TunnelIdInput": {
+        "type": "object",
+        "properties": {
+          "tunnelId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "tunnelId"
+        ],
+        "additionalProperties": false,
+        "description": "References a Tunnel by its id."
+      },
+      "TunnelUpdateInput": {
+        "type": "object",
+        "properties": {
+          "tunnelId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "tunnelId",
+          "name"
+        ],
+        "additionalProperties": false,
+        "description": "Renames a Tunnel."
+      },
+      "TunnelMoveTargetsInput": {
+        "type": "object",
+        "properties": {
+          "fromTunnelId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "toTunnelId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "fromTunnelId",
+          "toTunnelId"
+        ],
+        "additionalProperties": false,
+        "description": "Moves every Target from one Tunnel to another."
+      },
+      "RunsSearchInput": {
+        "type": "object",
+        "properties": {
+          "workspace": {
+            "default": [],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "status": {
+            "default": [],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "scheduled",
+                    "running",
+                    "completed",
+                    "canceled"
+                  ]
+                }
+              }
+            ]
+          },
+          "outcome": {
+            "default": [],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "success",
+                    "failure",
+                    "timeout"
+                  ]
+                }
+              }
+            ]
+          },
+          "failureKind": {
+            "default": [],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "timeout",
+                    "network",
+                    "http_4xx",
+                    "http_5xx",
+                    "non_2xx_other",
+                    "tunnel_credential_missing"
+                  ]
+                }
+              }
+            ]
+          },
+          "triggerSource": {
+            "default": [],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "cron",
+                    "interval",
+                    "webhook",
+                    "manual"
+                  ]
+                }
+              }
+            ]
+          },
+          "range": {
+            "default": "24h",
+            "type": "string",
+            "pattern": "^(all|\\d+(m|h|d|w|mo))$"
+          },
+          "cursor": {
+            "default": "",
+            "type": "string"
+          }
+        },
+        "required": [
+          "range"
+        ],
+        "additionalProperties": false,
+        "description": "Filters for the cross-workspace runs list: workspace/status/outcome/trigger facets, a time range, and a cursor."
+      },
+      "RunsForJobInput": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "jobId"
+        ],
+        "additionalProperties": false,
+        "description": "Cursor-paginated request for the runs of a single job."
+      },
+      "RunRef": {
+        "type": "object",
+        "properties": {
+          "workspaceSlug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "jobSlug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "runId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "workspaceSlug",
+          "jobSlug",
+          "runId"
+        ],
+        "additionalProperties": false,
+        "description": "Addresses a Run by workspace slug, job slug, and run id."
+      },
+      "AttemptBodyPreviewInput": {
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "request",
+              "response"
+            ]
+          }
+        },
+        "required": [
+          "attemptId",
+          "kind"
+        ],
+        "additionalProperties": false,
+        "description": "Requests a size-capped preview of the request or response body of one attempt."
+      },
+      "ProposeScheduleInput": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "text",
+          "timezone"
+        ],
+        "additionalProperties": false,
+        "description": "A natural-language schedule description plus the timezone to resolve it against."
+      },
+      "PurgeInput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "job",
+              "target",
+              "channel",
+              "alert-rule"
+            ]
+          },
+          "workspaceSlug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "kind",
+          "workspaceSlug",
+          "slug"
+        ],
+        "additionalProperties": false,
+        "description": "Permanently removes one soft-deleted resource, identified by kind, workspace slug, and resource slug."
+      },
       "MutationFailure": {
         "type": "object",
         "properties": {

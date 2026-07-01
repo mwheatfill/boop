@@ -6,7 +6,12 @@ import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
 import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
 import { type Channel, ChannelCreateInput, ChannelUpdateInput } from '@/shared/schemas/channel'
-import { z } from '@/shared/schemas/openapi'
+import type { z } from '@/shared/schemas/openapi'
+import {
+  ChannelSlugPairInput,
+  IncludeArchivedInput,
+  WorkspaceSlugInput,
+} from '@/shared/schemas/resource-refs'
 import {
   archiveChannel,
   createChannel,
@@ -16,17 +21,10 @@ import {
 } from './commands'
 import { getChannelBySlug, listChannelsForPicker, listChannelsForWorkspace } from './queries'
 
-const slugPair = z.object({
-  workspaceSlug: z.string().min(1),
-  channelSlug: z.string().min(1),
-})
-
 export const listChannelsForWorkspaceFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .inputValidator((data: { workspaceSlug: string; includeArchived?: boolean }) =>
-    z
-      .object({ workspaceSlug: z.string().min(1), includeArchived: z.boolean().optional() })
-      .parse(data),
+    WorkspaceSlugInput.extend(IncludeArchivedInput.shape).parse(data),
   )
   .handler(async ({ data }) =>
     listChannelsForWorkspace(
@@ -38,7 +36,7 @@ export const listChannelsForWorkspaceFn = createServerFn({ method: 'GET' })
 
 export const getChannelFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .inputValidator((data) => slugPair.parse(data))
+  .inputValidator((data) => ChannelSlugPairInput.parse(data))
   .handler(async ({ data }) =>
     getChannelBySlug(createDb(env.DB), data.workspaceSlug, data.channelSlug),
   )
@@ -46,10 +44,7 @@ export const getChannelFn = createServerFn({ method: 'GET' })
 export const createChannelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator((data: { workspaceSlug: string } & z.infer<typeof ChannelCreateInput>) =>
-    z
-      .object({ workspaceSlug: z.string().min(1) })
-      .extend(ChannelCreateInput.shape)
-      .parse(data),
+    WorkspaceSlugInput.extend(ChannelCreateInput.shape).parse(data),
   )
   .handler(async ({ data }): Promise<MutationResult<Channel>> => {
     const { workspaceSlug, ...input } = data
@@ -67,7 +62,7 @@ export const updateChannelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator(
     (data: { workspaceSlug: string; channelSlug: string } & z.infer<typeof ChannelUpdateInput>) =>
-      slugPair.extend(ChannelUpdateInput.shape).parse(data),
+      ChannelSlugPairInput.extend(ChannelUpdateInput.shape).parse(data),
   )
   .handler(async ({ data }): Promise<MutationResult<Channel>> => {
     const { workspaceSlug, channelSlug, ...input } = data
@@ -83,7 +78,7 @@ export const updateChannelFn = createServerFn({ method: 'POST' })
 
 export const archiveChannelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
-  .inputValidator((data) => slugPair.parse(data))
+  .inputValidator((data) => ChannelSlugPairInput.parse(data))
   .handler(async ({ data }): Promise<MutationResult<Channel>> => {
     try {
       const channel = await archiveChannel(createDb(env.DB), data.workspaceSlug, data.channelSlug)
@@ -97,7 +92,7 @@ export const archiveChannelFn = createServerFn({ method: 'POST' })
 
 export const restoreChannelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
-  .inputValidator((data) => slugPair.parse(data))
+  .inputValidator((data) => ChannelSlugPairInput.parse(data))
   .handler(async ({ data }) => ({
     ok: true as const,
     data: await restoreChannel(createDb(env.DB), data.workspaceSlug, data.channelSlug),
@@ -105,7 +100,7 @@ export const restoreChannelFn = createServerFn({ method: 'POST' })
 
 export const sendTestAlertFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
-  .inputValidator((data) => slugPair.parse(data))
+  .inputValidator((data) => ChannelSlugPairInput.parse(data))
   .handler(async ({ data }): Promise<MutationResult<Channel>> => {
     const db = createDb(env.DB)
     const channel = await getChannelBySlug(db, data.workspaceSlug, data.channelSlug)
@@ -125,7 +120,5 @@ export const sendTestAlertFn = createServerFn({ method: 'POST' })
 
 export const listChannelsForPickerFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .inputValidator((data: { workspaceSlug: string }) =>
-    z.object({ workspaceSlug: z.string().min(1) }).parse(data),
-  )
+  .inputValidator((data: { workspaceSlug: string }) => WorkspaceSlugInput.parse(data))
   .handler(async ({ data }) => listChannelsForPicker(createDb(env.DB), data.workspaceSlug))

@@ -4,8 +4,13 @@ import { adminMiddleware } from '@/lib/auth/admin-middleware'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
 import { getDefaultWorkspace } from '@/lib/workspaces/queries'
-import { z } from '@/shared/schemas/openapi'
-import { TunnelCreateInput } from '@/shared/schemas/tunnel'
+import { SlugInput } from '@/shared/schemas/resource-refs'
+import {
+  TunnelCreateInput,
+  TunnelIdInput,
+  TunnelMoveTargetsInput,
+  TunnelUpdateInput,
+} from '@/shared/schemas/tunnel'
 import { getProviderConfig, type ProviderEnv } from './provider'
 import {
   deleteTunnel,
@@ -18,12 +23,6 @@ import {
 } from './provision'
 import { getTunnelBySlug, listTunnels } from './queries'
 import { runTunnelVerify } from './verify'
-
-const tunnelIdInput = z.object({ tunnelId: z.string().min(1) })
-const tunnelUpdateInput = z.object({
-  tunnelId: z.string().min(1),
-  name: TunnelCreateInput.shape.name,
-})
 
 async function requireKek(): Promise<string> {
   const kek = await env.BOOP_SECRETS_KEK.get()
@@ -50,7 +49,7 @@ export const listTunnelsFn = createServerFn({ method: 'GET' })
 
 export const getTunnelFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .inputValidator((data) => z.object({ slug: z.string().min(1) }).parse(data))
+  .inputValidator((data) => SlugInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const workspace = await getDefaultWorkspace(db)
@@ -59,7 +58,7 @@ export const getTunnelFn = createServerFn({ method: 'GET' })
 
 export const updateTunnelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
-  .inputValidator((data) => tunnelUpdateInput.parse(data))
+  .inputValidator((data) => TunnelUpdateInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     await updateTunnel({ db }, data.tunnelId, { name: data.name })
@@ -68,7 +67,7 @@ export const updateTunnelFn = createServerFn({ method: 'POST' })
 
 export const getTunnelInstallFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
-  .inputValidator((data) => tunnelIdInput.parse(data))
+  .inputValidator((data) => TunnelIdInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const provider = getProviderConfig(providerEnv())
@@ -91,7 +90,7 @@ export const provisionTunnelFn = createServerFn({ method: 'POST' })
 
 export const deleteTunnelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
-  .inputValidator((data) => tunnelIdInput.parse(data))
+  .inputValidator((data) => TunnelIdInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const provider = getProviderConfig(providerEnv())
@@ -99,14 +98,9 @@ export const deleteTunnelFn = createServerFn({ method: 'POST' })
     return { ok: true as const }
   })
 
-const moveTargetsInput = z.object({
-  fromTunnelId: z.string().min(1),
-  toTunnelId: z.string().min(1),
-})
-
 export const moveTargetsToTunnelFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
-  .inputValidator((data) => moveTargetsInput.parse(data))
+  .inputValidator((data) => TunnelMoveTargetsInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const provider = getProviderConfig(providerEnv())
@@ -118,7 +112,7 @@ export const moveTargetsToTunnelFn = createServerFn({ method: 'POST' })
 
 export const rotateTunnelCredentialsFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
-  .inputValidator((data) => tunnelIdInput.parse(data))
+  .inputValidator((data) => TunnelIdInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const kek = await requireKek()
@@ -129,7 +123,7 @@ export const rotateTunnelCredentialsFn = createServerFn({ method: 'POST' })
 
 export const verifyTunnelFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data) => tunnelIdInput.parse(data))
+  .inputValidator((data) => TunnelIdInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const kek = await requireKek()

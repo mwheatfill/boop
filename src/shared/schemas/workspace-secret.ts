@@ -30,6 +30,14 @@ export const SecretRotateInputSchema = z
 
 export type SecretRotateInput = z.infer<typeof SecretRotateInputSchema>
 
+export const WorkspaceSecretRef = z
+  .object({ workspaceSlug: z.string().min(1), name: z.string() })
+  .meta({
+    id: 'WorkspaceSecretRef',
+    description: 'Addresses a Workspace-scoped secret by workspace slug and secret name.',
+  })
+export type WorkspaceSecretRef = z.infer<typeof WorkspaceSecretRef>
+
 export const SecretSummarySchema = z
   .object({
     id: z.string(),

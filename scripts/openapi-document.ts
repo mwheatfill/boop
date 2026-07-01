@@ -36,20 +36,45 @@ import {
   JobTemplateUpdateInput,
 } from '../src/shared/schemas/job-template'
 import { FieldErrorsSchema, MutationFailureSchema } from '../src/shared/schemas/mutation-result'
+import { PurgeInput } from '../src/shared/schemas/recycle-bin'
 import {
+  AlertRuleSlugPairInput,
+  ChannelSlugPairInput,
+  IdInput,
+  IncludeArchivedInput,
+  JobSlugPairInput,
+  OptionalWorkspaceScopeInput,
+  SlugInput,
+  TargetSlugPairInput,
+  WorkspaceSlugInput,
+} from '../src/shared/schemas/resource-refs'
+import {
+  AttemptBodyPreviewInput,
   AttemptDetailSchema,
   AttemptSummarySchema,
   RedactedHeadersSchema,
   RunDetailResponseSchema,
+  RunRef,
   RunSchema,
   RunSummaryRowSchema,
+  RunsForJobInput,
   RunsListResponseSchema,
   TriggerSourceSchema,
 } from '../src/shared/schemas/run'
-import { TargetCreateInput, TargetSchema, TargetUpdateInput } from '../src/shared/schemas/target'
+import { RunsSearchSchema } from '../src/shared/schemas/run-filters'
+import { ProposeScheduleInput } from '../src/shared/schemas/schedule'
+import {
+  TargetCreateInput,
+  TargetIdInput,
+  TargetSchema,
+  TargetUpdateInput,
+} from '../src/shared/schemas/target'
 import {
   TunnelCreateInput,
+  TunnelIdInput,
+  TunnelMoveTargetsInput,
   TunnelSchema,
+  TunnelUpdateInput,
   TunnelVerifyResultSchema,
 } from '../src/shared/schemas/tunnel'
 import {
@@ -68,6 +93,7 @@ import {
   SecretRevealedResponseSchema,
   SecretRotateInputSchema,
   SecretSummarySchema,
+  WorkspaceSecretRef,
 } from '../src/shared/schemas/workspace-secret'
 import { VariableMapSchema } from '../src/shared/schemas/workspace-variables'
 
@@ -135,6 +161,28 @@ export const document = createDocument({
       WorkspaceSecretCreateInput: SecretCreateInputSchema,
       WorkspaceSecretRotateInput: SecretRotateInputSchema,
       WorkspaceSecretRevealedResponse: SecretRevealedResponseSchema,
+      WorkspaceSecretRef,
+      // Server-function routing + input schemas (ADR-013). Every validated
+      // server-fn input is a named schema here so it enters the contract.
+      SlugInput,
+      IdInput,
+      WorkspaceSlugInput,
+      IncludeArchivedInput,
+      OptionalWorkspaceScopeInput,
+      TargetSlugPairInput,
+      ChannelSlugPairInput,
+      AlertRuleSlugPairInput,
+      JobSlugPairInput,
+      TargetIdInput,
+      TunnelIdInput,
+      TunnelUpdateInput,
+      TunnelMoveTargetsInput,
+      RunsSearchInput: RunsSearchSchema,
+      RunsForJobInput,
+      RunRef,
+      AttemptBodyPreviewInput,
+      ProposeScheduleInput,
+      PurgeInput,
       FieldErrors: FieldErrorsSchema,
       MutationFailure: MutationFailureSchema,
     },

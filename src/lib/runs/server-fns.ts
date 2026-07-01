@@ -4,8 +4,8 @@ import { eq } from 'drizzle-orm'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
 import { attempts } from '@/lib/db/schema'
-import { z } from '@/shared/schemas/openapi'
-import { RunsSearchSchema } from './filter-schema'
+import { AttemptBodyPreviewInput, RunRef, RunsForJobInput } from '@/shared/schemas/run'
+import { RunsSearchSchema } from '@/shared/schemas/run-filters'
 import { getRunDetail, listAllRuns, listRunsForJob } from './queries'
 
 const PREVIEW_BYTES = 64 * 1024
@@ -20,13 +20,7 @@ export const listAllRunsFn = createServerFn({ method: 'GET' })
 export const listRunsForJobFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .inputValidator((data: { jobId: string; cursor?: string; limit?: number }) =>
-    z
-      .object({
-        jobId: z.string().min(1),
-        cursor: z.string().optional(),
-        limit: z.int().min(1).max(100).optional(),
-      })
-      .parse(data),
+    RunsForJobInput.parse(data),
   )
   .handler(async ({ data }) =>
     listRunsForJob(createDb(env.DB), {
@@ -39,13 +33,7 @@ export const listRunsForJobFn = createServerFn({ method: 'GET' })
 export const getRunFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .inputValidator((data: { workspaceSlug: string; jobSlug: string; runId: string }) =>
-    z
-      .object({
-        workspaceSlug: z.string().min(1),
-        jobSlug: z.string().min(1),
-        runId: z.string().min(1),
-      })
-      .parse(data),
+    RunRef.parse(data),
   )
   .handler(async ({ data }) =>
     getRunDetail(createDb(env.DB), data.workspaceSlug, data.jobSlug, data.runId),
@@ -90,12 +78,7 @@ async function readPreview(bucket: R2Bucket, key: string): Promise<BodyPreview |
 export const getAttemptBodyPreviewFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .inputValidator((data: { attemptId: string; kind: 'request' | 'response' }) =>
-    z
-      .object({
-        attemptId: z.string().min(1),
-        kind: z.enum(['request', 'response']),
-      })
-      .parse(data),
+    AttemptBodyPreviewInput.parse(data),
   )
   .handler(async ({ data }) => {
     const db = createDb(env.DB)

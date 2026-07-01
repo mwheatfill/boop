@@ -1,9 +1,10 @@
 import { and, gte, inArray, type SQL, sql } from 'drizzle-orm'
 import { attempts, runs, workspaces } from '@/lib/db/schema'
-import { z } from '@/shared/schemas/openapi'
-import { FAILURE_KINDS, RUN_OUTCOMES, RUN_STATUSES } from '@/shared/schemas/run'
+import { type RunsFilters, RunsSearchSchema, TRIGGER_SOURCES } from '@/shared/schemas/run-filters'
 
-export const TRIGGER_SOURCES = ['cron', 'interval', 'webhook', 'manual'] as const
+// The runs filter contract lives in the shared schema layer so it enters
+// openapi.json; the query-building logic below stays here beside the DB layer.
+export { type RunsFilters, RunsSearchSchema, TRIGGER_SOURCES }
 
 const RANGE_RE = /^(\d+)(m|h|d|w|mo)$/
 const RANGE_UNIT_MS: Record<string, number> = {
@@ -14,7 +15,7 @@ const RANGE_UNIT_MS: Record<string, number> = {
   mo: 30 * 86_400_000,
 }
 
-// A range is "all" or "<N><unit>" (e.g. 24h, 7d, 45m, 3mo) — a sliding window
+// A range is "all" or "<N><unit>" (e.g. 24h, 7d, 45m, 3mo), a sliding window
 // computed at query time. Presets and custom relative ranges share this form.
 export function rangeToMs(range: string): number | null {
   const m = RANGE_RE.exec(range)
@@ -22,53 +23,6 @@ export function rangeToMs(range: string): number | null {
   if (!m || unit === undefined) return null
   return Number(m[1]) * (RANGE_UNIT_MS[unit] ?? 0)
 }
-
-const csvArray = <T extends string>(values: readonly T[]) =>
-  z
-    .union([z.string(), z.array(z.enum(values as [T, ...T[]]))])
-    .transform((value) => {
-      if (typeof value === 'string') {
-        if (value === '') return [] as T[]
-        const set = new Set<string>(values)
-        return value.split(',').flatMap((raw): T[] => {
-          const trimmed = raw.trim()
-          return set.has(trimmed) ? [trimmed as T] : []
-        })
-      }
-      return value
-    })
-    .catch([] as T[])
-    .optional()
-
-const csvSlugs = z
-  .union([z.string(), z.array(z.string())])
-  .transform((value): string[] => {
-    if (typeof value === 'string') {
-      return value.split(',').flatMap((raw) => {
-        const trimmed = raw.trim()
-        return trimmed ? [trimmed] : []
-      })
-    }
-    return value
-  })
-  .catch([])
-  .optional()
-
-export const RunsSearchSchema = z.object({
-  workspace: csvSlugs,
-  status: csvArray(RUN_STATUSES),
-  outcome: csvArray(RUN_OUTCOMES),
-  failureKind: csvArray(FAILURE_KINDS),
-  triggerSource: csvArray(TRIGGER_SOURCES),
-  range: z
-    .string()
-    .regex(/^(all|\d+(m|h|d|w|mo))$/)
-    .catch('24h')
-    .default('24h'),
-  cursor: z.string().catch('').optional(),
-})
-
-export type RunsFilters = z.infer<typeof RunsSearchSchema>
 
 interface ResolvedRange {
   from?: Date

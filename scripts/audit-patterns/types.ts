@@ -1,4 +1,10 @@
-export type AuditName = 'shadcn' | 'tanstack' | 'preferences' | 'workflows' | 'design'
+export type AuditName =
+  | 'shadcn'
+  | 'tanstack'
+  | 'preferences'
+  | 'workflows'
+  | 'design'
+  | 'openapi-contract'
 export type Severity = 'error' | 'warn'
 
 export interface Finding {

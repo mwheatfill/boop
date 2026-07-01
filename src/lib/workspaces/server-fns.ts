@@ -4,7 +4,8 @@ import { adminMiddleware } from '@/lib/auth/admin-middleware'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
 import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
-import { z } from '@/shared/schemas/openapi'
+import type { z } from '@/shared/schemas/openapi'
+import { IncludeArchivedInput, SlugInput } from '@/shared/schemas/resource-refs'
 import type { Workspace } from '@/shared/schemas/workspace'
 import { WorkspaceCreateInput, WorkspaceUpdateInput } from '@/shared/schemas/workspace'
 import { archiveWorkspace, createWorkspace, restoreWorkspace, updateWorkspace } from './commands'
@@ -19,7 +20,7 @@ import {
 export const listWorkspacesFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .inputValidator((data: { includeArchived?: boolean } | undefined) =>
-    z.object({ includeArchived: z.boolean().optional() }).parse(data ?? {}),
+    IncludeArchivedInput.parse(data ?? {}),
   )
   .handler(async ({ data }) =>
     listWorkspaces(createDb(env.DB), data.includeArchived ? { includeArchived: true } : {}),
@@ -39,7 +40,7 @@ export const getOrgTimezoneFn = createServerFn({ method: 'GET' })
 
 export const getWorkspaceFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .inputValidator((data: { slug: string }) => z.object({ slug: z.string().min(1) }).parse(data))
+  .inputValidator((data: { slug: string }) => SlugInput.parse(data))
   .handler(async ({ data }) => getWorkspaceBySlug(createDb(env.DB), data.slug))
 
 export const getDefaultWorkspaceFn = createServerFn({ method: 'GET' })
@@ -63,10 +64,7 @@ export const createWorkspaceFn = createServerFn({ method: 'POST' })
 export const updateWorkspaceFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator((data: { slug: string } & z.infer<typeof WorkspaceUpdateInput>) =>
-    z
-      .object({ slug: z.string().min(1) })
-      .extend(WorkspaceUpdateInput.shape)
-      .parse(data),
+    SlugInput.extend(WorkspaceUpdateInput.shape).parse(data),
   )
   .handler(async ({ data }): Promise<MutationResult<Workspace>> => {
     const { slug, ...input } = data
@@ -82,7 +80,7 @@ export const updateWorkspaceFn = createServerFn({ method: 'POST' })
 
 export const archiveWorkspaceFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
-  .inputValidator((data: { slug: string }) => z.object({ slug: z.string().min(1) }).parse(data))
+  .inputValidator((data: { slug: string }) => SlugInput.parse(data))
   .handler(async ({ data }): Promise<MutationResult<Workspace>> => {
     try {
       const workspace = await archiveWorkspace(createDb(env.DB), data.slug)
@@ -96,7 +94,7 @@ export const archiveWorkspaceFn = createServerFn({ method: 'POST' })
 
 export const restoreWorkspaceFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
-  .inputValidator((data: { slug: string }) => z.object({ slug: z.string().min(1) }).parse(data))
+  .inputValidator((data: { slug: string }) => SlugInput.parse(data))
   .handler(async ({ data }) => ({
     ok: true as const,
     data: await restoreWorkspace(createDb(env.DB), data.slug),

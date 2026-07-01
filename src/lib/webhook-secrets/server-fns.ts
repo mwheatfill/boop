@@ -5,7 +5,7 @@ import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
 import { jobs, workspaces } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
-import { z } from '@/shared/schemas/openapi'
+import { JobSlugPairInput } from '@/shared/schemas/resource-refs'
 import { RotateInputSchema } from '@/shared/schemas/webhook-secret'
 import {
   generateSecret as generateSecretCmd,
@@ -13,11 +13,6 @@ import {
   rotateSecret as rotateSecretCmd,
 } from './commands'
 import { listSecretsForJob } from './queries'
-
-const jobSlugPair = z.object({
-  workspaceSlug: z.string().min(1),
-  jobSlug: z.string().min(1),
-})
 
 async function resolveJobId(
   db: ReturnType<typeof createDb>,
@@ -45,7 +40,7 @@ function toSummary(row: Awaited<ReturnType<typeof listSecretsForJob>>[number]) {
 
 export const listWebhookSecretsFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .inputValidator((data) => jobSlugPair.parse(data))
+  .inputValidator((data) => JobSlugPairInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const jobId = await resolveJobId(db, data.workspaceSlug, data.jobSlug)
@@ -55,7 +50,7 @@ export const listWebhookSecretsFn = createServerFn({ method: 'GET' })
 
 export const generateWebhookSecretFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data) => jobSlugPair.parse(data))
+  .inputValidator((data) => JobSlugPairInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const jobId = await resolveJobId(db, data.workspaceSlug, data.jobSlug)
@@ -70,7 +65,7 @@ export const generateWebhookSecretFn = createServerFn({ method: 'POST' })
 export const rotateWebhookSecretFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .inputValidator((data: { workspaceSlug: string; jobSlug: string; overlapHours?: number }) =>
-    jobSlugPair.extend(RotateInputSchema.shape).parse(data),
+    JobSlugPairInput.extend(RotateInputSchema.shape).parse(data),
   )
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
@@ -85,7 +80,7 @@ export const rotateWebhookSecretFn = createServerFn({ method: 'POST' })
 
 export const revokeWebhookSecretsFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data) => jobSlugPair.parse(data))
+  .inputValidator((data) => JobSlugPairInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const jobId = await resolveJobId(db, data.workspaceSlug, data.jobSlug)

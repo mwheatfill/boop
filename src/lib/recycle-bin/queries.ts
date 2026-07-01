@@ -1,9 +1,9 @@
 import { eq } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { alertRules, channels, jobs, targets, workspaces } from '@/lib/db/schema'
+import { DELETED_KINDS, type DeletedKind } from '@/shared/schemas/recycle-bin'
 
-export const DELETED_KINDS = ['job', 'target', 'channel', 'alert-rule'] as const
-export type DeletedKind = (typeof DELETED_KINDS)[number]
+export { DELETED_KINDS, type DeletedKind }
 
 export interface DeletedItem {
   kind: DeletedKind

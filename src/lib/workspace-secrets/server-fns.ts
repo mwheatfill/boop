@@ -5,8 +5,12 @@ import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
 import { NotFoundError } from '@/lib/errors'
 import { resolveWorkspaceId } from '@/lib/workspaces/resolve'
-import { z } from '@/shared/schemas/openapi'
-import { SecretCreateInputSchema, SecretRotateInputSchema } from '@/shared/schemas/workspace-secret'
+import { WorkspaceSlugInput } from '@/shared/schemas/resource-refs'
+import {
+  SecretCreateInputSchema,
+  SecretRotateInputSchema,
+  WorkspaceSecretRef,
+} from '@/shared/schemas/workspace-secret'
 import {
   createSecret as createSecretCmd,
   DuplicateSecretNameError,
@@ -15,8 +19,6 @@ import {
   rotateSecret as rotateSecretCmd,
   SecretNotFoundError,
 } from './commands'
-
-const workspaceSlugInput = z.object({ workspaceSlug: z.string().min(1) })
 
 async function requireKek(): Promise<string> {
   const kek = await env.BOOP_SECRETS_KEK.get()
@@ -28,7 +30,7 @@ async function requireKek(): Promise<string> {
 
 export const listWorkspaceSecretsFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .inputValidator((data) => workspaceSlugInput.parse(data))
+  .inputValidator((data) => WorkspaceSlugInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const workspaceId = await resolveWorkspaceId(db, data.workspaceSlug)
@@ -37,7 +39,7 @@ export const listWorkspaceSecretsFn = createServerFn({ method: 'GET' })
 
 export const createWorkspaceSecretFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
-  .inputValidator((data) => workspaceSlugInput.extend(SecretCreateInputSchema.shape).parse(data))
+  .inputValidator((data) => WorkspaceSlugInput.extend(SecretCreateInputSchema.shape).parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const workspaceId = await resolveWorkspaceId(db, data.workspaceSlug)
@@ -56,12 +58,7 @@ export const createWorkspaceSecretFn = createServerFn({ method: 'POST' })
 
 export const rotateWorkspaceSecretFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
-  .inputValidator((data) =>
-    workspaceSlugInput
-      .extend({ name: z.string() })
-      .extend(SecretRotateInputSchema.shape)
-      .parse(data),
-  )
+  .inputValidator((data) => WorkspaceSecretRef.extend(SecretRotateInputSchema.shape).parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const workspaceId = await resolveWorkspaceId(db, data.workspaceSlug)
@@ -79,7 +76,7 @@ export const rotateWorkspaceSecretFn = createServerFn({ method: 'POST' })
 
 export const revokeWorkspaceSecretFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
-  .inputValidator((data) => workspaceSlugInput.extend({ name: z.string() }).parse(data))
+  .inputValidator((data) => WorkspaceSecretRef.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const workspaceId = await resolveWorkspaceId(db, data.workspaceSlug)

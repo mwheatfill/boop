@@ -10,7 +10,8 @@ import {
   JobTemplateSaveFromJobInput,
   JobTemplateUpdateInput,
 } from '@/shared/schemas/job-template'
-import { z } from '@/shared/schemas/openapi'
+import type { z } from '@/shared/schemas/openapi'
+import { IdInput, OptionalWorkspaceScopeInput } from '@/shared/schemas/resource-refs'
 import {
   archiveJobTemplate,
   createJobTemplate,
@@ -21,17 +22,10 @@ import {
 } from './commands'
 import { getTemplateById, listVisibleTemplates } from './queries'
 
-const templateIdOnly = z.object({ id: z.string().min(1) })
-
 export const listJobTemplatesFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .inputValidator((data: { workspaceSlug?: string; includeArchived?: boolean } | undefined) =>
-    z
-      .object({
-        workspaceSlug: z.string().min(1).optional(),
-        includeArchived: z.boolean().optional(),
-      })
-      .parse(data ?? {}),
+    OptionalWorkspaceScopeInput.parse(data ?? {}),
   )
   .handler(async ({ data }) =>
     listVisibleTemplates(createDb(env.DB), {
@@ -42,7 +36,7 @@ export const listJobTemplatesFn = createServerFn({ method: 'GET' })
 
 export const getJobTemplateFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .inputValidator((data) => templateIdOnly.parse(data))
+  .inputValidator((data) => IdInput.parse(data))
   .handler(async ({ data }) => getTemplateById(createDb(env.DB), data.id))
 
 export const createJobTemplateFn = createServerFn({ method: 'POST' })
@@ -55,7 +49,7 @@ export const createJobTemplateFn = createServerFn({ method: 'POST' })
 export const updateJobTemplateFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .inputValidator((data: { id: string } & z.infer<typeof JobTemplateUpdateInput>) =>
-    templateIdOnly.extend(JobTemplateUpdateInput.shape).parse(data),
+    IdInput.extend(JobTemplateUpdateInput.shape).parse(data),
   )
   .handler(async ({ data }) => {
     const { id, ...input } = data
@@ -64,12 +58,12 @@ export const updateJobTemplateFn = createServerFn({ method: 'POST' })
 
 export const archiveJobTemplateFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data) => templateIdOnly.parse(data))
+  .inputValidator((data) => IdInput.parse(data))
   .handler(async ({ data }) => runMutation(() => archiveJobTemplate(createDb(env.DB), data.id)))
 
 export const restoreJobTemplateFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((data) => templateIdOnly.parse(data))
+  .inputValidator((data) => IdInput.parse(data))
   .handler(async ({ data }) => runMutation(() => restoreJobTemplate(createDb(env.DB), data.id)))
 
 export const saveJobAsTemplateFn = createServerFn({ method: 'POST' })

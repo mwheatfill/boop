@@ -55,6 +55,24 @@ export const TunnelCreateInput = z
 
 export type TunnelCreateInput = z.infer<typeof TunnelCreateInput>
 
+export const TunnelIdInput = z
+  .object({ tunnelId: z.string().min(1) })
+  .meta({ id: 'TunnelIdInput', description: 'References a Tunnel by its id.' })
+export type TunnelIdInput = z.infer<typeof TunnelIdInput>
+
+export const TunnelUpdateInput = z
+  .object({ tunnelId: z.string().min(1), name: TunnelCreateInput.shape.name })
+  .meta({ id: 'TunnelUpdateInput', description: 'Renames a Tunnel.' })
+export type TunnelUpdateInput = z.infer<typeof TunnelUpdateInput>
+
+export const TunnelMoveTargetsInput = z
+  .object({ fromTunnelId: z.string().min(1), toTunnelId: z.string().min(1) })
+  .meta({
+    id: 'TunnelMoveTargetsInput',
+    description: 'Moves every Target from one Tunnel to another.',
+  })
+export type TunnelMoveTargetsInput = z.infer<typeof TunnelMoveTargetsInput>
+
 export const TunnelVerifyResultSchema = z
   .object({
     ok: z.boolean(),
