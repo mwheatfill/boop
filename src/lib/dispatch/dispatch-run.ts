@@ -12,7 +12,6 @@ import { buildAccessHeaders, TunnelCredentialError } from '@/lib/tunnels/access-
 import { fetchActiveSecretPlaintext } from '@/lib/workspace-secrets/commands'
 import type { TriggerSource } from '@/shared/schemas/run'
 import { mergeEffectiveVariables } from '@/shared/schemas/workspace-variables'
-import { claimJob, releaseJob } from './claim'
 import {
   ClaimFailedError,
   isRetryableDispatchError,
@@ -22,6 +21,7 @@ import {
   TargetNetworkError,
   TargetTimeoutError,
 } from './errors'
+import * as jobClaim from './job-claim'
 import { r2KeyFor } from './r2-keys'
 import { renderTemplate } from './render'
 
@@ -289,7 +289,7 @@ export async function runDispatch(
   scheduledAt: Date,
   triggerSource: TriggerSource = 'cron',
 ): Promise<void> {
-  const claimed = await claimJob(db, jobId)
+  const claimed = await jobClaim.claim(db, jobId)
   if (claimed === null) {
     if (preCreatedRunId) await cancelPreCreatedRun(db, preCreatedRunId, 'claim_failed')
     throw new ClaimFailedError(jobId)
@@ -506,7 +506,7 @@ export async function runDispatch(
       throw lastError
     }
   } finally {
-    await releaseJob(db, jobId)
+    await jobClaim.release(db, jobId)
   }
 }
 

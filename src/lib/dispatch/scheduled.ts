@@ -8,8 +8,7 @@ import { jobs, workspaces } from '@/lib/db/schema'
 import { logError, logInfo, logWarn } from '@/lib/log'
 import { refreshTunnelHealth } from '@/lib/tunnels/health-check'
 import { getProviderConfig, TunnelProvisioningNotConfiguredError } from '@/lib/tunnels/provider'
-
-const STALE_CLAIM_MS = 300_000
+import * as jobClaim from './job-claim'
 
 export interface DispatchMessage {
   jobId: string
@@ -34,16 +33,6 @@ export interface ScheduledDeps {
   dispatchQueue: Queue<DispatchMessage>
   alertQueue?: Queue<AlertQueueMessage>
   now?: () => Date
-}
-
-async function sweepStaleClaims(db: Database, now: Date): Promise<number> {
-  const cutoff = new Date(now.getTime() - STALE_CLAIM_MS)
-  const swept = await db
-    .update(jobs)
-    .set({ fireInProgress: false, updatedAt: now })
-    .where(and(eq(jobs.fireInProgress, true), lte(jobs.updatedAt, cutoff)))
-    .returning({ id: jobs.id })
-  return swept.length
 }
 
 interface DueRow {
@@ -95,7 +84,10 @@ export async function runScheduled({
   now = () => new Date(),
 }: ScheduledDeps): Promise<{ swept: number; enqueued: number; missedEnqueued: number }> {
   const tick = now()
-  const [swept, due] = await Promise.all([sweepStaleClaims(db, tick), selectDueCronJobs(db, tick)])
+  const [swept, due] = await Promise.all([
+    jobClaim.reapStale(db, tick),
+    selectDueCronJobs(db, tick),
+  ])
   const results = await Promise.all(
     due.map(async (row) => {
       if (!row.cronExpression) return 0
