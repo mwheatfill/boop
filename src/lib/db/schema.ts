@@ -198,7 +198,6 @@ export const jobs = sqliteTable(
     index('jobs_status_next_fire_idx').on(table.status, table.nextFireAt),
     index('jobs_target_idx').on(table.targetId),
     lifecycleCheck(table.status, JOB_STATUSES),
-    lifecycleCheck(table.triggerKind, TRIGGER_KINDS),
   ],
 )
 
@@ -249,7 +248,6 @@ export const jobTemplates = sqliteTable(
     ),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
     lifecycleCheck(table.tag, JOB_TEMPLATE_TAGS),
-    lifecycleCheck(table.triggerKind, TRIGGER_KINDS),
   ],
 )
 
@@ -325,7 +323,6 @@ export const channels = sqliteTable(
     uniqueIndex('channels_workspace_slug_idx').on(table.workspaceId, table.slug),
     index('channels_workspace_status_idx').on(table.workspaceId, table.status),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
-    lifecycleCheck(table.kind, CHANNEL_KINDS),
   ],
 )
 
@@ -361,7 +358,6 @@ export const alertRules = sqliteTable(
         OR (${table.scope} = 'job' AND ${table.jobId} IS NOT NULL AND ${table.workspaceId} IS NULL)`,
     ),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
-    lifecycleCheck(table.kind, ALERT_RULE_KINDS),
     lifecycleCheck(table.scope, ALERT_RULE_SCOPES),
   ],
 )
