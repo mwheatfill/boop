@@ -1,6 +1,6 @@
 # ADR-019: Soft-delete policy (archive blocks on active dependents)
 
-![Status](https://img.shields.io/badge/status-Proposed-yellow) ![Date](https://img.shields.io/badge/date-2026--05--12-blue)
+![Status](https://img.shields.io/badge/status-Accepted-brightgreen) ![Date](https://img.shields.io/badge/date-2026--05--12-blue)
 
 ## Context
 

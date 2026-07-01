@@ -1,6 +1,6 @@
 # ADR-027: Domain simplification (Workspace consolidation, inline Targets, unified Schedule)
 
-![Status](https://img.shields.io/badge/status-Proposed-yellow) ![Date](https://img.shields.io/badge/date-2026--06--10-blue)
+![Status](https://img.shields.io/badge/status-Accepted-brightgreen) ![Date](https://img.shields.io/badge/date-2026--06--10-blue)
 
 ## Context
 

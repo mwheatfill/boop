@@ -13,6 +13,10 @@ Issues and PRDs for this repo live as GitHub issues on [`mwheatfill/boop`](https
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 
+## External PRs
+
+External pull requests are **not** a triage surface. `/triage` processes issues only; it does not pull external PRs into the queue.
+
 ## When a skill says "publish to the issue tracker"
 
 Create a GitHub issue.

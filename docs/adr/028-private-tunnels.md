@@ -1,6 +1,6 @@
 # ADR-028: Private Tunnels (provider-owned Cloudflare Tunnel provisioning + two-layer health)
 
-![Status](https://img.shields.io/badge/status-Proposed-yellow) ![Date](https://img.shields.io/badge/date-2026--06--27-blue)
+![Status](https://img.shields.io/badge/status-Accepted-brightgreen) ![Date](https://img.shields.io/badge/date-2026--06--27-blue)
 
 ## Context
 

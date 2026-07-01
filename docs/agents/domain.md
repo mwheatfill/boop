@@ -18,7 +18,7 @@ How the engineering skills should consume this repo's domain documentation when 
 
 ## Before exploring, read these
 
-- **`CONTEXT.md`** at the repo root for domain language (Job, Run, Attempt, Trigger, Customer, Operator, etc.).
+- **`CONTEXT.md`** at the repo root for domain language (Job, Run, Attempt, Trigger, Workspace, Operator, etc.).
 - **`docs/adr/`** for past architectural decisions in the area you're about to touch. Start with `docs/adr/README.md` for the index.
 
 If any of these files don't exist, **proceed silently**. Don't flag their absence; the producer skill (`/grill-with-docs`) creates them lazily when terms or decisions actually get resolved.

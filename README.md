@@ -1,154 +1,94 @@
 # boop
 
-Starter for great apps on Cloudflare. Ships only what every app needs: framework wiring, an empty data layer, an agent-ready governance layer, and the build/deploy infrastructure. Capabilities (auth, AI, email, MCP, more) install on demand via [app-platform-recipes](https://github.com/mwheatfill/app-platform-recipes).
+A scheduler that fires HTTP requests on a schedule or webhook trigger against any reachable endpoint (public internet, or internal services via Cloudflare Tunnel), with AI-native authoring through Microsoft Foundry and alerting fan-out to Teams, PagerDuty, and Autotask.
 
-This split is deliberate. Templates that ship every feature pre-wired accumulate dead code, security holes, and surface area apps don't need. Templates that ship only the universal parts stay tight; recipes own per-capability concerns end-to-end (auth, validation, tests).
+boop runs as a Cloudflare Worker behind Cloudflare Access. Operators sign in with Entra SSO, define Jobs that fire HTTP requests against Targets on a schedule or webhook, and get alerted through their existing tools when Runs fail.
 
-## What's in the box
+## What it does
+
+- **Jobs, Runs, Attempts.** A Job fires HTTP requests against one Target on a Trigger (a time-based Schedule or an inbound webhook). Each firing is a Run; retries are Attempts. Request and response bodies stream to R2; recent history stays hot in D1.
+- **Schedules without cron literacy.** Operators express cadence as a preset, an interval, an advanced cron expression, or natural language; boop resolves it and previews the next fire times before saving.
+- **Public and private Targets.** A Target is a reusable HTTP destination. Public Targets carry their own URL; private Targets reach on-prem services through a provider-managed Cloudflare Tunnel, with derived health.
+- **Alerting fan-out.** Channels (Teams, PagerDuty, Autotask, email, generic webhook) plus AlertRules decide when a terminal Run alerts and where it goes.
+- **AI authoring.** Operators draft Jobs in natural language via Microsoft Foundry. The assistant never mutates state directly; it returns a typed Draft the operator confirms.
+- **Recycle bin, Job templates, and runbook narration** round out day-to-day operation.
+
+See [`CONTEXT.md`](CONTEXT.md) for the domain glossary and [`docs/adr/`](docs/adr/) for the decisions behind each choice.
+
+## Stack
 
 | Layer | Choice |
 |---|---|
-| Runtime | Cloudflare Workers |
-| Framework | TanStack Start (SSR + API routes) |
-| Routing | TanStack Router (file-based) |
-| Data | Cloudflare D1 + Drizzle ORM (schema is empty until you or a recipe adds tables) |
-| Auth abstraction | `getCurrentUser(request)` shape; provider stubs to null until an auth recipe is installed |
-| API contract | Zod + zod-openapi → generated `openapi.json` (empty until you add endpoints) |
-| UI | Tailwind v4, `next-themes`, theme toggle, error / not-found components |
-| Tooling | Biome (format + lint), Husky + lint-staged, TanStack Intent |
+| Runtime | Cloudflare Workers (Wrangler 4; `boop-dev` / `boop-prod` from one `wrangler.jsonc`) |
+| Framework | TanStack Start (SSR + file-based routing + server functions) |
+| Data | Cloudflare D1 + Drizzle ORM |
+| Auth | Cloudflare Access fronted by Entra OIDC, JWT validated in-Worker ([ADR-026](docs/adr/026-cloudflare-access-with-entra-oidc.md)) |
+| API contract | Zod + zod-openapi generating [`public/openapi.json`](public/openapi.json), CI-enforced |
+| UI | shadcn (`base-vega`) on Base UI, Tailwind v4, `next-themes` |
+| AI | Microsoft Foundry via Cloudflare AI Gateway ([ADR-007](docs/adr/007-foundry-via-ai-gateway.md)) |
+| Alerting | Teams, PagerDuty, Autotask, email (Graph shared mailbox), generic webhook |
+| Tooling | Biome, Husky + lint-staged, Renovate, TanStack Intent, Vitest |
 
-See [`docs/adr/`](docs/adr/) for the rationale behind each choice.
-
-## What's not in the box (install via recipes)
-
-- Auth providers: `auth/better-auth` (default), planned `auth/cloudflare-access`
-- AI features: `ai/chat-route`, `ai/chat-ui`, plus a provider recipe (Microsoft Foundry today; planned Workers AI, Anthropic, OpenAI)
-- Email: `email/send-pipeline` plus per-transport recipes (`email/graph-shared-mailbox` today; planned Resend, Cloudflare Email Service)
-- MCP server: `mcp/expose-app-as-mcp-server`
-- Postgres swap: planned `data-layer/switch-to-neon-postgres`
-- See the [recipes repo](https://github.com/mwheatfill/app-platform-recipes) for the full list
-
-## Quick start
+## Quick start (local dev)
 
 ```bash
-# 1. Clone via "Use this template" on GitHub or
-#    git clone https://github.com/<owner>/<your-app>.git
-
-# 2. Install + bootstrap. The bootstrap script does an interactive app
-#    rename across 9 files (wrangler configs, package.json, README.md,
-#    AGENTS.md, etc.), generates .dev.vars from the example, installs
-#    TanStack Intent skill bindings, verifies openapi.json is in sync,
-#    and offers to create your own dev/prod D1 databases.
 pnpm install
-pnpm bootstrap
-
-# 3. Run locally
-pnpm dev
+pnpm dev            # http://localhost:3000
 ```
 
-Then open `http://localhost:3000`.
+Apply migrations to the local D1 with `pnpm db:migrate:local`; after a schema change, regenerate with `pnpm db:generate`.
 
-## First steps
-
-The canonical "first move" for each layer:
-
-**Add a route.** Create `src/routes/about.tsx`. TanStack Router picks it up on save.
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/about')({
-  component: () => <h1>About</h1>,
-})
-```
-
-**Add a DB table.** Edit `src/lib/db/schema.ts`, then `pnpm db:generate && pnpm db:migrate:local`.
-
-```ts
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
-
-export const todos = sqliteTable('todos', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  title: text('title').notNull(),
-})
-```
-
-**Add a server fn with validation.** Mutating server fns (POST/PUT/PATCH/DELETE) require `.inputValidator(schema)` per [ADR-013](docs/adr/013-forms-and-validation.md). The audit catches missing validators. See [`src/routes/index.tsx`](src/routes/index.tsx) for the GET shape; ADR-013 has the mutating shape.
-
-**Install your first recipe.** Auth, AI, email, monitoring, charts, etc. install from [app-platform-recipes](https://github.com/mwheatfill/app-platform-recipes). Example:
-
-```bash
-curl -sSL https://raw.githubusercontent.com/mwheatfill/app-platform-recipes/main/install.sh \
-  | bash -s -- auth/better-auth
-```
+Deployed environments sit behind Cloudflare Access. Local dev uses a sign-in bypass gated on `PUBLIC_ENV=dev`, so no Access token is needed to run the app.
 
 ## Deploy
 
 GitHub Actions handles deploys. Two workflows in [`.github/workflows/`](.github/workflows/):
 
-- **`main.yml`**: runs on every PR (check job only) and on push to `main` (check + deploy-dev). The `deploy-dev` job depends on `check` passing and downloads the `dist/` artifact the check job uploaded, so it deploys exactly what passed the gates instead of rebuilding.
-- **`deploy-production.yml`**: a git tag matching `v*.*.*` deploys to the `production` Cloudflare environment after running its own quality gates on the tagged SHA.
+- **`main.yml`** runs the quality gates on every PR, and on push to `main` deploys to the dev environment (`boop-dev`). The deploy job reuses the artifact the check job built, so it ships exactly what passed the gates.
+- **`deploy-production.yml`** deploys to the `production` environment (`boop-prod`) when a `v*.*.*` git tag is pushed, after re-running the gates on the tagged commit.
 
-Both workflows share their setup (checkout, pnpm, Node, install) through a composite action at [`.github/actions/setup`](.github/actions/setup/action.yml). Update the install pipeline in one place.
+Both share setup (checkout, pnpm, Node, install) through the composite action at [`.github/actions/setup`](.github/actions/setup/action.yml).
 
-Quality gates: Biome lint/format, build, vitest, `openapi:check`, `audit:patterns`. `intent:stale` runs as a soft warning on the check job. Migrations run via `pnpm exec wrangler d1 migrations apply` against the target env before deploy.
+Quality gates: Biome lint/format, build (typecheck included), Vitest, `openapi:check`, `audit:patterns`. D1 migrations apply via `wrangler d1 migrations apply` against the target environment before deploy.
 
-### Required GitHub Secrets
+### Required GitHub secrets
 
-Configure under **Settings → Secrets and variables → Actions** before the first push to `main`:
+Configure under **Settings → Secrets and variables → Actions**:
 
 | Secret | Where to get it |
 |---|---|
-| `CLOUDFLARE_API_TOKEN` | Create at <https://dash.cloudflare.com/profile/api-tokens> with the **Edit Cloudflare Workers** template (Workers Scripts: Edit, D1: Edit, Account Analytics: Read). |
-| `CLOUDFLARE_ACCOUNT_ID` | Find in the Cloudflare dashboard sidebar under your account name. |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare dashboard, **Edit Cloudflare Workers** template (Workers Scripts: Edit, D1: Edit, Account Analytics: Read). |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare dashboard sidebar, under the account name. |
 
-Both are referenced as job-level `env:` so wrangler picks them up automatically. Configure GitHub Environments named `dev` and `production` if you want per-environment review gates or distinct secrets.
+Runtime secrets (`GRAPH_CLIENT_SECRET`, `FOUNDRY_API_KEY`, the secrets-store KEK) are set with `wrangler secret put` or Secrets Store, never committed.
 
 ### Per-environment wrangler config
 
-The template uses the canonical Cloudflare multi-env pattern: one `wrangler.jsonc` with the dev settings at the top level and a single `env.production` block for prod overrides. The Cloudflare Vite plugin reads `wrangler.jsonc` and selects which environment to flatten into `dist/server/wrangler.json` based on the `CLOUDFLARE_ENV` environment variable.
+One `wrangler.jsonc` holds dev settings at the top level and a single `env.production` block for prod overrides. The Cloudflare Vite plugin flattens the selected environment into `dist/server/wrangler.json` based on `CLOUDFLARE_ENV`:
 
 ```bash
-# Dev (default; no env var needed)
-pnpm build                              # top-level config wins
-pnpm dev                                # ditto
-
-# Production
-CLOUDFLARE_ENV=production pnpm build    # env.production block wins
+pnpm build                            # dev (default)
+CLOUDFLARE_ENV=production pnpm build  # env.production block wins
 ```
 
-The Cloudflare Vite plugin flattens the wrangler config into `dist/server/wrangler.json` based on `CLOUDFLARE_ENV`. This is the canonical multi-env pattern from Cloudflare; `wrangler deploy` reads the dist version directly with no flag needed.
+`wrangler deploy` reads the flattened `dist/server/wrangler.json`, so no `--env` flag is needed at deploy time. `wrangler d1 migrations apply` reads `wrangler.jsonc` directly and does need `--env production` for prod.
 
-Some non-obvious bits:
+Non-obvious bits:
 
-- **Bindings (`vars`, `d1_databases`, etc.) are non-inheritable.** The `env.production` block must redefine them in full, even when the values mostly match the top level. Compatibility date, compatibility flags, `main`, and `observability` *are* inheritable.
-- **Worker names:** the env.production block sets its own explicit `name` (`boop-prod`) instead of relying on the `<top>-<env>` auto-suffix. That keeps the prod worker named `-prod` rather than the awkward `boop-dev-production` that auto-suffixing would produce on top of an already-suffixed top-level name.
-- **`wrangler deploy`** reads `dist/server/wrangler.json` directly. No flag needed because the plugin already wrote the right env into the dist config at build time.
-- **`wrangler d1 migrations apply`** reads `wrangler.jsonc` directly, not the dist version, so it needs `--env production` when applying to prod. Dev is the top-level config and needs no flag.
+- **Bindings (`vars`, `d1_databases`, etc.) are non-inheritable**, so `env.production` redefines them in full. Compatibility date/flags, `main`, and `observability` are inheritable.
+- **Worker names** are set explicitly (`boop-prod`) rather than relying on auto-suffixing.
 
-## Recipes
+## Architecture and docs
 
-Capabilities install via the recipes repo. Once an interactive composer ships you'll be able to walk through recipe selection from `pnpm bootstrap`. Until then:
+- [`AGENTS.md`](AGENTS.md): canonical entry point (stack, locked decisions, doc resolution, conventions).
+- [`CONTEXT.md`](CONTEXT.md): domain glossary (Job, Run, Attempt, Trigger, Target, Tunnel, Channel, AlertRule, Workspace, Operator).
+- [`DESIGN.md`](DESIGN.md): interface rules, cited by every UI PR.
+- [`docs/adr/`](docs/adr/): Architecture Decision Records.
 
-```bash
-curl -sSL https://raw.githubusercontent.com/mwheatfill/app-platform-recipes/main/install.sh | bash -s -- <recipe-name>
-```
+## Built on the boop template
 
-## Agent-friendly by design
-
-This template is built to be evolved by AI coding agents (Claude Code, Codex, Cursor, Aider):
-
-- **[`AGENTS.md`](AGENTS.md)** is the canonical entry point. Codex, Cursor, and Aider read it natively; Claude Code loads it via the one-line `@AGENTS.md` import in `CLAUDE.md`.
-- **[`.claude/hooks/`](.claude/hooks/)** holds deterministic enforcement (the research-first protocol re-anchored every turn).
-- **[`.claude/settings.json`](.claude/settings.json)** carries Claude Code permission gates and hook wiring.
-- **[`.mcp.json`](.mcp.json)** preconfigures MCP servers (Cloudflare Docs, Microsoft Learn, Context7) portably across harnesses.
-- **[TanStack Intent](https://tanstack.com/intent)** is wired so in-tree library guidance stays version-locked to installed packages.
-
-## Documentation
-
-- [`AGENTS.md`](AGENTS.md): canonical agent instructions (stack, locked decisions, doc resolution, file naming, things to avoid)
-- [`docs/adr/`](docs/adr/): Architecture Decision Records (why each major choice)
+boop began as a Cloudflare + TanStack starter template, and the scaffolding remains. Capabilities such as auth transports, AI providers, and email install as recipes from [app-platform-recipes](https://github.com/mwheatfill/app-platform-recipes), and `pnpm bootstrap` can rename and rewire a fresh fork. Day-to-day product work does not need the recipe machinery; it exists for deriving new apps from the same base.
 
 ## License
 
-Proprietary to SwitchThink. Apps you fork from this template should replace [`LICENSE`](LICENSE) and the `license` field in `package.json` with terms that match the consuming app.
+Proprietary to SwitchThink. See [`LICENSE`](LICENSE).

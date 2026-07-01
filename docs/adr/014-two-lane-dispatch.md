@@ -1,6 +1,6 @@
 # ADR-014: Two-lane dispatch (heartbeat scan and per-Job alarm)
 
-![Status](https://img.shields.io/badge/status-Proposed-yellow) ![Date](https://img.shields.io/badge/date-2026--05--11-blue)
+![Status](https://img.shields.io/badge/status-Accepted-brightgreen) ![Date](https://img.shields.io/badge/date-2026--05--11-blue)
 
 ## Context
 

@@ -24,20 +24,21 @@ Ordered foundation → data → auth → AI → product surface → meta.
 | [011](011-skill-currency-protocol.md) | Accepted | Skill currency protocol (Intent + MCP servers) |
 | [012](012-discoverability-in-template.md) | Accepted | Discoverability surface in the template |
 | [013](013-forms-and-validation.md) | Accepted | Forms + validation (TanStack Form, React 19 actions, Zod) |
-| [014](014-two-lane-dispatch.md) | Proposed | Two-lane dispatch (heartbeat scan for cron/webhook, per-Job DO alarm for interval) |
-| [015](015-ai-authoring-stack.md) | Proposed | AI authoring stack (Vercel AI SDK, Cloudflare Agents, Code Mode, MCP server) |
-| [016](016-operator-authz.md) | Proposed | Operator authorization (Access JWT, Admin/Operator roles, double-bound AI authz) |
-| [017](017-cron-and-time.md) | Proposed | Cron parser (`croner`), date/time approach (native `Intl.*`), timezone on the data model |
+| [014](014-two-lane-dispatch.md) | Accepted | Two-lane dispatch (heartbeat scan for cron/webhook, per-Job DO alarm for interval) |
+| [015](015-ai-authoring-stack.md) | Accepted | AI authoring stack (Vercel AI SDK, Cloudflare Agents, Code Mode, MCP server) |
+| [016](016-operator-authz.md) | Accepted | Operator authorization (Access JWT, Admin/Operator roles, double-bound AI authz) |
+| [017](017-cron-and-time.md) | Accepted | Cron parser (`croner`), date/time approach (native `Intl.*`), timezone on the data model |
 | [018](018-navigation-ia.md) | Superseded for boop | Navigation IA (Customer-nested URLs, Jobs-first navigation surfaces); URL grammar superseded by ADR-027, Jobs-first principle carried forward |
-| [019](019-soft-delete-policy.md) | Proposed | Soft-delete policy (archive blocks on active dependents) |
-| [020](020-current-by-default-third-party-pins.md) | Proposed | Current-by-default for third-party version pins (Renovate + audit + agent-side rule) |
+| [019](019-soft-delete-policy.md) | Accepted | Soft-delete policy (archive blocks on active dependents) |
+| [020](020-current-by-default-third-party-pins.md) | Accepted | Current-by-default for third-party version pins (Renovate + audit + agent-side rule) |
 | [022](022-design-language-pass-2.md) | Superseded | Design language pass 2 (flat shadcn tokens); accent/radius/font values superseded by ADR-029, token-contract principle carried forward |
 | [023](023-modal-with-pills-crud-convention.md) | Superseded | Modal-with-pills as the create + edit convention; superseded by ADR-029 (Field-composed forms with Select/Combobox) |
 | [024](024-auth-surfaces-api-tokens-and-oauth-for-mcp.md) | Proposed | Auth surfaces (API tokens for CLI/SDK, OAuth 2.1 recipe-handled for MCP, Cloudflare Access for browser) |
 | [025](025-workspace-scope-on-channels-and-alert-rules.md) | Superseded | Workspace scope on Channels + AlertRules; additive override hierarchy (the customer tier is removed by ADR-027) |
 | [026](026-cloudflare-access-with-entra-oidc.md) | Accepted | Cloudflare Access (fronted by Entra OIDC) is boop's auth implementation (supersedes ADR-006's choice for boop) |
-| [027](027-domain-simplification-workspace-consolidation.md) | Proposed | Domain simplification (Workspace replaces Customer as the single org tier, one Workspace in v1, flat URLs, no switcher, multi deferred; inline Targets; unified Schedule); supersedes ADR-025 and the URL grammar of ADR-018 |
-| [028](028-private-tunnels.md) | Proposed | Private Tunnels (Tunnel as a Workspace entity; provider-owned Cloudflare provisioning via saga; Access Service Token auth; two-layer rolled-up health on the Heartbeat); rescopes and supersedes issue #50 |
+| [027](027-domain-simplification-workspace-consolidation.md) | Accepted | Domain simplification (Workspace replaces Customer as the single org tier, one Workspace in v1, flat URLs, no switcher, multi deferred; inline Targets; unified Schedule); supersedes ADR-025 and the URL grammar of ADR-018 |
+| [028](028-private-tunnels.md) | Accepted | Private Tunnels (Tunnel as a Workspace entity; provider-owned Cloudflare provisioning via saga; Access Service Token auth; two-layer rolled-up health on the Heartbeat); rescopes and supersedes issue #50 |
+| [029](029-adopt-rollout-ui-system.md) | Accepted | Adopt the rollout app's UI system (theme structure + shadcn primitives wholesale; teal UI accent, orange boop brand in the logo + chart palette; supersedes ADR-022 theme values + ADR-023) |
 
 ## How to add an ADR
 

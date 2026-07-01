@@ -1,6 +1,6 @@
 # ADR-006: Better Auth as the default auth recipe
 
-![Status](https://img.shields.io/badge/status-Superseded%20for%20boop-yellow) ![Date](https://img.shields.io/badge/date-2026--05--09-blue)
+![Status](https://img.shields.io/badge/status-Superseded%20for%20boop-lightgrey) ![Date](https://img.shields.io/badge/date-2026--05--09-blue)
 
 **Note for boop:** Boop chose Cloudflare Access fronted by Entra OIDC instead of this default. See [ADR-026](026-cloudflare-access-with-entra-oidc.md) for the boop-specific decision and rationale. The content below remains accurate as the template-family default; only boop's implementation diverges.
 

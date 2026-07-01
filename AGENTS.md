@@ -12,7 +12,7 @@ Before substantial work:
 
 You're an AI coding agent (Claude Code, Codex, Cursor, Aider, or similar) working in a Cloudflare Workers + TanStack Start application built from `boop`. This file is the canonical entry point. Read it first.
 
-At session start: skim [`docs/adr/README.md`](docs/adr/README.md) for the architectural decisions, [`DECISIONS.md`](DECISIONS.md) for the running log of smaller/in-flight decisions, [`CONTEXT.md`](CONTEXT.md) for the domain language, and [`DESIGN.md`](DESIGN.md) for the interface rules. Read whatever spec exists (`SPEC.md`, `PRD.md`, `docs/spec/*`). Run `git log --oneline -20` for in-flight context. Doc resolution for libraries is handled by the research-first protocol re-anchored every turn via the `UserPromptSubmit` hook in [`.claude/hooks/`](.claude/hooks/).
+At session start: skim [`docs/adr/README.md`](docs/adr/README.md) for the architectural decisions, [`DECISIONS.md`](DECISIONS.md) for the running log of smaller/in-flight decisions, [`CONTEXT.md`](CONTEXT.md) for the domain language, and [`DESIGN.md`](DESIGN.md) for the interface rules. Read any product spec present in the repo. Run `git log --oneline -20` for in-flight context. Doc resolution for libraries is handled by the research-first protocol re-anchored every turn via the `UserPromptSubmit` hook in [`.claude/hooks/`](.claude/hooks/).
 
 ## Stack snapshot
 
@@ -20,10 +20,10 @@ At session start: skim [`docs/adr/README.md`](docs/adr/README.md) for the archit
 |---|---|
 | Runtime | Cloudflare Workers (Wrangler 4, single `wrangler.jsonc` with `env.production` block; production builds set `CLOUDFLARE_ENV=production`) |
 | Framework | TanStack Start (SSR + file-based routing + API routes) |
-| Database | Cloudflare D1 + Drizzle ORM (empty schema by default; Neon Postgres available via recipe) |
+| Database | Cloudflare D1 + Drizzle ORM (real schema in `src/lib/db/schema.ts`; Neon Postgres available via recipe) |
 | Auth | `getCurrentUser(request, env)` abstraction in `src/lib/auth/` (ADR-005). Implementation: Cloudflare Access fronted by Entra OIDC, validating `Cf-Access-Jwt-Assertion` against the team's JWKS via `jose` ([ADR-026](docs/adr/026-cloudflare-access-with-entra-oidc.md)). Provisioning runbook: [`docs/agents/cloudflare-access-provisioning.md`](docs/agents/cloudflare-access-provisioning.md) |
-| AI | Recipe-only. Install `ai/chat-route` + a provider recipe (e.g. `microsoft-foundry/chat-completion`); template ships nothing AI-related |
-| Email | Recipe-only. Install `email/send-pipeline` + a transport recipe (e.g. `email/graph-shared-mailbox`); template ships nothing email-related |
+| AI | Microsoft Foundry via Cloudflare AI Gateway ([ADR-007](docs/adr/007-foundry-via-ai-gateway.md)), wired from the `ai/chat-route` + `microsoft-foundry/chat-completion` recipes. `FOUNDRY_API_KEY` is a Worker secret |
+| Email | Microsoft Graph shared mailbox, wired from the `email/send-pipeline` + `email/graph-shared-mailbox` recipes (production only) |
 | UI | shadcn/ui style `base-vega` (Base UI primitives via `@base-ui/react` + the "vega" visual theme), Tailwind v4, `next-themes` for theme provider |
 | Validation | Zod 4 imported from `@/shared/schemas/openapi` (the type-augmentation seam for zod-openapi 5.x); `openapi.json` is the CI-enforced contract |
 | Logging | `logInfo` / `logWarn` / `logError` from `@/lib/log` (a `console.*` wrapper; Workers Logs auto-indexes JSON fields). Recipes overlay Sentry / App Insights / OTel without touching call sites |
@@ -51,14 +51,14 @@ The `UserPromptSubmit` hook re-anchors this every turn.
 
 ADRs in `docs/adr/`. Read the ADR before contemplating an override; deviations require a new ADR plus an audit-allowlist edit.
 
-**ADRs are for big architectural locks** (runtime, framework, data layer, auth, provider model) — the choices that are expensive to reverse and that other work builds on. **Don't spin up an ADR for an iterating product/UX solution**: capture it succinctly in [`DECISIONS.md`](DECISIONS.md) (newest-first, supersede by appending) and build. When a `DECISIONS.md` entry relaxes or overrides a point in an ADR, say so in the entry rather than authoring a whole new ADR.
+**ADRs are for big architectural locks** (runtime, framework, data layer, auth, provider model), the choices that are expensive to reverse and that other work builds on. **Don't spin up an ADR for an iterating product/UX solution**: capture it succinctly in [`DECISIONS.md`](DECISIONS.md) (newest-first, supersede by appending) and build. When a `DECISIONS.md` entry relaxes or overrides a point in an ADR, say so in the entry rather than authoring a whole new ADR.
 
 - Cloudflare Workers as the runtime ([ADR-001](docs/adr/001-cloudflare-workers-runtime.md))
 - TanStack Start as the framework ([ADR-002](docs/adr/002-tanstack-start-framework.md))
 - D1 default for the data layer; Neon via recipe ([ADR-003](docs/adr/003-d1-default-data-layer.md))
 - Drizzle as the ORM ([ADR-004](docs/adr/004-drizzle-orm.md))
 - Auth provider abstraction (`getCurrentUser`) ([ADR-005](docs/adr/005-auth-provider-abstraction.md))
-- Better Auth as the template-family default auth recipe ([ADR-006](docs/adr/006-better-auth-with-entra-default.md)) — **superseded for boop** by [ADR-026](docs/adr/026-cloudflare-access-with-entra-oidc.md)
+- Better Auth as the template-family default auth recipe ([ADR-006](docs/adr/006-better-auth-with-entra-default.md)), **superseded for boop** by [ADR-026](docs/adr/026-cloudflare-access-with-entra-oidc.md)
 - AI is recipe-only; AI SDK + AI Gateway ([ADR-007](docs/adr/007-foundry-via-ai-gateway.md))
 - UI / visual layer (shadcn-base-vega centered) ([ADR-008](docs/adr/008-ui-visual-layer.md))
 - Opinionated stack with mechanical pattern enforcement ([ADR-009](docs/adr/009-opinionated-stack-and-pattern-enforcement.md))
@@ -68,7 +68,8 @@ ADRs in `docs/adr/`. Read the ADR before contemplating an override; deviations r
 - Forms + validation (TanStack Form, React 19 actions, Zod) ([ADR-013](docs/adr/013-forms-and-validation.md))
 - Cron parser, date/time approach, timezone on the data model ([ADR-017](docs/adr/017-cron-and-time.md))
 - Current-by-default for third-party version pins ([ADR-020](docs/adr/020-current-by-default-third-party-pins.md))
-- Design language pass 2: dark-first, three-anchor theme, cool-blue UI accent ([ADR-022](docs/adr/022-design-language-pass-2.md))
+- Adopt the rollout app's UI system: flat shadcn tokens, teal UI accent, Field-composed forms ([ADR-029](docs/adr/029-adopt-rollout-ui-system.md), supersedes ADR-022/023)
+- Domain simplification: Workspace as the single org tier, flat URLs, no switcher, unified Schedule ([ADR-027](docs/adr/027-domain-simplification-workspace-consolidation.md))
 - Cloudflare Access (fronted by Entra OIDC) is boop's auth implementation ([ADR-026](docs/adr/026-cloudflare-access-with-entra-oidc.md))
 
 ## Agent skills
@@ -92,7 +93,7 @@ Single-context: one `CONTEXT.md` and one `docs/adr/` at the repo root. See [`doc
 - **Don't write code that the OpenAPI contract doesn't describe.** Server functions take Zod-validated inputs that flow into `public/openapi.json`. The CI guard (`pnpm openapi:check`) blocks deploys on drift.
 - **Don't bypass the auth abstraction.** All identity reads go through `getCurrentUser(request)`. Don't import an auth library directly from route guards or server functions.
 - **Don't import from `radix-ui` or `@radix-ui/*`.** UI uses Base UI (`@base-ui/react`, style `base-vega`). For composition, use Base UI's `render` prop: `<Button render={<Link to="/x" />}>Label</Button>`. The audit (`pnpm audit:patterns`) blocks Radix imports.
-- **Don't ship UI without consulting `DESIGN.md` first.** Any change to `src/components/**`, `src/routes/**`, or `src/styles/**` cites the relevant `DESIGN.md` § in the PR body (e.g., "§ 3 Visual tokens" or "§ 9 Empty states"). The mechanical anti-patterns in `DESIGN.md` § 11 are caught by `pnpm audit:patterns`: Tailwind color classes with numeric scales (`text-blue-500`), arbitrary color values (`text-[#abc]`), and hardcoded colors in JSX attributes all fail CI. Use the token classes (`text-primary`, `bg-card`, `text-success/warning/info/destructive`, etc.) so colors resolve against the flat shadcn tokens in `src/styles/app.css`. See ADR-022.
+- **Don't ship UI without consulting `DESIGN.md` first.** Any change to `src/components/**`, `src/routes/**`, or `src/styles/**` cites the relevant `DESIGN.md` § in the PR body (e.g., "§ 3 Visual tokens" or "§ 9 Empty states"). The mechanical anti-patterns in `DESIGN.md` § 11 are caught by `pnpm audit:patterns`: Tailwind color classes with numeric scales (`text-blue-500`), arbitrary color values (`text-[#abc]`), and hardcoded colors in JSX attributes all fail CI. Use the token classes (`text-primary`, `bg-card`, `text-success/warning/info/destructive`, etc.) so colors resolve against the flat shadcn tokens in `src/styles/app.css`. See ADR-029.
 - **Don't add comments that explain "what."** Code says what; comments say why, only when non-obvious.
 - **Don't use em dashes in prose.** Use commas, parens, or split sentences.
 - **Don't narrate past failures or transitions in docs.** State the current decision and rationale; the journey lives in `git log`.
@@ -108,5 +109,4 @@ Single-context: one `CONTEXT.md` and one `docs/adr/` at the repo root. See [`doc
 ## Compatibility notes
 
 - `CLAUDE.md` is a one-line `@AGENTS.md` import. Claude Code only reads `CLAUDE.md` natively; the import loads this file at session start. Per [Anthropic's memory docs](https://code.claude.com/docs/en/memory).
-- `.cursorrules` is a thin shim with high-priority rules inlined for Cursor's fallback parsing.
 - `.claude/settings.json` carries Claude Code permission gates and hook wiring. MCP servers are in `.mcp.json` (portable across harnesses that read it).

@@ -1,6 +1,6 @@
 # ADR-016: Operator authorization (Access JWT, Admin/Operator roles, double-bound AI authz)
 
-![Status](https://img.shields.io/badge/status-Proposed-yellow) ![Date](https://img.shields.io/badge/date-2026--05--11-blue)
+![Status](https://img.shields.io/badge/status-Accepted-brightgreen) ![Date](https://img.shields.io/badge/date-2026--05--11-blue)
 
 ## Context
 
