@@ -510,13 +510,26 @@ export async function runDispatch(
   }
 }
 
+export interface DispatchRunOptions {
+  scheduledAt: Date
+  triggerSource?: TriggerSource
+  // Pre-created Run id (webhook lane); when present runDispatch reuses it
+  // instead of inserting a fresh Run.
+  runId?: string
+}
+
+// The single env->deps seam for both dispatch lanes: the Queue consumer and the
+// per-Job Durable Object alarm both enter here. Resolving the KEK and assembling
+// runDispatch's deps live in this one place; the optional pre-created runId rides
+// in via opts so the Queue lane no longer reaches past dispatchRun.
 export async function dispatchRun(
   env: DispatchEnv,
   jobId: string,
-  scheduledAt: Date,
-  triggerSource: TriggerSource = 'cron',
+  { scheduledAt, triggerSource = 'cron', runId }: DispatchRunOptions,
 ): Promise<void> {
-  // KEK is optional; without it workspace-secret substitution is skipped.
+  // KEK is optional. It resolves a tunnel Target's Access secret (without it a
+  // tunnel Run fails as tunnel_credential_missing) and gates workspace-secret
+  // substitution in templates.
   let kek: string | undefined
   try {
     kek = await env.BOOP_SECRETS_KEK?.get()
@@ -527,6 +540,7 @@ export async function dispatchRun(
     {
       db: createDb(env.DB),
       bodies: env.BODIES,
+      ...(runId ? { preCreatedRunId: runId } : {}),
       ...(env.ALERT_QUEUE ? { alertQueue: env.ALERT_QUEUE } : {}),
       ...(kek ? { kek } : {}),
     },

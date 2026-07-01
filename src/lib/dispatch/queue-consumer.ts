@@ -1,7 +1,6 @@
 import type { AlertQueueMessage } from '@/lib/alert-queue/types'
-import { createDb } from '@/lib/db/client'
 import { logError, logInfo } from '@/lib/log'
-import { runDispatch } from './dispatch-run'
+import { dispatchRun } from './dispatch-run'
 import {
   ClaimFailedError,
   DispatchError,
@@ -68,27 +67,12 @@ export async function handleQueueMessage(
   message: Message<DispatchMessage>,
 ): Promise<void> {
   const { jobId, scheduledAt, triggerSource, runId } = message.body
-  // KEK resolves a tunnel Target's Access secret; without it, tunnel Runs fail
-  // with tunnel_credential_missing.
-  let kek: string | undefined
   try {
-    kek = await env.BOOP_SECRETS_KEK?.get()
-  } catch {
-    kek = undefined
-  }
-  try {
-    await runDispatch(
-      {
-        db: createDb(env.DB),
-        bodies: env.BODIES,
-        ...(runId && { preCreatedRunId: runId }),
-        ...(env.ALERT_QUEUE && { alertQueue: env.ALERT_QUEUE }),
-        ...(kek ? { kek } : {}),
-      },
-      jobId,
-      scheduledAt instanceof Date ? scheduledAt : new Date(scheduledAt),
-      triggerSource ?? 'cron',
-    )
+    await dispatchRun(env, jobId, {
+      scheduledAt: scheduledAt instanceof Date ? scheduledAt : new Date(scheduledAt),
+      triggerSource: triggerSource ?? 'cron',
+      ...(runId ? { runId } : {}),
+    })
     message.ack()
   } catch (err) {
     routeMessage(message, err)
