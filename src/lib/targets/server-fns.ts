@@ -1,13 +1,11 @@
 import { env } from 'cloudflare:workers'
 import { createServerFn } from '@tanstack/react-start'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
-import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
 import { enterIntervalMode } from '@/lib/dispatch/trigger-modes'
 import { logWarn } from '@/lib/log'
 import { type MutationResult, runMutation } from '@/lib/mutation-result'
-import { getProviderConfig } from '@/lib/tunnels/provider'
-import { syncTunnelIngress } from '@/lib/tunnels/provision'
+import { reconcileTunnels } from '@/lib/tunnels/provision'
 import { runTargetVerify, runTunnelVerify } from '@/lib/tunnels/verify'
 import type { z } from '@/shared/schemas/openapi'
 import {
@@ -20,22 +18,6 @@ import { TargetCreateInput, TargetIdInput, TargetUpdateInput } from '@/shared/sc
 import { TunnelIdInput } from '@/shared/schemas/tunnel'
 import { archiveTarget, createTarget, restoreTarget, updateTarget } from './commands'
 import { getTargetBySlug, listTargetsForTunnel, listTargetsForWorkspace } from './queries'
-
-// Rebuild each affected tunnel's Cloudflare ingress after a Target change so the
-// connector routes match the active private Targets. No-op when no tunnels touched.
-async function syncTunnels(db: Database, tunnelIds: Array<string | null>): Promise<void> {
-  const unique = [...new Set(tunnelIds.filter((id): id is string => Boolean(id)))]
-  if (unique.length === 0) return
-  const provider = getProviderConfig({
-    apiToken: env.CF_PROVIDER_API_TOKEN,
-    accountId: env.CF_PROVIDER_ACCOUNT_ID,
-    zoneId: env.CF_PROVIDER_ZONE_ID,
-    hostnameBase: env.CF_TUNNEL_HOSTNAME_BASE,
-  })
-  for (const tunnelId of unique) {
-    await syncTunnelIngress({ db, cf: provider.cf }, tunnelId)
-  }
-}
 
 export const listTargetsForWorkspaceFn = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
@@ -81,7 +63,7 @@ export const createTargetFn = createServerFn({ method: 'POST' })
     const db = createDb(env.DB)
     return runMutation(async () => {
       const target = await createTarget(db, workspaceSlug, input)
-      await syncTunnels(db, [target.tunnelId])
+      await reconcileTunnels({ db, env }, [target.tunnelId])
       // Probe the new Target now so its health resolves immediately instead of
       // sitting at "Checking" until a manual Verify or first Run. Best-effort.
       if (target.reachability === 'tunnel' && target.tunnelId) {
@@ -108,7 +90,7 @@ export const updateTargetFn = createServerFn({ method: 'POST' })
     return runMutation(async () => {
       const before = await getTargetBySlug(db, workspaceSlug, targetSlug)
       const target = await updateTarget(db, workspaceSlug, targetSlug, input)
-      await syncTunnels(db, [before.tunnelId, target.tunnelId])
+      await reconcileTunnels({ db, env }, [before.tunnelId, target.tunnelId])
       return target
     })
   })
@@ -120,7 +102,7 @@ export const archiveTargetFn = createServerFn({ method: 'POST' })
     const db = createDb(env.DB)
     return runMutation(async () => {
       const target = await archiveTarget(db, data.workspaceSlug, data.targetSlug)
-      await syncTunnels(db, [target.tunnelId])
+      await reconcileTunnels({ db, env }, [target.tunnelId])
       return target
     })
   })
@@ -132,6 +114,6 @@ export const restoreTargetFn = createServerFn({ method: 'POST' })
     const db = createDb(env.DB)
     const { target, rearmJobIds } = await restoreTarget(db, data.workspaceSlug, data.targetSlug)
     for (const jobId of rearmJobIds) await enterIntervalMode(env, jobId)
-    await syncTunnels(db, [target.tunnelId])
+    await reconcileTunnels({ db, env }, [target.tunnelId])
     return { ok: true as const, data: target }
   })

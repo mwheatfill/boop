@@ -7,7 +7,7 @@ import { createDb } from '@/lib/db/client'
 import { jobs, workspaces } from '@/lib/db/schema'
 import { logError, logInfo, logWarn } from '@/lib/log'
 import { refreshTunnelHealth } from '@/lib/tunnels/health-check'
-import { getProviderConfig, TunnelProvisioningNotConfiguredError } from '@/lib/tunnels/provider'
+import { providerConfigFromEnv, TunnelProvisioningNotConfiguredError } from '@/lib/tunnels/provider'
 import * as jobClaim from './job-claim'
 
 export interface DispatchMessage {
@@ -121,12 +121,7 @@ export async function runScheduled({
 async function maybeRefreshTunnelHealth(env: ScheduledEnv): Promise<void> {
   try {
     const db = createDb(env.DB)
-    const provider = getProviderConfig({
-      apiToken: env.CF_PROVIDER_API_TOKEN ?? '',
-      accountId: env.CF_PROVIDER_ACCOUNT_ID ?? '',
-      zoneId: env.CF_PROVIDER_ZONE_ID ?? '',
-      hostnameBase: env.CF_TUNNEL_HOSTNAME_BASE ?? '',
-    })
+    const provider = providerConfigFromEnv(env)
     await refreshTunnelHealth({ db, cf: provider.cf, zoneId: provider.zoneId })
   } catch (err) {
     // Not configured is the normal unconfigured state, not a problem worth a

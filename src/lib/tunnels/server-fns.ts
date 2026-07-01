@@ -11,7 +11,7 @@ import {
   TunnelMoveTargetsInput,
   TunnelUpdateInput,
 } from '@/shared/schemas/tunnel'
-import { getProviderConfig, type ProviderEnv } from './provider'
+import { providerConfigFromEnv } from './provider'
 import {
   deleteTunnel,
   getTunnelInstall,
@@ -28,15 +28,6 @@ async function requireKek(): Promise<string> {
   const kek = await env.BOOP_SECRETS_KEK.get()
   if (!kek) throw new Error('BOOP_SECRETS_KEK is not configured for this environment')
   return kek
-}
-
-function providerEnv(): ProviderEnv {
-  return {
-    apiToken: env.CF_PROVIDER_API_TOKEN,
-    accountId: env.CF_PROVIDER_ACCOUNT_ID,
-    zoneId: env.CF_PROVIDER_ZONE_ID,
-    hostnameBase: env.CF_TUNNEL_HOSTNAME_BASE,
-  }
 }
 
 export const listTunnelsFn = createServerFn({ method: 'GET' })
@@ -70,7 +61,7 @@ export const getTunnelInstallFn = createServerFn({ method: 'POST' })
   .inputValidator((data) => TunnelIdInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
-    const provider = getProviderConfig(providerEnv())
+    const provider = providerConfigFromEnv(env)
     return getTunnelInstall({ db, cf: provider.cf }, data.tunnelId)
   })
 
@@ -81,7 +72,7 @@ export const provisionTunnelFn = createServerFn({ method: 'POST' })
     const db = createDb(env.DB)
     const kek = await requireKek()
     const workspace = await getDefaultWorkspace(db)
-    const provider = getProviderConfig(providerEnv())
+    const provider = providerConfigFromEnv(env)
     return provisionTunnel(
       { db, cf: provider.cf, kek, zoneId: provider.zoneId, hostnameBase: provider.hostnameBase },
       { workspaceId: workspace.id, name: data.name, slug: data.slug },
@@ -93,7 +84,7 @@ export const deleteTunnelFn = createServerFn({ method: 'POST' })
   .inputValidator((data) => TunnelIdInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
-    const provider = getProviderConfig(providerEnv())
+    const provider = providerConfigFromEnv(env)
     await deleteTunnel({ db, cf: provider.cf, zoneId: provider.zoneId }, data.tunnelId)
     return { ok: true as const }
   })
@@ -103,7 +94,7 @@ export const moveTargetsToTunnelFn = createServerFn({ method: 'POST' })
   .inputValidator((data) => TunnelMoveTargetsInput.parse(data))
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
-    const provider = getProviderConfig(providerEnv())
+    const provider = providerConfigFromEnv(env)
     const moved = await moveTargetsToTunnel(db, data.fromTunnelId, data.toTunnelId)
     await syncTunnelIngress({ db, cf: provider.cf }, data.fromTunnelId)
     await syncTunnelIngress({ db, cf: provider.cf }, data.toTunnelId)
@@ -116,7 +107,7 @@ export const rotateTunnelCredentialsFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const kek = await requireKek()
-    const provider = getProviderConfig(providerEnv())
+    const provider = providerConfigFromEnv(env)
     await rotateTunnelCredentials({ db, cf: provider.cf, kek }, data.tunnelId)
     return { ok: true as const }
   })

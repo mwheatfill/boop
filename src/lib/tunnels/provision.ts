@@ -6,6 +6,7 @@ import { newId } from '@/lib/db/ids'
 import { jobs, targets, tunnels } from '@/lib/db/schema'
 import { FieldValidationError, NotFoundError } from '@/lib/errors'
 import { logError, logInfo } from '@/lib/log'
+import { type ProviderEnvVars, providerConfigFromEnv } from '@/lib/tunnels/provider'
 import { createSecret, revokeSecret, rotateSecret } from '@/lib/workspace-secrets/commands'
 
 export interface ProvisionTunnelDeps {
@@ -243,6 +244,23 @@ export async function syncTunnelIngress(
       }
     })
   await cf.putTunnelIngress(tunnel.cfTunnelId, routes)
+}
+
+// Owns the WHEN of the ingress rebuild: any Target write that touches a tunnel
+// reports the affected tunnel ids here, and this seam assembles the provider
+// config and rebuilds each one's ingress. Dedupes, and no-ops when nothing tunnel
+// -reachable changed, so a Target caller only has to name the tunnels it touched,
+// not remember to re-derive Cloudflare ingress itself.
+export async function reconcileTunnels(
+  deps: { db: Database; env: ProviderEnvVars },
+  tunnelIds: Array<string | null>,
+): Promise<void> {
+  const unique = [...new Set(tunnelIds.filter((id): id is string => Boolean(id)))]
+  if (unique.length === 0) return
+  const provider = providerConfigFromEnv(deps.env)
+  for (const tunnelId of unique) {
+    await syncTunnelIngress({ db: deps.db, cf: provider.cf }, tunnelId)
+  }
 }
 
 // Re-fetches the cloudflared install token so the connector command can be shown
