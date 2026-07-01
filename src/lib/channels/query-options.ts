@@ -1,15 +1,24 @@
 import { queryOptions } from '@tanstack/react-query'
 import { getChannelFn, listChannelsForPickerFn, listChannelsForWorkspaceFn } from './server-fns'
 
+export const channelKeys = {
+  all: (workspaceSlug: string) => ['workspaces', workspaceSlug, 'channels'] as const,
+  list: (workspaceSlug: string, opts: { includeArchived: boolean }) =>
+    [...channelKeys.all(workspaceSlug), opts] as const,
+  detail: (workspaceSlug: string, channelSlug: string) =>
+    [...channelKeys.all(workspaceSlug), channelSlug] as const,
+  picker: (workspaceSlug: string) => [...channelKeys.all(workspaceSlug), 'picker'] as const,
+}
+
 export const listChannelsQueryOptions = (workspaceSlug: string, includeArchived = false) =>
   queryOptions({
-    queryKey: ['workspaces', workspaceSlug, 'channels', { includeArchived }],
+    queryKey: channelKeys.list(workspaceSlug, { includeArchived }),
     queryFn: () => listChannelsForWorkspaceFn({ data: { workspaceSlug, includeArchived } }),
   })
 
 export const channelQueryOptions = (workspaceSlug: string, channelSlug: string) =>
   queryOptions({
-    queryKey: ['workspaces', workspaceSlug, 'channels', channelSlug],
+    queryKey: channelKeys.detail(workspaceSlug, channelSlug),
     queryFn: () => getChannelFn({ data: { workspaceSlug, channelSlug } }),
     refetchInterval: ({ state }) => {
       const data = state.data
@@ -19,6 +28,6 @@ export const channelQueryOptions = (workspaceSlug: string, channelSlug: string) 
 
 export const channelPickerQueryOptions = (workspaceSlug: string) =>
   queryOptions({
-    queryKey: ['workspaces', workspaceSlug, 'channels', 'picker'],
+    queryKey: channelKeys.picker(workspaceSlug),
     queryFn: () => listChannelsForPickerFn({ data: { workspaceSlug } }),
   })

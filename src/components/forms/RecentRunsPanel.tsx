@@ -2,6 +2,7 @@ import { infiniteQueryOptions, useInfiniteQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { RunStatusBadge } from '@/components/RunStatusBadge'
 import { Button } from '@/components/ui/button'
+import { jobKeys } from '@/lib/jobs/query-options'
 import { listRunsForJobFn } from '@/lib/runs/server-fns'
 import type { RunsListResponse } from '@/shared/schemas/run'
 
@@ -9,7 +10,7 @@ const PAGE_SIZE = 25
 
 const recentRunsOptions = (jobId: string, workspaceSlug: string, jobSlug: string) =>
   infiniteQueryOptions({
-    queryKey: ['jobs', jobId, 'runs'],
+    queryKey: jobKeys.runs(workspaceSlug, jobSlug),
     queryFn: ({ pageParam }) =>
       listRunsForJobFn({
         data: {

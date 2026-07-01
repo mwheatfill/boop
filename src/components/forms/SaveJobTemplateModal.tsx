@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { jobTemplateKeys } from '@/lib/job-templates/query-options'
 import { saveJobAsTemplateFn } from '@/lib/job-templates/server-fns'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
@@ -79,7 +80,7 @@ export function SaveJobTemplateModal({ job, onClose }: SaveJobTemplateModalProps
             fields: fieldErrorsToTanstack(result.fieldErrors),
           }
         }
-        await queryClient.invalidateQueries({ queryKey: ['job-templates'] })
+        await queryClient.invalidateQueries({ queryKey: jobTemplateKeys.all() })
         toast.success('Template saved')
         onClose()
         await navigate({ to: '/templates' })

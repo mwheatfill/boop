@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
+import { tunnelKeys } from '@/lib/tunnels/query-options'
 import { deleteTunnelFn, rotateTunnelCredentialsFn, verifyTunnelFn } from '@/lib/tunnels/server-fns'
 import type { Tunnel } from '@/shared/schemas/tunnel'
 
@@ -43,7 +44,7 @@ export function TunnelActions({
   const [confirming, setConfirming] = useState(false)
   const [confirmText, setConfirmText] = useState('')
   const [moving, setMoving] = useState(false)
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['tunnels'] })
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: tunnelKeys.all() })
 
   const verify = useMutation({
     mutationFn: () => verifyTunnelFn({ data: { tunnelId: tunnel.id } }),

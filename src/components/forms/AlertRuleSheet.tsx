@@ -29,7 +29,9 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { normalizeFieldErrors, useAppForm } from '@/hooks/use-app-form'
+import { alertRuleKeys } from '@/lib/alert-rules/query-options'
 import { createAlertRuleFn, updateAlertRuleFn } from '@/lib/alert-rules/server-fns'
+import { channelKeys } from '@/lib/channels/query-options'
 import { listChannelsForPickerFn } from '@/lib/channels/server-fns'
 import { PICKER_KEYS, PICKER_RECENT_LIMITS } from '@/lib/forms/picker-keys'
 import { usePickerRecents } from '@/lib/forms/use-picker-recents'
@@ -171,7 +173,7 @@ export function AlertRuleSheet({
   const setOpen = onOpenChange ?? setInternalOpen
 
   const pickerQuery = useQuery<Channel[]>({
-    queryKey: ['workspaces', owner.workspaceSlug, 'channels', 'picker'],
+    queryKey: channelKeys.picker(owner.workspaceSlug),
     queryFn: () => listChannelsForPickerFn({ data: { workspaceSlug: owner.workspaceSlug } }),
   })
   const activeChannels = (pickerQuery.data ?? []).filter((c) => c.status === 'active')
@@ -209,7 +211,7 @@ export function AlertRuleSheet({
           }
         }
         await queryClient.invalidateQueries({
-          queryKey: ['workspaces', owner.workspaceSlug, 'alert-rules'],
+          queryKey: alertRuleKeys.all(owner.workspaceSlug),
         })
         const channelById = new Map(activeChannels.map((c) => [c.id, c]))
         for (const id of value.channelIds) {
@@ -497,7 +499,7 @@ export function AlertRuleSheet({
                   }
                   onCreated={async (channel) => {
                     await queryClient.invalidateQueries({
-                      queryKey: ['workspaces', owner.workspaceSlug, 'channels'],
+                      queryKey: channelKeys.all(owner.workspaceSlug),
                     })
                     form.setFieldValue('channelIds', [...form.state.values.channelIds, channel.id])
                   }}

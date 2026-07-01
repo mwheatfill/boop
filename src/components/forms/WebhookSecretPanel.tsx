@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { copyToClipboard } from '@/lib/clipboard'
+import { jobKeys } from '@/lib/jobs/query-options'
 import {
   generateWebhookSecretFn,
   listWebhookSecretsFn,
@@ -31,7 +32,7 @@ const DEFAULT_OVERLAP_HOURS = 24
 
 const webhookSecretsOptions = (workspaceSlug: string, jobSlug: string) =>
   queryOptions({
-    queryKey: ['jobs', workspaceSlug, jobSlug, 'webhook-secrets'],
+    queryKey: jobKeys.webhookSecrets(workspaceSlug, jobSlug),
     queryFn: () => listWebhookSecretsFn({ data: { workspaceSlug, jobSlug } }),
   })
 
@@ -121,7 +122,7 @@ export function WebhookSecretPanel({ workspaceSlug, jobSlug, origin }: WebhookSe
 
   const invalidate = () =>
     queryClient.invalidateQueries({
-      queryKey: ['jobs', workspaceSlug, jobSlug, 'webhook-secrets'],
+      queryKey: jobKeys.webhookSecrets(workspaceSlug, jobSlug),
     })
 
   const onGenerate = async () => {

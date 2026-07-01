@@ -18,8 +18,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
-import { tunnelsQueryOptions } from '@/lib/tunnels/query-options'
+import { tunnelKeys, tunnelsQueryOptions } from '@/lib/tunnels/query-options'
 import { moveTargetsToTunnelFn } from '@/lib/tunnels/server-fns'
+import { workspaceKeys } from '@/lib/workspaces/query-options'
 import type { Tunnel } from '@/shared/schemas/tunnel'
 
 function plural(n: number) {
@@ -46,8 +47,8 @@ export function MoveTargetsDialog({
     mutationFn: () => moveTargetsToTunnelFn({ data: { fromTunnelId: tunnel.id, toTunnelId } }),
     onSuccess: async (result) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['tunnels'] }),
-        queryClient.invalidateQueries({ queryKey: ['workspaces'] }),
+        queryClient.invalidateQueries({ queryKey: tunnelKeys.all() }),
+        queryClient.invalidateQueries({ queryKey: workspaceKeys.all() }),
       ])
       toast.success(`Moved ${result.moved} ${plural(result.moved)}`)
       setToTunnelId('')

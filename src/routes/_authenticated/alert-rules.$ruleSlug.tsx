@@ -7,7 +7,7 @@ import { AlertRuleDetailView } from '@/components/alerts/AlertRuleDetailView'
 import { AlertRuleSheet } from '@/components/forms/AlertRuleSheet'
 import { useShortcut } from '@/components/keyboard/use-shortcut'
 import { Button } from '@/components/ui/button'
-import { alertRuleQueryOptions } from '@/lib/alert-rules/query-options'
+import { alertRuleKeys, alertRuleQueryOptions } from '@/lib/alert-rules/query-options'
 import { archiveAlertRuleFn, restoreAlertRuleFn } from '@/lib/alert-rules/server-fns'
 import { listChannelsQueryOptions } from '@/lib/channels/query-options'
 
@@ -38,7 +38,7 @@ function AlertRuleDetailPage() {
     onSuccess: async () => {
       toast.success('Alert rule deleted', { description: 'Find it in the Recycle Bin.' })
       await queryClient.invalidateQueries({
-        queryKey: ['workspaces', workspaceSlug, 'alert-rules'],
+        queryKey: alertRuleKeys.all(workspaceSlug),
       })
       await goTo({ to: '/alert-rules' })
     },
@@ -49,7 +49,7 @@ function AlertRuleDetailPage() {
     onSuccess: async () => {
       toast.success('Restored')
       await queryClient.invalidateQueries({
-        queryKey: ['workspaces', workspaceSlug, 'alert-rules'],
+        queryKey: alertRuleKeys.all(workspaceSlug),
       })
     },
   })

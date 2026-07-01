@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { RunsTable } from '@/components/forms/RunsTable'
 import { Button } from '@/components/ui/button'
 import { type RunsFilters, RunsSearchSchema, TRIGGER_SOURCES } from '@/lib/runs/filter-schema'
+import { runsKeys } from '@/lib/runs/keys'
 import { listAllRunsFn } from '@/lib/runs/server-fns'
 import {
   FAILURE_KINDS,
@@ -16,7 +17,7 @@ import {
 
 const runsInfiniteOptions = (search: RunsFilters) =>
   infiniteQueryOptions({
-    queryKey: ['runs', search],
+    queryKey: runsKeys.list(search),
     queryFn: ({ pageParam }) =>
       listAllRunsFn({
         data: pageParam ? { ...search, cursor: pageParam } : search,

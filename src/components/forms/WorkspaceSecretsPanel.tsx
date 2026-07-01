@@ -17,7 +17,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { copyToClipboard } from '@/lib/clipboard'
-import { workspaceSecretsQueryOptions } from '@/lib/workspace-secrets/query-options'
+import {
+  workspaceSecretKeys,
+  workspaceSecretsQueryOptions,
+} from '@/lib/workspace-secrets/query-options'
 import {
   createWorkspaceSecretFn,
   revokeWorkspaceSecretFn,
@@ -108,7 +111,7 @@ export function WorkspaceSecretsPanel({ workspaceSlug, canEdit }: WorkspaceSecre
   const { creating, newName, newPlaintext, justRevealed, pending, revoking } = state
 
   const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: ['workspaces', workspaceSlug, 'secrets'] })
+    queryClient.invalidateQueries({ queryKey: workspaceSecretKeys.all(workspaceSlug) })
 
   async function handleCreate() {
     if (!newName || !newPlaintext) return

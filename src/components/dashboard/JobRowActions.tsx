@@ -4,6 +4,8 @@ import { ArrowRight, Pause, Play } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { dashboardKeys } from '@/lib/dashboard/query-options'
+import { jobKeys } from '@/lib/jobs/query-options'
 import { pauseJobFn, resumeJobFn, runJobNowFn } from '@/lib/jobs/server-fns'
 
 interface JobRowActionsProps {
@@ -21,8 +23,8 @@ export function JobRowActions({ workspaceSlug, jobSlug, status }: JobRowActionsP
   const [busy, setBusy] = useState(false)
 
   const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-    await queryClient.invalidateQueries({ queryKey: ['jobs'] })
+    await queryClient.invalidateQueries({ queryKey: dashboardKeys.all() })
+    await queryClient.invalidateQueries({ queryKey: jobKeys.lists() })
   }
 
   const runNow = async () => {

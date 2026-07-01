@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/sheet'
 import { useAppForm } from '@/hooks/use-app-form'
 import { slugify } from '@/lib/slug/slugify'
-import { tunnelQueryOptions } from '@/lib/tunnels/query-options'
+import { tunnelKeys, tunnelQueryOptions } from '@/lib/tunnels/query-options'
 import { getTunnelInstallFn, provisionTunnelFn, updateTunnelFn } from '@/lib/tunnels/server-fns'
 import { nameField } from '@/shared/schemas/fields'
 import { type Tunnel, TunnelCreateInput } from '@/shared/schemas/tunnel'
@@ -58,7 +58,7 @@ export function TunnelSheet({ tunnel, trigger, open: openProp, onOpenChange }: T
   // Editing an existing tunnel surfaces its connector install commands too, so the
   // Sheet is the one place for everything a tunnel needs (no separate dialog).
   const { data: installData } = useQuery({
-    queryKey: ['tunnels', tunnel?.id, 'install'],
+    queryKey: tunnelKeys.install(tunnel?.id ?? ''),
     queryFn: () => getTunnelInstallFn({ data: { tunnelId: tunnel?.id ?? '' } }),
     enabled: open && isEdit && !provisioned,
   })
@@ -78,7 +78,7 @@ export function TunnelSheet({ tunnel, trigger, open: openProp, onOpenChange }: T
           } catch (err) {
             return { form: err instanceof Error ? err.message : 'Save failed' }
           }
-          await queryClient.invalidateQueries({ queryKey: ['tunnels'] })
+          await queryClient.invalidateQueries({ queryKey: tunnelKeys.all() })
           toast.success('Saved')
           setOpen(false)
           return null
@@ -93,7 +93,7 @@ export function TunnelSheet({ tunnel, trigger, open: openProp, onOpenChange }: T
         try {
           const result = await provisionTunnelFn({ data: parsed.data })
           setProvisioned({ hostname: result.hostname, installToken: result.installToken, slug })
-          await queryClient.invalidateQueries({ queryKey: ['tunnels'] })
+          await queryClient.invalidateQueries({ queryKey: tunnelKeys.all() })
           return null
         } catch (err) {
           return { form: err instanceof Error ? err.message : 'Provisioning failed' }

@@ -1,8 +1,12 @@
 import { queryOptions } from '@tanstack/react-query'
 import { listWorkspaceSecretsFn } from './server-fns'
 
+export const workspaceSecretKeys = {
+  all: (workspaceSlug: string) => ['workspaces', workspaceSlug, 'secrets'] as const,
+}
+
 export const workspaceSecretsQueryOptions = (workspaceSlug: string) =>
   queryOptions({
-    queryKey: ['workspaces', workspaceSlug, 'secrets'],
+    queryKey: workspaceSecretKeys.all(workspaceSlug),
     queryFn: () => listWorkspaceSecretsFn({ data: { workspaceSlug } }),
   })

@@ -6,13 +6,15 @@ import { DateTime } from '@/components/DateTime'
 import { AttemptCard } from '@/components/forms/AttemptCard'
 import { RunStatusBadge } from '@/components/RunStatusBadge'
 import { Button } from '@/components/ui/button'
+import { jobKeys } from '@/lib/jobs/query-options'
 import { runJobNowFn } from '@/lib/jobs/server-fns'
 import { formatRunDuration } from '@/lib/runs/format'
+import { runsKeys } from '@/lib/runs/keys'
 import { getRunFn } from '@/lib/runs/server-fns'
 
 const runOptions = (workspaceSlug: string, jobSlug: string, runId: string) =>
   queryOptions({
-    queryKey: ['runs', workspaceSlug, jobSlug, runId],
+    queryKey: runsKeys.detail(workspaceSlug, jobSlug, runId),
     queryFn: () => getRunFn({ data: { workspaceSlug, jobSlug, runId } }),
     refetchInterval: (query) => (query.state.data?.run.status === 'running' ? 5_000 : false),
     refetchIntervalInBackground: false,
@@ -78,7 +80,9 @@ function RunDetailPage() {
                 const result = await runJobNowFn({ data: { workspaceSlug, jobSlug } })
                 if (result.ok) {
                   toast.success('Run queued')
-                  await queryClient.invalidateQueries({ queryKey: ['jobs', job.id, 'runs'] })
+                  await queryClient.invalidateQueries({
+                    queryKey: jobKeys.runs(workspaceSlug, jobSlug),
+                  })
                 } else {
                   toast.error(result.message ?? 'Could not queue Run')
                 }

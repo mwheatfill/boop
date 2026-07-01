@@ -16,6 +16,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { useAppForm } from '@/hooks/use-app-form'
+import { channelKeys } from '@/lib/channels/query-options'
 import { createChannelFn, updateChannelFn } from '@/lib/channels/server-fns'
 import { EMAIL_RECIPE_INSTALLED } from '@/lib/email-recipe'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
@@ -154,7 +155,7 @@ export function ChannelSheet({
           }
         }
         await queryClient.invalidateQueries({
-          queryKey: ['workspaces', owner.workspaceSlug, 'channels'],
+          queryKey: channelKeys.all(owner.workspaceSlug),
         })
         setOpen(false)
         if (!isEdit && onCreated) {

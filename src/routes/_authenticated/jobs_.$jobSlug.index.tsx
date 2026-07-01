@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { isAdmin } from '@/lib/auth/is-admin'
 import { triggerSummaryWithTimezone } from '@/lib/jobs/format'
-import { jobQueryOptions } from '@/lib/jobs/query-options'
+import { jobKeys, jobQueryOptions } from '@/lib/jobs/query-options'
 import {
   archiveJobFn,
   pauseJobFn,
@@ -51,8 +51,8 @@ function JobDetailPage() {
   const { data: fullTarget } = useQuery(targetQueryOptions(workspaceSlug, job.targetSlug))
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['workspaces', workspaceSlug] })
-    await queryClient.invalidateQueries({ queryKey: ['jobs'] })
+    await queryClient.invalidateQueries({ queryKey: jobKeys.all(workspaceSlug) })
+    await queryClient.invalidateQueries({ queryKey: jobKeys.lists() })
   }
 
   const simpleAction = (fn: typeof pauseJobFn, message: string) => async () => {
@@ -140,7 +140,7 @@ function JobDetailPage() {
                 if (result.ok) {
                   toast.success('Run queued')
                   await queryClient.invalidateQueries({
-                    queryKey: ['jobs', job.id, 'runs'],
+                    queryKey: jobKeys.runs(workspaceSlug, jobSlug),
                   })
                 } else {
                   toast.error(result.message ?? 'Could not queue Run')

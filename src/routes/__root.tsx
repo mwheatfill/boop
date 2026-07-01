@@ -6,12 +6,13 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import type { ReactNode } from 'react'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { Toaster } from '@/components/ui/sonner'
+import { authKeys } from '@/lib/auth/keys'
 import { getCurrentUserFn } from '@/lib/auth/server-fns'
 import type { MyRouterContext } from '@/router-context'
 import appCss from '@/styles/app.css?url'
 
 const currentUserQueryOptions = queryOptions({
-  queryKey: ['auth', 'currentUser'],
+  queryKey: authKeys.currentUser(),
   queryFn: () => getCurrentUserFn(),
   staleTime: Number.POSITIVE_INFINITY,
 })

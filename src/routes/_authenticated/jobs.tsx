@@ -13,13 +13,13 @@ import { isAdmin } from '@/lib/auth/is-admin'
 import { formatInTimezone } from '@/lib/format'
 import { triggerKindLabel } from '@/lib/jobs/format'
 import { effectiveTimezone } from '@/lib/jobs/queries'
-import { jobQueryOptions } from '@/lib/jobs/query-options'
+import { jobKeys, jobQueryOptions } from '@/lib/jobs/query-options'
 import { listAllJobsFn } from '@/lib/jobs/server-fns'
 import type { JobSummary } from '@/shared/schemas/job'
 
 const allJobsQueryOptions = (filters: { includeArchived?: boolean }) =>
   queryOptions({
-    queryKey: ['jobs', filters],
+    queryKey: jobKeys.list(filters),
     queryFn: () => listAllJobsFn({ data: filters }),
   })
 

@@ -32,19 +32,21 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { useAppForm } from '@/hooks/use-app-form'
+import { dashboardKeys } from '@/lib/dashboard/query-options'
 import { PICKER_KEYS, PICKER_RECENT_LIMITS } from '@/lib/forms/picker-keys'
 import { useEntityDefault } from '@/lib/forms/use-entity-default'
 import { useLastUsed } from '@/lib/forms/use-last-used'
 import { usePickerRecents } from '@/lib/forms/use-picker-recents'
 import { instantiateFromTemplate } from '@/lib/job-templates/instantiate'
 import { listJobTemplatesQueryOptions } from '@/lib/job-templates/query-options'
+import { jobKeys } from '@/lib/jobs/query-options'
 import { createJobFn, updateJobFn } from '@/lib/jobs/server-fns'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
-import { listTargetsQueryOptions } from '@/lib/targets/query-options'
+import { listTargetsQueryOptions, targetKeys } from '@/lib/targets/query-options'
 import { cn } from '@/lib/utils'
 import { workspaceSecretsQueryOptions } from '@/lib/workspace-secrets/query-options'
-import { listWorkspacesQueryOptions } from '@/lib/workspaces/query-options'
+import { listWorkspacesQueryOptions, workspaceKeys } from '@/lib/workspaces/query-options'
 import type { Job, TriggerKind } from '@/shared/schemas/job'
 import type { JobTemplate } from '@/shared/schemas/job-template'
 import type { Target } from '@/shared/schemas/target'
@@ -274,9 +276,9 @@ export function JobSheet({
         }
 
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['jobs'] }),
-          queryClient.invalidateQueries({ queryKey: ['workspaces', value.workspaceSlug] }),
-          queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+          queryClient.invalidateQueries({ queryKey: jobKeys.lists() }),
+          queryClient.invalidateQueries({ queryKey: jobKeys.all(value.workspaceSlug) }),
+          queryClient.invalidateQueries({ queryKey: dashboardKeys.all() }),
         ])
 
         if (!isEdit && createAnother) {
@@ -546,7 +548,7 @@ export function JobSheet({
                               </Button>
                             }
                             onCreated={async (created) => {
-                              await queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+                              await queryClient.invalidateQueries({ queryKey: workspaceKeys.all() })
                               form.setFieldValue('workspaceSlug', created.slug)
                               form.setFieldValue('triggerTimezone', created.timezone)
                               form.setFieldValue('targetSlug', '')
@@ -614,7 +616,7 @@ export function JobSheet({
                       }
                       onCreated={async (target) => {
                         await queryClient.invalidateQueries({
-                          queryKey: ['workspaces', workspaceSlug, 'targets'],
+                          queryKey: targetKeys.all(workspaceSlug),
                         })
                         form.setFieldValue('targetSlug', target.slug)
                       }}

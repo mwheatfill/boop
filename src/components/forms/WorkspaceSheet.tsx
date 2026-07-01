@@ -18,7 +18,7 @@ import {
 import { useAppForm } from '@/hooks/use-app-form'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
-import { orgTimezoneQueryOptions } from '@/lib/workspaces/query-options'
+import { orgTimezoneQueryOptions, workspaceKeys } from '@/lib/workspaces/query-options'
 import { createWorkspaceFn, updateWorkspaceFn } from '@/lib/workspaces/server-fns'
 import type { Workspace } from '@/shared/schemas/workspace'
 import {
@@ -120,7 +120,7 @@ export function WorkspaceSheet({
             fields: fieldErrorsToTanstack(result.fieldErrors),
           }
         }
-        await queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+        await queryClient.invalidateQueries({ queryKey: workspaceKeys.all() })
         setOpen(false)
         if (!isEdit && onCreated) {
           await onCreated(result.data)

@@ -12,20 +12,27 @@ import {
 } from '@/components/keyboard/CommandPalette.groups'
 import { useKeyboard } from '@/components/keyboard/KeyboardProvider'
 import { CommandDialog, CommandEmpty, CommandInput, CommandList } from '@/components/ui/command'
+import { dashboardKeys } from '@/lib/dashboard/query-options'
+import { jobKeys } from '@/lib/jobs/query-options'
 import { listAllJobsFn } from '@/lib/jobs/server-fns'
 import { fuzzyScore } from '@/lib/keyboard/fuzzy'
 import { type RecentEntry, readRecents } from '@/lib/recents/store'
 import { listWorkspacesFn } from '@/lib/workspaces/server-fns'
 import type { User } from '@/shared/schemas/auth'
 
+const paletteKeys = {
+  workspaces: () => ['palette', 'workspaces'] as const,
+  jobs: () => ['palette', 'jobs'] as const,
+}
+
 const paletteWorkspacesOptions = queryOptions({
-  queryKey: ['palette', 'workspaces'],
+  queryKey: paletteKeys.workspaces(),
   queryFn: () => listWorkspacesFn({ data: { includeArchived: false } }),
   staleTime: 60_000,
 })
 
 const paletteJobsOptions = queryOptions({
-  queryKey: ['palette', 'jobs'],
+  queryKey: paletteKeys.jobs(),
   queryFn: () => listAllJobsFn({ data: {} }),
   staleTime: 60_000,
 })
@@ -65,9 +72,9 @@ export function CommandPalette({ currentUser }: CommandPaletteProps) {
 
   const refreshJobs = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['jobs'] }),
-      queryClient.invalidateQueries({ queryKey: ['palette', 'jobs'] }),
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      queryClient.invalidateQueries({ queryKey: jobKeys.lists() }),
+      queryClient.invalidateQueries({ queryKey: paletteKeys.jobs() }),
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.all() }),
     ])
   }
 

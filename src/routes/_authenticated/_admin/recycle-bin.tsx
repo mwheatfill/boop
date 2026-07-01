@@ -21,11 +21,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { restoreAlertRuleFn } from '@/lib/alert-rules/server-fns'
 import { restoreChannelFn } from '@/lib/channels/server-fns'
+import { jobKeys } from '@/lib/jobs/query-options'
 import { restoreJobFn } from '@/lib/jobs/server-fns'
 import type { DeletedItem, DeletedKind } from '@/lib/recycle-bin/queries'
-import { listDeletedQueryOptions } from '@/lib/recycle-bin/query-options'
+import { listDeletedQueryOptions, recycleBinKeys } from '@/lib/recycle-bin/query-options'
 import { purgeDeletedFn } from '@/lib/recycle-bin/server-fns'
 import { restoreTargetFn } from '@/lib/targets/server-fns'
+import { tunnelKeys } from '@/lib/tunnels/query-options'
+import { workspaceKeys } from '@/lib/workspaces/query-options'
 
 const KIND_LABEL: Record<DeletedKind, string> = {
   job: 'Job',
@@ -52,10 +55,10 @@ function RecycleBinActions({ item }: { item: DeletedItem }) {
   const queryClient = useQueryClient()
   const invalidate = () =>
     Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['recycle-bin'] }),
-      queryClient.invalidateQueries({ queryKey: ['jobs'] }),
-      queryClient.invalidateQueries({ queryKey: ['tunnels'] }),
-      queryClient.invalidateQueries({ queryKey: ['workspaces'] }),
+      queryClient.invalidateQueries({ queryKey: recycleBinKeys.all() }),
+      queryClient.invalidateQueries({ queryKey: jobKeys.lists() }),
+      queryClient.invalidateQueries({ queryKey: tunnelKeys.all() }),
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.all() }),
     ])
 
   const restore = useMutation({

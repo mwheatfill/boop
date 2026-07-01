@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
+import { runsKeys } from '@/lib/runs/keys'
 import { getAttemptBodyPreviewFn } from '@/lib/runs/server-fns'
 
 interface BodyViewerProps {
@@ -18,7 +19,7 @@ function tryPrettyJson(text: string): string {
 
 export function BodyViewer({ attemptId, kind, enabled }: BodyViewerProps) {
   const { data, isLoading } = useQuery({
-    queryKey: ['attempts', attemptId, 'body', kind],
+    queryKey: runsKeys.attemptBody(attemptId, kind),
     queryFn: () => getAttemptBodyPreviewFn({ data: { attemptId, kind } }),
     enabled,
   })

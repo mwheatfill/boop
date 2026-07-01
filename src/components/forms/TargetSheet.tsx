@@ -22,6 +22,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { useAppForm } from '@/hooks/use-app-form'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
+import { targetKeys } from '@/lib/targets/query-options'
 import {
   archiveTargetFn,
   createTargetFn,
@@ -165,7 +166,7 @@ export function TargetSheet({
         }
 
         await queryClient.invalidateQueries({
-          queryKey: ['workspaces', owner.workspaceSlug, 'targets'],
+          queryKey: targetKeys.all(owner.workspaceSlug),
         })
         setOpen(false)
         if (!isEdit && onCreated) {
@@ -179,7 +180,7 @@ export function TargetSheet({
   })
 
   const invalidateTargets = () =>
-    queryClient.invalidateQueries({ queryKey: ['workspaces', owner.workspaceSlug, 'targets'] })
+    queryClient.invalidateQueries({ queryKey: targetKeys.all(owner.workspaceSlug) })
 
   const archive = useMutation({
     mutationFn: () =>

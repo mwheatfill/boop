@@ -7,7 +7,7 @@ import { ChannelDetailView } from '@/components/channels/ChannelDetailView'
 import { ChannelSheet } from '@/components/forms/ChannelSheet'
 import { useShortcut } from '@/components/keyboard/use-shortcut'
 import { Button } from '@/components/ui/button'
-import { channelQueryOptions } from '@/lib/channels/query-options'
+import { channelKeys, channelQueryOptions } from '@/lib/channels/query-options'
 import { archiveChannelFn, restoreChannelFn, sendTestAlertFn } from '@/lib/channels/server-fns'
 
 export const Route = createFileRoute('/_authenticated/_admin/channels/$channelSlug')({
@@ -35,7 +35,7 @@ function ChannelDetailPage() {
         return
       }
       toast.success('Channel deleted', { description: 'Find it in the Recycle Bin.' })
-      await queryClient.invalidateQueries({ queryKey: ['workspaces', workspaceSlug, 'channels'] })
+      await queryClient.invalidateQueries({ queryKey: channelKeys.all(workspaceSlug) })
       await goTo({ to: '/channels' })
     },
   })
@@ -44,7 +44,7 @@ function ChannelDetailPage() {
     mutationFn: () => restoreChannelFn({ data: { workspaceSlug, channelSlug } }),
     onSuccess: async () => {
       toast.success('Restored')
-      await queryClient.invalidateQueries({ queryKey: ['workspaces', workspaceSlug, 'channels'] })
+      await queryClient.invalidateQueries({ queryKey: channelKeys.all(workspaceSlug) })
     },
   })
 
@@ -57,7 +57,7 @@ function ChannelDetailPage() {
       }
       toast.message('Test alert queued, watch for status below.')
       await queryClient.invalidateQueries({
-        queryKey: ['workspaces', workspaceSlug, 'channels', channelSlug],
+        queryKey: channelKeys.detail(workspaceSlug, channelSlug),
       })
     },
   })
