@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { Section } from '@/components/Section'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
+import { Field, FieldDescription, FieldError } from '@/components/ui/field'
 import {
   Sheet,
   SheetContent,
@@ -27,6 +27,7 @@ import {
   rowsToVariableMap,
   variableMapToRows,
 } from './KeyValueListEditor'
+import { SlugField } from './SlugField'
 import { TimezoneCombobox } from './TimezoneCombobox'
 import { useSlugAutoFill } from './use-slug-auto-fill'
 import { WorkspaceSecretsPanel } from './WorkspaceSecretsPanel'
@@ -188,24 +189,7 @@ export function WorkspaceSheet({
               </form.AppField>
               <form.AppField name="slug">
                 {(f) => (
-                  <Field>
-                    <FieldLabel htmlFor={f.name}>Slug</FieldLabel>
-                    <input
-                      id={f.name}
-                      value={f.state.value}
-                      readOnly={isEdit}
-                      onChange={(e) => {
-                        slug.markManual()
-                        f.handleChange(e.currentTarget.value)
-                      }}
-                      onBlur={f.handleBlur}
-                      placeholder="acme"
-                      className="h-9 rounded-md border border-input bg-transparent px-3 font-mono text-xs shadow-xs read-only:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none dark:bg-input/30"
-                    />
-                    <FieldDescription>
-                      {isEdit ? "Slug can't change after creation." : 'Used in URLs and the API.'}
-                    </FieldDescription>
-                  </Field>
+                  <SlugField field={f} readOnly={isEdit} autoFill={slug} placeholder="acme" />
                 )}
               </form.AppField>
             </Section>

@@ -51,6 +51,7 @@ import {
 } from '@/shared/schemas/alert-rule'
 import type { Channel } from '@/shared/schemas/channel'
 import { ChannelSheet } from './ChannelSheet'
+import { SlugField } from './SlugField'
 import { useSlugAutoFill } from './use-slug-auto-fill'
 
 interface KindOption {
@@ -80,12 +81,6 @@ const MISSED_SCHEDULE_PRESETS = [
   { label: '1w', minutes: 7 * 24 * 60 },
   { label: '2w', minutes: 14 * 24 * 60 },
 ] as const
-
-function presetClassName(active: boolean): string {
-  const base = 'rounded-full border px-2.5 py-1 text-xs transition-colors'
-  if (active) return `${base} border-primary bg-primary text-primary-foreground`
-  return `${base} border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground`
-}
 
 interface AlertRuleFormValues {
   name: string
@@ -287,24 +282,12 @@ export function AlertRuleSheet({
               </form.AppField>
               <form.AppField name="slug">
                 {(f) => (
-                  <Field>
-                    <FieldLabel htmlFor={f.name}>Slug</FieldLabel>
-                    <input
-                      id={f.name}
-                      value={f.state.value}
-                      readOnly={isEdit}
-                      onChange={(e) => {
-                        slug.markManual()
-                        f.handleChange(e.currentTarget.value)
-                      }}
-                      onBlur={f.handleBlur}
-                      placeholder="alert-on-first-failure"
-                      className="h-9 rounded-md border border-input bg-transparent px-3 font-mono text-xs shadow-xs read-only:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none dark:bg-input/30"
-                    />
-                    <FieldDescription>
-                      {isEdit ? "Slug can't change after creation." : 'Used in URLs and the API.'}
-                    </FieldDescription>
-                  </Field>
+                  <SlugField
+                    field={f}
+                    readOnly={isEdit}
+                    autoFill={slug}
+                    placeholder="alert-on-first-failure"
+                  />
                 )}
               </form.AppField>
             </Section>
@@ -397,14 +380,17 @@ export function AlertRuleSheet({
                               </FieldLabel>
                               <div className="flex flex-wrap gap-2">
                                 {MISSED_SCHEDULE_PRESETS.map((preset) => (
-                                  <button
+                                  <Button
                                     key={preset.label}
                                     type="button"
-                                    className={presetClassName(f.state.value === preset.minutes)}
+                                    variant={
+                                      f.state.value === preset.minutes ? 'default' : 'outline'
+                                    }
+                                    size="xs"
                                     onClick={() => f.handleChange(preset.minutes)}
                                   >
                                     {preset.label}
-                                  </button>
+                                  </Button>
                                 ))}
                               </div>
                               <Input

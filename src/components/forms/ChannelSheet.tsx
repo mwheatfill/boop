@@ -29,6 +29,7 @@ import {
   EMAIL_DEFAULT_SUBJECT,
   WEBHOOK_DEFAULT_BODY,
 } from '@/shared/schemas/channel'
+import { SlugField } from './SlugField'
 import { useSlugAutoFill } from './use-slug-auto-fill'
 
 const KIND_OPTIONS: ReadonlyArray<{ value: ChannelKind; label: string }> = [
@@ -222,24 +223,7 @@ export function ChannelSheet({
               </form.AppField>
               <form.AppField name="slug">
                 {(f) => (
-                  <Field>
-                    <FieldLabel htmlFor={f.name}>Slug</FieldLabel>
-                    <input
-                      id={f.name}
-                      value={f.state.value}
-                      readOnly={isEdit}
-                      onChange={(e) => {
-                        slug.markManual()
-                        f.handleChange(e.currentTarget.value)
-                      }}
-                      onBlur={f.handleBlur}
-                      placeholder="ops-teams"
-                      className="h-9 rounded-md border border-input bg-transparent px-3 font-mono text-xs shadow-xs read-only:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none dark:bg-input/30"
-                    />
-                    <FieldDescription>
-                      {isEdit ? "Slug can't change after creation." : 'Used in URLs and the API.'}
-                    </FieldDescription>
-                  </Field>
+                  <SlugField field={f} readOnly={isEdit} autoFill={slug} placeholder="ops-teams" />
                 )}
               </form.AppField>
             </Section>

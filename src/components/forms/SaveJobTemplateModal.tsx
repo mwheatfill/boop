@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { EntityModal } from '@/components/forms/EntityModal'
+import { SlugField } from '@/components/forms/SlugField'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -124,16 +125,7 @@ export function SaveJobTemplateModal({ job, onClose }: SaveJobTemplateModalProps
                 onChange={(event) => field.handleChange(event.currentTarget.value)}
                 placeholder="Template name"
               />
-              <form.Field name="slug">
-                {(slugField) => (
-                  <input
-                    value={slugField.state.value}
-                    onChange={(event) => slugField.handleChange(event.currentTarget.value)}
-                    aria-label="Slug"
-                    className="border-0 bg-transparent px-0 font-mono text-xs text-muted-foreground focus:outline-none"
-                  />
-                )}
-              </form.Field>
+              <form.Field name="slug">{(slugField) => <SlugField field={slugField} />}</form.Field>
             </div>
           )}
         </form.Field>
