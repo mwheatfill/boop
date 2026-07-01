@@ -23,8 +23,8 @@ export async function provisionUser(db: Database, claims: ProvisionClaims): Prom
     .onConflictDoUpdate({
       target: users.email,
       set: {
-        name: claims.name ?? null,
-        image: claims.image ?? null,
+        name: sql`coalesce(excluded.name, ${users.name})`,
+        image: sql`coalesce(excluded.image, ${users.image})`,
         updatedAt: new Date(),
       },
     })

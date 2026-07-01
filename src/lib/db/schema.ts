@@ -154,6 +154,7 @@ export const targets = sqliteTable(
   (table) => [
     uniqueIndex('targets_workspace_slug_idx').on(table.workspaceId, table.slug),
     index('targets_workspace_status_idx').on(table.workspaceId, table.status),
+    index('targets_tunnel_idx').on(table.tunnelId),
     lifecycleCheck(table.status, LIFECYCLE_STATUSES),
     lifecycleCheck(table.reachability, TARGET_REACHABILITIES),
     lifecycleCheck(table.authKind, TARGET_AUTH_KINDS),
@@ -195,6 +196,7 @@ export const jobs = sqliteTable(
     uniqueIndex('jobs_workspace_slug_idx').on(table.workspaceId, table.slug),
     index('jobs_workspace_status_idx').on(table.workspaceId, table.status),
     index('jobs_status_next_fire_idx').on(table.status, table.nextFireAt),
+    index('jobs_target_idx').on(table.targetId),
     lifecycleCheck(table.status, JOB_STATUSES),
     lifecycleCheck(table.triggerKind, TRIGGER_KINDS),
   ],
@@ -367,7 +369,7 @@ export const alertRules = sqliteTable(
 // Stored plaintext: HMAC verification of inbound webhooks requires the
 // same key the caller signed with, so a one-way hash is incompatible with
 // the scheme. Envelope encryption with a Wrangler master key is the
-// queued hardening (see PRD #24 follow-up).
+// queued hardening.
 export const webhookSecrets = sqliteTable(
   'webhook_secrets',
   {
@@ -399,6 +401,7 @@ export const authoringSessions = sqliteTable(
   },
   (table) => [
     index('authoring_sessions_user_state_idx').on(table.userId, table.state),
+    index('authoring_sessions_workspace_idx').on(table.workspaceId),
     lifecycleCheck(table.state, AUTHORING_SESSION_STATES),
   ],
 )
