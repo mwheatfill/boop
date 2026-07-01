@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { enqueueAlertBatch } from '@/lib/alert-queue/producer'
+import { enqueueRunAlerts } from '@/lib/alert-queue/producer'
 import type { AlertQueueMessage } from '@/lib/alert-queue/types'
 import { evaluateRulesForRun } from '@/lib/alert-rules/evaluator'
 import type { Database } from '@/lib/db/client'
@@ -55,21 +55,12 @@ async function evaluateAndEnqueueAlerts(
       logInfo('alert.evaluated', { jobId, runId, firingCount: 0 })
       return
     }
-    const messages = firing.flatMap((pair) =>
-      pair.channelIds.map((channelId) => ({
-        runId,
-        ruleId: pair.ruleId,
-        channelId,
-        ruleName: pair.ruleName,
-        ruleKind: pair.ruleKind,
-      })),
-    )
-    await enqueueAlertBatch(alertQueue, messages)
+    const enqueueCount = await enqueueRunAlerts(alertQueue, runId, firing)
     logInfo('alert.evaluated', {
       jobId,
       runId,
       firingCount: firing.length,
-      enqueueCount: messages.length,
+      enqueueCount,
     })
   } catch (err) {
     logError('alert.evaluation_failed', err, { jobId, runId })

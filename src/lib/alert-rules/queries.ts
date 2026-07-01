@@ -3,30 +3,10 @@ import type { Database } from '@/lib/db/client'
 import { alertRules } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
 import { resolveWorkspaceId } from '@/lib/workspaces/resolve'
-import {
-  type AlertRule,
-  AlertRuleConfigSchema,
-  type AlertRuleKind,
-  type AlertRuleScope,
-} from '@/shared/schemas/alert-rule'
-
-type AlertRuleRow = typeof alertRules.$inferSelect
-
-export function parseChannelIdsColumn(raw: string): string[] {
-  try {
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter((v): v is string => typeof v === 'string')
-  } catch {
-    return []
-  }
-}
+import type { AlertRule, AlertRuleKind, AlertRuleScope } from '@/shared/schemas/alert-rule'
+import { type AlertRuleRow, decodeRuleConfig, parseChannelIdsColumn } from './decode'
 
 export function rowToAlertRule(row: AlertRuleRow): AlertRule {
-  const config = AlertRuleConfigSchema.parse({
-    kind: row.kind,
-    ...JSON.parse(row.config || '{}'),
-  })
   return {
     id: row.id,
     scope: row.scope as AlertRuleScope,
@@ -35,7 +15,7 @@ export function rowToAlertRule(row: AlertRuleRow): AlertRule {
     kind: row.kind as AlertRuleKind,
     name: row.name,
     slug: row.slug,
-    config,
+    config: decodeRuleConfig(row),
     channelIds: parseChannelIdsColumn(row.channelIds),
     status: row.status as AlertRule['status'],
     lastFiredAt: row.lastFiredAt?.toISOString() ?? null,

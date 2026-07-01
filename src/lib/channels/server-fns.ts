@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers'
 import { createServerFn } from '@tanstack/react-start'
-import { enqueueAlert } from '@/lib/alert-queue/producer'
+import { enqueueTestAlert } from '@/lib/alert-queue/producer'
 import { adminMiddleware } from '@/lib/auth/admin-middleware'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
@@ -86,14 +86,7 @@ export const sendTestAlertFn = createServerFn({ method: 'POST' })
     const channel = await getChannelBySlug(db, data.workspaceSlug, data.channelSlug)
     await Promise.all([
       markChannelTestQueued(db, channel.id),
-      enqueueAlert(env.ALERT_QUEUE, {
-        runId: `test_${channel.id}`,
-        ruleId: 'test',
-        channelId: channel.id,
-        ruleName: 'Channel test',
-        ruleKind: 'first_failure',
-        test: true,
-      }),
+      enqueueTestAlert(env.ALERT_QUEUE, channel.id),
     ])
     return { ok: true, data: { ...channel, lastTestAlertStatus: 'pending' } }
   })

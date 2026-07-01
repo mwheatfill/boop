@@ -1,12 +1,8 @@
 import { and, desc, eq, or } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { alertRules, runs } from '@/lib/db/schema'
-import { logError } from '@/lib/log'
-import {
-  type AlertRuleConfig,
-  AlertRuleConfigSchema,
-  type AlertRuleKind,
-} from '@/shared/schemas/alert-rule'
+import type { AlertRuleKind } from '@/shared/schemas/alert-rule'
+import { decodeAlertRuleRow, type LoadedRule } from './decode'
 import {
   consecutiveFailures,
   firstFailure,
@@ -14,7 +10,6 @@ import {
   recovery,
   slowRun,
 } from './predicates'
-import { parseChannelIdsColumn } from './queries'
 
 export interface FiringPair {
   ruleId: string
@@ -26,34 +21,6 @@ export interface FiringPair {
 
 const HISTORY_HARD_CAP = 100
 const BASELINE_HISTORY = 2
-
-interface LoadedRule {
-  id: string
-  slug: string
-  name: string
-  kind: AlertRuleKind
-  config: AlertRuleConfig
-  channelIds: string[]
-}
-
-function parseRuleRow(row: typeof alertRules.$inferSelect): LoadedRule | null {
-  try {
-    const config = AlertRuleConfigSchema.parse({ kind: row.kind, ...JSON.parse(row.config) })
-    const channelIds = parseChannelIdsColumn(row.channelIds)
-    if (channelIds.length === 0) return null
-    return {
-      id: row.id,
-      slug: row.slug,
-      name: row.name,
-      kind: row.kind as AlertRuleKind,
-      config,
-      channelIds,
-    }
-  } catch (err) {
-    logError('alert.rule_parse_failed', err, { ruleId: row.id })
-    return null
-  }
-}
 
 function historyDepthFor(rules: readonly LoadedRule[]): number {
   let depth = BASELINE_HISTORY
@@ -110,7 +77,7 @@ export async function evaluateRulesForRun({
       ),
     )
   const rules = ruleRows.flatMap((row) => {
-    const rule = parseRuleRow(row)
+    const rule = decodeAlertRuleRow(row)
     return rule ? [rule] : []
   })
   if (rules.length === 0) return []
