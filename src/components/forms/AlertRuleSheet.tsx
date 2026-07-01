@@ -28,7 +28,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { useAppForm } from '@/hooks/use-app-form'
+import { normalizeFieldErrors, useAppForm } from '@/hooks/use-app-form'
 import { createAlertRuleFn, updateAlertRuleFn } from '@/lib/alert-rules/server-fns'
 import { listChannelsForPickerFn } from '@/lib/channels/server-fns'
 import { PICKER_KEYS, PICKER_RECENT_LIMITS } from '@/lib/forms/picker-keys'
@@ -435,9 +435,7 @@ export function AlertRuleSheet({
                 {(f) => {
                   const selectedIds = new Set(f.state.value)
                   const selectedChannels = activeChannels.filter((c) => selectedIds.has(c.id))
-                  const errors = f.state.meta.errors.map((e) =>
-                    typeof e === 'string' ? { message: e } : (e as unknown as { message?: string }),
-                  )
+                  const errors = normalizeFieldErrors(f.state.meta.errors)
                   return (
                     <Field data-invalid={errors.length > 0 || undefined}>
                       <Combobox

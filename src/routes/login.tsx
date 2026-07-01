@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { z } from 'zod'
+import { z } from '@/shared/schemas/openapi'
 
 export const Route = createFileRoute('/login')({
   validateSearch: z.object({

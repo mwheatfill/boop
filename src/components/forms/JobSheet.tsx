@@ -42,6 +42,7 @@ import { createJobFn, updateJobFn } from '@/lib/jobs/server-fns'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
 import { listTargetsQueryOptions } from '@/lib/targets/query-options'
+import { cn } from '@/lib/utils'
 import { workspaceSecretsQueryOptions } from '@/lib/workspace-secrets/query-options'
 import { listWorkspacesQueryOptions } from '@/lib/workspaces/query-options'
 import type { Job, TriggerKind } from '@/shared/schemas/job'
@@ -713,9 +714,10 @@ export function JobSheet({
           </div>
 
           <SheetFooter
-            className={`flex-row items-center gap-2 border-t p-4 ${
-              isEdit ? 'justify-end' : 'justify-between'
-            }`}
+            className={cn(
+              'flex-row items-center gap-2 border-t p-4',
+              isEdit ? 'justify-end' : 'justify-between',
+            )}
           >
             {!isEdit ? (
               <div className="flex items-center gap-2">

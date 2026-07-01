@@ -31,14 +31,16 @@ const { fieldContext, formContext, useFieldContext, useFormContext } = createFor
 
 // TanStack Form surfaces validator output on field.state.meta.errors. Standard-schema
 // (Zod) issues are objects with a `message`; some validators emit plain strings.
-// Normalise both to the { message } shape FieldError consumes, and only after the
-// field has been touched so pristine forms stay quiet.
+// Normalise both to the { message } shape FieldError consumes.
+export function normalizeFieldErrors(errors: ReadonlyArray<unknown>): Array<{ message?: string }> {
+  return errors.map((e) => (typeof e === 'string' ? { message: e } : (e as { message?: string })))
+}
+
+// Surface field errors only after the field has been touched so pristine forms stay quiet.
 function useFieldErrors(): Array<{ message?: string }> {
   const field = useFieldContext()
   if (!field.state.meta.isTouched) return []
-  return field.state.meta.errors.map((e) =>
-    typeof e === 'string' ? { message: e } : (e as { message?: string }),
-  )
+  return normalizeFieldErrors(field.state.meta.errors)
 }
 
 interface BaseFieldProps {

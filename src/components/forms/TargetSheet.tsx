@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { Network, Target as TargetIcon } from 'lucide-react'
 import { type ReactElement, useState } from 'react'
 import { toast } from 'sonner'
-import { ConfirmDialog } from '@/components/confirm-dialog'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Section } from '@/components/Section'
 import { TargetHealthBadge } from '@/components/targets/TargetHealthBadge'
 import { Badge } from '@/components/ui/badge'
@@ -29,6 +29,7 @@ import {
   updateTargetFn,
 } from '@/lib/targets/server-fns'
 import { tunnelsQueryOptions } from '@/lib/tunnels/query-options'
+import { cn } from '@/lib/utils'
 import {
   type TARGET_AUTH_KINDS,
   TARGET_METHODS,
@@ -440,9 +441,10 @@ export function TargetSheet({
           </div>
 
           <SheetFooter
-            className={`flex-row items-center gap-2 border-t p-4 ${
-              isEdit ? 'justify-between' : 'justify-end'
-            }`}
+            className={cn(
+              'flex-row items-center gap-2 border-t p-4',
+              isEdit ? 'justify-between' : 'justify-end',
+            )}
           >
             {isEdit ? (
               target.status === 'archived' ? (

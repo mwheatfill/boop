@@ -3,7 +3,6 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowRight, CircleAlert, CircleCheck, Plus } from 'lucide-react'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
-import { z } from 'zod'
 import { ContentChrome } from '@/components/ContentChrome'
 import { JobRowActions } from '@/components/dashboard/JobRowActions'
 import { KpiCard } from '@/components/dashboard/KpiCard'
@@ -21,6 +20,7 @@ import type {
   RecentFailureRow,
   UpcomingFireRow,
 } from '@/shared/schemas/dashboard'
+import { z } from '@/shared/schemas/openapi'
 
 const searchSchema = z.object({
   unauthorized: z.string().optional(),

@@ -1,4 +1,4 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Plus, Target as TargetIcon } from 'lucide-react'
@@ -9,20 +9,14 @@ import { TargetSheet } from '@/components/forms/TargetSheet'
 import { StatusBadge } from '@/components/StatusBadge'
 import { TargetHealthBadge } from '@/components/targets/TargetHealthBadge'
 import { Button } from '@/components/ui/button'
-import { listTargetsForWorkspaceFn } from '@/lib/targets/server-fns'
+import { listTargetsQueryOptions } from '@/lib/targets/query-options'
 import { defaultWorkspaceQueryOptions } from '@/lib/workspaces/query-options'
 import type { Target } from '@/shared/schemas/target'
-
-const targetsQueryOptions = (workspaceSlug: string, includeArchived: boolean) =>
-  queryOptions({
-    queryKey: ['workspaces', workspaceSlug, 'targets', { includeArchived }],
-    queryFn: () => listTargetsForWorkspaceFn({ data: { workspaceSlug, includeArchived } }),
-  })
 
 export const Route = createFileRoute('/_authenticated/targets')({
   loader: async ({ context }) => {
     const workspace = await context.queryClient.ensureQueryData(defaultWorkspaceQueryOptions)
-    await context.queryClient.ensureQueryData(targetsQueryOptions(workspace.slug, false))
+    await context.queryClient.ensureQueryData(listTargetsQueryOptions(workspace.slug))
     return { activeSlug: workspace.slug }
   },
   component: TargetsPage,
@@ -82,7 +76,7 @@ function TargetsPage() {
 function TargetsList({ activeSlug }: { activeSlug: string }) {
   const { currentUser } = Route.useRouteContext()
   const isAdmin = currentUser.role === 'admin'
-  const { data: targets } = useSuspenseQuery(targetsQueryOptions(activeSlug, false))
+  const { data: targets } = useSuspenseQuery(listTargetsQueryOptions(activeSlug))
   const [editing, setEditing] = useState<Target | null>(null)
 
   return (

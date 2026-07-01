@@ -42,7 +42,7 @@ export function ChartContainer({ config, className, children }: ChartContainerPr
   }
 
   return (
-    <ChartContext.Provider value={{ config, id }}>
+    <ChartContext value={{ config, id }}>
       <div
         data-slot="chart"
         data-chart={id}
@@ -53,7 +53,7 @@ export function ChartContainer({ config, className, children }: ChartContainerPr
           {children as never}
         </ResponsiveContainer>
       </div>
-    </ChartContext.Provider>
+    </ChartContext>
   )
 }
 

@@ -184,5 +184,5 @@ export function KeyboardProvider({ children }: { children: ReactNode }) {
     ],
   )
 
-  return <KeyboardContext.Provider value={value}>{children}</KeyboardContext.Provider>
+  return <KeyboardContext value={value}>{children}</KeyboardContext>
 }

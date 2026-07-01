@@ -1,7 +1,7 @@
 import { generateObject } from 'ai'
-import { z } from 'zod'
 import { getAIClient, getDefaultModelName } from '@/lib/ai/client'
 import { nextRuns } from '@/lib/cron/next-runs'
+import { z } from '@/shared/schemas/openapi'
 
 const ScheduleProposalSchema = z.object({
   kind: z.enum(['cron', 'interval']),

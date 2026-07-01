@@ -5,7 +5,7 @@ import { FacetedFilter } from '@/components/data-table/data-table-faceted-filter
 import { EmptyState } from '@/components/EmptyState'
 import { RunsTable } from '@/components/forms/RunsTable'
 import { Button } from '@/components/ui/button'
-import { RunsSearchSchema, TRIGGER_SOURCES } from '@/lib/runs/filter-schema'
+import { type RunsFilters, RunsSearchSchema, TRIGGER_SOURCES } from '@/lib/runs/filter-schema'
 import { listAllRunsFn } from '@/lib/runs/server-fns'
 import {
   FAILURE_KINDS,
@@ -14,7 +14,7 @@ import {
   type RunsListResponse,
 } from '@/shared/schemas/run'
 
-const runsInfiniteOptions = (search: Record<string, unknown>) =>
+const runsInfiniteOptions = (search: RunsFilters) =>
   infiniteQueryOptions({
     queryKey: ['runs', search],
     queryFn: ({ pageParam }) =>
@@ -31,9 +31,7 @@ export const Route = createFileRoute('/_authenticated/runs')({
   validateSearch: RunsSearchSchema,
   loaderDeps: ({ search }) => ({ search }),
   loader: ({ context, deps }) =>
-    context.queryClient.ensureInfiniteQueryData(
-      runsInfiniteOptions(deps.search as unknown as Record<string, unknown>),
-    ),
+    context.queryClient.ensureInfiniteQueryData(runsInfiniteOptions(deps.search)),
   component: RunsPage,
 })
 
@@ -41,7 +39,7 @@ function RunsPage() {
   const search = Route.useSearch()
   const goTo = Route.useNavigate()
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery(
-    runsInfiniteOptions(search as unknown as Record<string, unknown>),
+    runsInfiniteOptions(search),
   )
 
   const rows = data?.pages.flatMap((p) => p.rows) ?? []

@@ -1,4 +1,4 @@
-import { queryOptions, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Pencil, Play } from 'lucide-react'
 import { useState } from 'react'
@@ -20,9 +20,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { isAdmin } from '@/lib/auth/is-admin'
 import { triggerSummaryWithTimezone } from '@/lib/jobs/format'
+import { jobQueryOptions } from '@/lib/jobs/query-options'
 import {
   archiveJobFn,
-  getJobFn,
   pauseJobFn,
   restoreJobFn,
   resumeJobFn,
@@ -31,15 +31,9 @@ import {
 import { useTrackRecentVisit } from '@/lib/recents/use-track-recent-visit'
 import { targetQueryOptions } from '@/lib/targets/query-options'
 
-const jobOptions = (workspaceSlug: string, jobSlug: string) =>
-  queryOptions({
-    queryKey: ['workspaces', workspaceSlug, 'jobs', jobSlug],
-    queryFn: () => getJobFn({ data: { workspaceSlug, jobSlug } }),
-  })
-
 export const Route = createFileRoute('/_authenticated/jobs_/$jobSlug/')({
   loader: ({ context, params }) =>
-    context.queryClient.ensureQueryData(jobOptions(context.workspaceSlug, params.jobSlug)),
+    context.queryClient.ensureQueryData(jobQueryOptions(context.workspaceSlug, params.jobSlug)),
   component: JobDetailPage,
 })
 
@@ -48,7 +42,7 @@ function JobDetailPage() {
   const { workspaceSlug, currentUser } = Route.useRouteContext()
   const goTo = useNavigate()
   const queryClient = useQueryClient()
-  const { data: job } = useSuspenseQuery(jobOptions(workspaceSlug, jobSlug))
+  const { data: job } = useSuspenseQuery(jobQueryOptions(workspaceSlug, jobSlug))
   const [archiveBlock, setArchiveBlock] = useState<string | null>(null)
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
