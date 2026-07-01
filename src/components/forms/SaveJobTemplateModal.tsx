@@ -4,6 +4,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { EntityModal } from '@/components/forms/EntityModal'
 import { SlugField } from '@/components/forms/SlugField'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -164,14 +165,16 @@ export function SaveJobTemplateModal({ job, onClose }: SaveJobTemplateModalProps
           {CAPTURE_FIELDS.map((item) => (
             <form.Field key={item.name} name={item.name}>
               {(field) => (
-                <label className="flex items-center gap-2 text-muted-foreground">
-                  <input
-                    type="checkbox"
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id={`capture-${item.name}`}
                     checked={Boolean(field.state.value)}
-                    onChange={(event) => field.handleChange(event.currentTarget.checked)}
+                    onCheckedChange={(checked) => field.handleChange(checked === true)}
                   />
-                  {item.label}
-                </label>
+                  <label htmlFor={`capture-${item.name}`} className="text-muted-foreground">
+                    {item.label}
+                  </label>
+                </div>
               )}
             </form.Field>
           ))}
