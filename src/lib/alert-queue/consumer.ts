@@ -4,25 +4,21 @@ import {
   buildMissedAlertContext,
   buildSyntheticTestContext,
 } from '@/lib/alert-context/build'
-import { adapterFor } from '@/lib/channel-adapters/registry'
+import { adapterFor, type ChannelAdapter } from '@/lib/channel-adapters/registry'
 import type { AdapterResult } from '@/lib/channel-adapters/types'
 import { findChannelById } from '@/lib/channels/queries'
 import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
 import { alertRules, attempts, channels, jobs, runs, targets, workspaces } from '@/lib/db/schema'
 import { logError, logInfo } from '@/lib/log'
+import type { ChannelKind } from '@/shared/schemas/channel'
+import { decideDisposition } from './disposition'
 import {
   type AlertQueueMessage,
   isRunAlertMessage,
   type MissedScheduleAlertQueueMessage,
   type RunAlertQueueMessage,
 } from './types'
-
-const RETRY_BASE_SECONDS = 60
-
-function retryDelaySeconds(attempts: number): number {
-  return 2 ** Math.min(attempts, 6) * RETRY_BASE_SECONDS
-}
 
 async function loadWorkspace(db: Database, workspaceId: string) {
   return (await db.select().from(workspaces).where(eq(workspaces.id, workspaceId)).limit(1))[0]
@@ -95,34 +91,34 @@ async function markAlertDelivered(
   await Promise.all([markChannelDelivered(db, channelId, now), markRuleFired(db, ruleId, now)])
 }
 
-const MAX_DELIVERY_ATTEMPTS = 5
-
 function routeAdapterResult(
   message: Message<AlertQueueMessage>,
   result: AdapterResult,
   fields: Record<string, unknown>,
 ) {
+  const disposition = decideDisposition(result, message.attempts)
   if (result.ok) {
     logInfo('alert.delivered', fields)
-    message.ack()
-    return
-  }
-  if (result.retryable && message.attempts < MAX_DELIVERY_ATTEMPTS) {
+  } else if ('retry' in disposition) {
     logError('alert.retry_scheduled', new Error(result.reason), fields)
-    message.retry({ delaySeconds: retryDelaySeconds(message.attempts) })
-    return
+  } else {
+    logError('alert.failed', new Error(result.reason), { ...fields, retryable: result.retryable })
   }
-  logError('alert.failed', new Error(result.reason), { ...fields, retryable: result.retryable })
-  message.ack()
+  if ('retry' in disposition) {
+    message.retry({ delaySeconds: disposition.delaySeconds })
+  } else {
+    message.ack()
+  }
 }
 
-interface ConsumerDeps {
+export interface ConsumerDeps {
   db: Database
   appOrigin: string
+  adapterFor: (kind: ChannelKind) => ChannelAdapter
 }
 
 async function processTestMessage(
-  { db, appOrigin }: ConsumerDeps,
+  { db, appOrigin, adapterFor }: ConsumerDeps,
   message: Message<AlertQueueMessage>,
 ): Promise<void> {
   const channel = await findChannelById(db, message.body.channelId)
@@ -143,7 +139,7 @@ async function processTestMessage(
     appOrigin,
   )
   const now = new Date()
-  const result = await adapterFor(channel.kind)({ channel, alertContext })
+  const result = await adapterFor(channel.kind)(channel.config, alertContext)
   await markChannelTestResult(db, channel.id, result, now)
   if (result.ok) await markChannelDelivered(db, channel.id, now)
   routeAdapterResult(message, result, {
@@ -156,7 +152,7 @@ async function processTestMessage(
 }
 
 async function processRunMessage(
-  { db, appOrigin }: ConsumerDeps,
+  { db, appOrigin, adapterFor }: ConsumerDeps,
   message: Message<AlertQueueMessage>,
   body: RunAlertQueueMessage,
 ): Promise<void> {
@@ -184,7 +180,7 @@ async function processRunMessage(
     appOrigin,
   })
   const now = new Date()
-  const result = await adapterFor(channel.kind)({ channel, alertContext })
+  const result = await adapterFor(channel.kind)(channel.config, alertContext)
   if (result.ok) await markAlertDelivered(db, channel.id, body.ruleId, now)
   routeAdapterResult(message, result, {
     ...fields,
@@ -195,7 +191,7 @@ async function processRunMessage(
 }
 
 async function processMissedMessage(
-  { db, appOrigin }: ConsumerDeps,
+  { db, appOrigin, adapterFor }: ConsumerDeps,
   message: Message<AlertQueueMessage>,
   body: MissedScheduleAlertQueueMessage,
 ): Promise<void> {
@@ -221,7 +217,7 @@ async function processMissedMessage(
     silenceThresholdMinutes: body.silenceThresholdMinutes,
   })
   const now = new Date()
-  const result = await adapterFor(channel.kind)({ channel, alertContext })
+  const result = await adapterFor(channel.kind)(channel.config, alertContext)
   if (result.ok) await markAlertDelivered(db, channel.id, body.ruleId, now)
   routeAdapterResult(message, result, {
     ...fields,
@@ -255,11 +251,15 @@ export async function alertQueue(
   batch: MessageBatch<AlertQueueMessage>,
   env: AlertQueueEnv,
 ): Promise<void> {
-  const db = createDb(env.DB)
+  const deps: ConsumerDeps = {
+    db: createDb(env.DB),
+    appOrigin: env.PUBLIC_APP_ORIGIN,
+    adapterFor,
+  }
   await Promise.all(
     batch.messages.map(async (message) => {
       try {
-        await handleAlertMessage({ db, appOrigin: env.PUBLIC_APP_ORIGIN }, message)
+        await handleAlertMessage(deps, message)
       } catch (err) {
         logError('alert.consumer_unhandled', err, {
           runId: isRunAlertMessage(message.body) ? message.body.runId : undefined,

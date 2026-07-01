@@ -54,6 +54,10 @@ export const ChannelConfigSchema = z
 
 export type ChannelConfig = z.infer<typeof ChannelConfigSchema>
 
+export type TeamsConfig = Extract<ChannelConfig, { kind: 'teams' }>
+export type EmailConfig = Extract<ChannelConfig, { kind: 'email' }>
+export type WebhookConfig = Extract<ChannelConfig, { kind: 'webhook' }>
+
 export const ChannelSchema = z
   .object({
     id: z.string().meta({ example: 'chn_abc123' }),

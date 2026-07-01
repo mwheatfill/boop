@@ -1,4 +1,5 @@
 import type { AlertContext } from '@/shared/schemas/alert-context'
+import type { TeamsConfig } from '@/shared/schemas/channel'
 import { type AdapterFn, classifyHttpResult, networkFailure } from './types'
 
 const ADAPTIVE_CARD_VERSION = '1.5'
@@ -123,19 +124,12 @@ export function buildTeamsCard(ctx: AlertContext): unknown {
   }
 }
 
-export const deliverTeams: AdapterFn = async ({ channel, alertContext }) => {
-  if (channel.config.kind !== 'teams') {
-    return {
-      ok: false,
-      retryable: false,
-      reason: `Expected teams config, got ${channel.config.kind}`,
-    }
-  }
+export const deliverTeams: AdapterFn<TeamsConfig> = async (config, ctx) => {
   try {
-    const res = await fetch(channel.config.webhook_url, {
+    const res = await fetch(config.webhook_url, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(buildTeamsCard(alertContext)),
+      body: JSON.stringify(buildTeamsCard(ctx)),
     })
     return classifyHttpResult(res.status)
   } catch (err) {

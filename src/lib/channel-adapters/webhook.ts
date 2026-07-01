@@ -1,5 +1,6 @@
 import { renderAlertTemplate } from '@/lib/alert-context/render'
 import type { AlertContext } from '@/shared/schemas/alert-context'
+import type { WebhookConfig } from '@/shared/schemas/channel'
 import { type AdapterFn, classifyHttpResult, networkFailure } from './types'
 
 async function renderWebhookBody(template: string, context: AlertContext): Promise<string> {
@@ -10,18 +11,11 @@ async function renderWebhookBody(template: string, context: AlertContext): Promi
   }
 }
 
-export const deliverWebhook: AdapterFn = async ({ channel, alertContext }) => {
-  if (channel.config.kind !== 'webhook') {
-    return {
-      ok: false,
-      retryable: false,
-      reason: `Expected webhook config, got ${channel.config.kind}`,
-    }
-  }
-  const { url, method, headers: configHeaders, body_template } = channel.config
+export const deliverWebhook: AdapterFn<WebhookConfig> = async (config, ctx) => {
+  const { url, method, headers: configHeaders, body_template } = config
   let body: string
   try {
-    body = await renderWebhookBody(body_template, alertContext)
+    body = await renderWebhookBody(body_template, ctx)
   } catch (err) {
     const reason = err instanceof Error ? err.message : 'render error'
     return { ok: false, retryable: false, reason: `Body template render failed: ${reason}` }

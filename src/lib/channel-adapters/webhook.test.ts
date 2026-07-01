@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AlertContext } from '@/shared/schemas/alert-context'
-import type { Channel } from '@/shared/schemas/channel'
+import type { WebhookConfig } from '@/shared/schemas/channel'
 import { deliverWebhook } from './webhook'
 
 const baseContext: AlertContext = {
@@ -25,28 +25,14 @@ const baseContext: AlertContext = {
   test: false,
 }
 
-function webhookChannel(overrides: Partial<Channel['config']> = {}): Channel {
+function webhookConfig(overrides: Partial<WebhookConfig> = {}): WebhookConfig {
   return {
-    id: 'chn_w',
-    workspaceId: 'wsp_1',
     kind: 'webhook',
-    name: 'Status webhook',
-    slug: 'status-webhook',
-    config: {
-      kind: 'webhook',
-      url: 'https://example.com/hook',
-      method: 'POST',
-      headers: { 'x-app': 'boop' },
-      body_template: '{{ alert_context_json }}',
-      ...overrides,
-    } as Channel['config'],
-    status: 'active',
-    lastUsedAt: null,
-    lastTestAlertAt: null,
-    lastTestAlertStatus: null,
-    lastTestAlertReason: null,
-    createdAt: '2026-05-12T00:00:00Z',
-    updatedAt: '2026-05-12T00:00:00Z',
+    url: 'https://example.com/hook',
+    method: 'POST',
+    headers: { 'x-app': 'boop' },
+    body_template: '{{ alert_context_json }}',
+    ...overrides,
   }
 }
 
@@ -59,7 +45,7 @@ afterEach(() => fetchSpy.mockRestore())
 describe('deliverWebhook', () => {
   it('renders body template + custom headers and POSTs to url', async () => {
     fetchSpy.mockResolvedValue(new Response(null, { status: 200 }))
-    await deliverWebhook({ channel: webhookChannel(), alertContext: baseContext })
+    await deliverWebhook(webhookConfig(), baseContext)
     expect(fetchSpy).toHaveBeenCalledTimes(1)
     const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit]
     expect(url).toBe('https://example.com/hook')
@@ -77,10 +63,7 @@ describe('deliverWebhook', () => {
       { status: 400, expected: { ok: false, retryable: false, reason: 'HTTP 400' } as const },
     ]) {
       fetchSpy.mockResolvedValueOnce(new Response(null, { status }))
-      const result = await deliverWebhook({
-        channel: webhookChannel(),
-        alertContext: baseContext,
-      })
+      const result = await deliverWebhook(webhookConfig(), baseContext)
       expect(result).toEqual(expected)
     }
   })
