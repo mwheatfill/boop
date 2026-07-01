@@ -4,6 +4,16 @@ A running log of design and product decisions that are too small or too fast-mov
 
 ---
 
+## 2026-06-30: Defer the authed server-fn builder (TanStack Start can't extract a factory-object builder)
+
+**What:** The architecture review's "fold `createDb(env.DB)` + auth into an `authedFn`/`adminFn` builder" deepening is **deferred**, not adopted. A builder that makes input validation *mandatory by construction* (a factory taking the Zod schema as a required argument) is not viable: TanStack Start's compiler extracts a server function only when the `.handler()` chain's base resolves to the `createServerFn` import ("Root") or a const bound to a `createServerFn()…` chain ("Builder"). A factory-object (`authedFn.mutation(schema).handler(fn)`) resolves to "None", so the handler is **never stubbed on the client** and its body ships to the browser bundle (verified: server-only strings such as the KEK-config error appeared in `dist/client/*` chunks). `pnpm build` / `test` / `audit:patterns` all still pass, so the gates do not catch it.
+
+**Why:** "Validation mandatory by construction" needs a factory-with-schema-param, which is exactly the shape the extractor cannot follow, the two requirements are mutually exclusive under this compiler. The preamble duplication is a mild smell (the four-file feature seam, `createDb`, and `getCurrentUser` are already deep), not worth a third broad rewrite of every `server-fns.ts` plus the client-bundle-leak risk for the lowest-priority finding.
+
+**If revisited:** the extraction-safe shape is a **const-builder** (`export const authedMutate = createServerFn({ method: 'POST' }).middleware([authMiddleware, dbContext])`, used as `authedMutate.inputValidator(Schema).handler(({ context: { db }, data }) => …)`). It folds the `createDb` + middleware preamble but **cannot** make validation mandatory-by-construction, validation stays **audit-enforced** by extending `scripts/audit-patterns/tanstack.ts` to require `.inputValidator` on mutating const-builder chains. That is a materially different design (audit-enforced vs by-construction) and should be an explicit choice before adopting.
+
+---
+
 ## 2026-06-30: Deleting a tunnel is permanent (supersedes the "tunnels in the Recycle Bin / teardown on purge" part of the entry below)
 
 **What:** Deleting a tunnel tears down its Cloudflare resources (tunnel, DNS, Access app + policy, cert, Service Token) immediately and removes the Targets that ride it and their Jobs. It is permanent and does **not** go to the Recycle Bin. Everything else still soft-deletes to the bin; only tunnels are permanent, because they own live cloud infrastructure and are the root dependency of their Targets and Jobs.
