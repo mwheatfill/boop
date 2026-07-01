@@ -4,12 +4,12 @@ import type { Database } from '@/lib/db/client'
 import { tunnels } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
 import type { Tunnel } from '@/shared/schemas/tunnel'
-import { getTunnelState } from './health'
+import { projectTunnel } from './health-projection'
 
 type TunnelRow = typeof tunnels.$inferSelect
 
 function toTunnel(row: TunnelRow): Tunnel {
-  const certStatus = (row.certStatus ?? null) as CertStatus | null
+  const { state } = projectTunnel(row)
   return {
     id: row.id,
     workspaceId: row.workspaceId,
@@ -18,10 +18,10 @@ function toTunnel(row: TunnelRow): Tunnel {
     hostname: row.hostname,
     connectorStatus: row.connectorStatus ?? null,
     connectorCheckedAt: row.connectorCheckedAt ? row.connectorCheckedAt.toISOString() : null,
-    certStatus,
+    certStatus: (row.certStatus ?? null) as CertStatus | null,
     lastVerifyOutcome: row.lastVerifyOutcome ?? null,
     lastVerifiedAt: row.lastVerifiedAt ? row.lastVerifiedAt.toISOString() : null,
-    state: getTunnelState({ connectorStatus: row.connectorStatus ?? null, certStatus }),
+    state,
     status: row.status as Tunnel['status'],
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

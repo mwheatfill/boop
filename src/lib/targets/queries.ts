@@ -1,10 +1,13 @@
 import { and, asc, desc, eq, inArray } from 'drizzle-orm'
-import type { CertStatus } from '@/lib/cloudflare-api/client'
 import type { Database } from '@/lib/db/client'
 import { attempts, jobs, runs, targets, tunnels, workspaces } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
-import { getTunnelState, type TunnelState } from '@/lib/tunnels/health'
-import { getTargetHealth, type TargetRunSignal } from '@/lib/tunnels/target-health'
+import {
+  projectTargetHealth,
+  projectTunnel,
+  type TunnelInfo,
+} from '@/lib/tunnels/health-projection'
+import type { TargetRunSignal } from '@/lib/tunnels/target-health'
 import type { FailureKind, RunOutcome } from '@/shared/schemas/run'
 import type {
   TARGET_AUTH_KINDS,
@@ -13,7 +16,6 @@ import type {
   Target,
   TargetHealth,
 } from '@/shared/schemas/target'
-import type { TunnelVerifyOutcome } from '@/shared/schemas/tunnel'
 
 type TargetRow = typeof targets.$inferSelect
 
@@ -40,11 +42,6 @@ function toTarget(row: TargetRow, health: TargetHealth | null): Target {
   }
 }
 
-interface TunnelInfo {
-  state: TunnelState
-  lastVerifyOutcome: TunnelVerifyOutcome | null
-}
-
 async function loadTunnelInfo(db: Database, tunnelIds: string[]): Promise<Map<string, TunnelInfo>> {
   const info = new Map<string, TunnelInfo>()
   if (tunnelIds.length === 0) return info
@@ -57,15 +54,7 @@ async function loadTunnelInfo(db: Database, tunnelIds: string[]): Promise<Map<st
     })
     .from(tunnels)
     .where(inArray(tunnels.id, tunnelIds))
-  for (const row of rows) {
-    info.set(row.id, {
-      state: getTunnelState({
-        connectorStatus: row.connectorStatus ?? null,
-        certStatus: (row.certStatus ?? null) as CertStatus | null,
-      }),
-      lastVerifyOutcome: row.lastVerifyOutcome ?? null,
-    })
-  }
+  for (const row of rows) info.set(row.id, projectTunnel(row))
   return info
 }
 
@@ -147,21 +136,14 @@ async function resolveHealth(
       tunnelRows.map((r) => r.id),
     ),
   ])
-
-  const health = new Map<string, TargetHealth | null>()
-  for (const row of rows) {
-    const info = row.tunnelId ? tunnelInfo.get(row.tunnelId) : undefined
-    health.set(
-      row.id,
-      getTargetHealth({
-        reachability: row.reachability as (typeof TARGET_REACHABILITIES)[number],
-        tunnelState: info?.state ?? null,
-        lastVerifyOutcome: info?.lastVerifyOutcome ?? null,
-        runSignal: runSignals.get(row.id) ?? null,
-      }),
-    )
-  }
-  return health
+  return projectTargetHealth(
+    rows.map((r) => ({
+      id: r.id,
+      reachability: r.reachability as (typeof TARGET_REACHABILITIES)[number],
+      tunnelId: r.tunnelId,
+    })),
+    { tunnelInfo, runSignals },
+  )
 }
 
 export async function listTargetsForWorkspace(
