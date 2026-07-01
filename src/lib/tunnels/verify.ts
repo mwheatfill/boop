@@ -100,16 +100,21 @@ export async function runTunnelVerify(
 
   // Probe the named Target when given (e.g. right after it's created), else a
   // representative active route (the connector has no single origin; each private
-  // Target is its own route through this tunnel).
-  const target = targetId
-    ? (await db.select().from(targets).where(eq(targets.id, targetId)).limit(1))[0]
-    : (
-        await db
-          .select()
-          .from(targets)
-          .where(and(eq(targets.tunnelId, tunnelId), eq(targets.status, 'active')))
-          .limit(1)
-      )[0]
+  // Target is its own route through this tunnel). Both lookups are pinned to an
+  // active, tunnel-reachable Target on THIS tunnel: a Target flipped to a public
+  // attacker URL mid-create-race must never receive this tunnel's Access headers.
+  const onThisTunnel = and(
+    eq(targets.tunnelId, tunnelId),
+    eq(targets.status, 'active'),
+    eq(targets.reachability, 'tunnel'),
+  )
+  const target = (
+    await db
+      .select()
+      .from(targets)
+      .where(targetId ? and(eq(targets.id, targetId), onThisTunnel) : onThisTunnel)
+      .limit(1)
+  )[0]
 
   let result: TunnelVerifyResult
   if (!target) {

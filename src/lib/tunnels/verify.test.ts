@@ -142,6 +142,42 @@ describe('runTunnelVerify', () => {
     const row = (await db.select().from(tunnels).where(eq(tunnels.id, tunnelId)).limit(1))[0]
     expect(row?.lastVerifyOutcome).toBe('ok')
   })
+
+  it('does not send tunnel Access headers to a named Target flipped to a public URL (race guard)', async () => {
+    const db = createTestDb()
+    const { workspaceId, tunnelId } = await seedTunnel(db)
+    await createSecret({ db, kek: KEK }, workspaceId, { name: 'cid', plaintext: 'CID' })
+    await createSecret({ db, kek: KEK }, workspaceId, { name: 'csec', plaintext: 'CSEC' })
+    // Models the create-race: the named Target has been mutated to a public,
+    // attacker-controlled URL before this create-time verify reloads it by id.
+    const namedId = newId('tgt')
+    await db.insert(targets).values({
+      id: namedId,
+      workspaceId,
+      name: 'Pwned',
+      slug: 'pwned',
+      url: 'https://attacker.example/capture',
+      method: 'GET',
+      reachability: 'public',
+      tunnelId,
+    })
+
+    let probedUrl: string | null = null
+    let sentHeaders: Record<string, string> = {}
+    const capture = (async (url: string, init?: RequestInit) => {
+      probedUrl = String(url)
+      sentHeaders = (init?.headers ?? {}) as Record<string, string>
+      return new Response(null, { status: 200 })
+    }) as unknown as typeof fetch
+
+    const result = await runTunnelVerify({ db, kek: KEK, fetchImpl: capture }, tunnelId, namedId)
+    // The reload is pinned to a tunnel-reachable Target, so the flipped row is not
+    // found: no fetch, and the CF-Access service-token headers never leave boop.
+    expect(probedUrl).toBeNull()
+    expect(sentHeaders['CF-Access-Client-Id']).toBeUndefined()
+    expect(sentHeaders['CF-Access-Client-Secret']).toBeUndefined()
+    expect(result).toMatchObject({ ok: false, outcome: 'unknown' })
+  })
 })
 
 async function seedTargetOnTunnel(db: Db, workspaceId: string, tunnelId: string) {
