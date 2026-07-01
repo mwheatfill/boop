@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { verifyTargetFn } from '@/lib/targets/server-fns'
 
 export function TargetVerifyButton({ targetId }: { targetId: string }) {
@@ -15,7 +16,13 @@ export function TargetVerifyButton({ targetId }: { targetId: string }) {
 
   return (
     <Button variant="outline" size="xs" disabled={verify.isPending} onClick={() => verify.mutate()}>
-      {verify.isPending ? 'Verifying…' : 'Verify'}
+      {verify.isPending ? (
+        <>
+          <Spinner /> Verifying
+        </>
+      ) : (
+        'Verify'
+      )}
     </Button>
   )
 }

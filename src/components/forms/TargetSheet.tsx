@@ -18,6 +18,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { Spinner } from '@/components/ui/spinner'
 import { useAppForm } from '@/hooks/use-app-form'
 import { fieldErrorsToTanstack, type MutationResult } from '@/lib/mutation-result'
 import { slugify } from '@/lib/slug/slugify'
@@ -451,7 +452,13 @@ export function TargetSheet({
                   disabled={restore.isPending}
                   onClick={() => restore.mutate()}
                 >
-                  {restore.isPending ? 'Restoring…' : 'Restore'}
+                  {restore.isPending ? (
+                    <>
+                      <Spinner /> Restoring
+                    </>
+                  ) : (
+                    'Restore'
+                  )}
                 </Button>
               ) : (
                 <ConfirmDialog

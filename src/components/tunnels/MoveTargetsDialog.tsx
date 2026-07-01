@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Spinner } from '@/components/ui/spinner'
 import { tunnelsQueryOptions } from '@/lib/tunnels/query-options'
 import { moveTargetsToTunnelFn } from '@/lib/tunnels/server-fns'
 import type { Tunnel } from '@/shared/schemas/tunnel'
@@ -92,7 +93,13 @@ export function MoveTargetsDialog({
             disabled={!toTunnelId || move.isPending}
             onClick={() => move.mutate()}
           >
-            {move.isPending ? 'Moving…' : `Move ${targetCount} ${plural(targetCount)}`}
+            {move.isPending ? (
+              <>
+                <Spinner /> Moving
+              </>
+            ) : (
+              `Move ${targetCount} ${plural(targetCount)}`
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

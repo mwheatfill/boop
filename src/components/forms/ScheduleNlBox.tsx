@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Spinner } from '@/components/ui/spinner'
 import { proposeScheduleFn } from '@/lib/schedule/server-fns'
 
 interface ScheduleNlBoxProps {
@@ -68,7 +69,8 @@ export function ScheduleNlBox({ timezone, onApply }: ScheduleNlBoxProps) {
           disabled={!text.trim() || propose.isPending}
           onClick={submit}
         >
-          <Sparkles aria-hidden /> {propose.isPending ? 'Thinking…' : 'Propose'}
+          {propose.isPending ? <Spinner /> : <Sparkles aria-hidden />}{' '}
+          {propose.isPending ? 'Thinking…' : 'Propose'}
         </Button>
       </div>
       {message ? <p className="text-xs text-muted-foreground">{message}</p> : null}
