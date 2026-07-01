@@ -8,7 +8,7 @@ import {
   enterManualMode,
   enterWebhookMode,
 } from '@/lib/dispatch/trigger-modes'
-import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
+import { type MutationResult, runMutation } from '@/lib/mutation-result'
 import { type Job, JobCreateInput, JobUpdateInput } from '@/shared/schemas/job'
 import type { z } from '@/shared/schemas/openapi'
 import {
@@ -63,16 +63,9 @@ export const createJobFn = createServerFn({ method: 'POST' })
   .inputValidator((data: { workspaceSlug: string } & z.infer<typeof JobCreateInput>) =>
     WorkspaceSlugInput.extend(JobCreateInput.shape).parse(data),
   )
-  .handler(async ({ data }): Promise<MutationResult<Job>> => {
+  .handler(({ data }): Promise<MutationResult<Job>> => {
     const { workspaceSlug, ...input } = data
-    try {
-      const job = await createJob(makeDeps(), workspaceSlug, input)
-      return { ok: true, data: job }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
+    return runMutation(() => createJob(makeDeps(), workspaceSlug, input))
   })
 
 export const updateJobFn = createServerFn({ method: 'POST' })
@@ -81,30 +74,16 @@ export const updateJobFn = createServerFn({ method: 'POST' })
     (data: { workspaceSlug: string; jobSlug: string } & z.infer<typeof JobUpdateInput>) =>
       JobSlugPairInput.extend(JobUpdateInput.shape).parse(data),
   )
-  .handler(async ({ data }): Promise<MutationResult<Job>> => {
+  .handler(({ data }): Promise<MutationResult<Job>> => {
     const { workspaceSlug, jobSlug, ...input } = data
-    try {
-      const job = await updateJob(makeDeps(), workspaceSlug, jobSlug, input)
-      return { ok: true, data: job }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
+    return runMutation(() => updateJob(makeDeps(), workspaceSlug, jobSlug, input))
   })
 
-async function statusChange(
+function statusChange(
   action: (deps: JobsDeps, c: string, j: string) => Promise<Job>,
   data: { workspaceSlug: string; jobSlug: string },
 ): Promise<MutationResult<Job>> {
-  try {
-    const job = await action(makeDeps(), data.workspaceSlug, data.jobSlug)
-    return { ok: true, data: job }
-  } catch (err) {
-    const failure = asMutationFailure(err)
-    if (failure) return failure
-    throw err
-  }
+  return runMutation(() => action(makeDeps(), data.workspaceSlug, data.jobSlug))
 }
 
 export const pauseJobFn = createServerFn({ method: 'POST' })

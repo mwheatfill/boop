@@ -5,7 +5,7 @@ import type { Database } from '@/lib/db/client'
 import { createDb } from '@/lib/db/client'
 import { enterIntervalMode } from '@/lib/dispatch/trigger-modes'
 import { logWarn } from '@/lib/log'
-import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
+import { type MutationResult, runMutation } from '@/lib/mutation-result'
 import { getProviderConfig } from '@/lib/tunnels/provider'
 import { syncTunnelIngress } from '@/lib/tunnels/provision'
 import { runTargetVerify, runTunnelVerify } from '@/lib/tunnels/verify'
@@ -76,10 +76,10 @@ export const createTargetFn = createServerFn({ method: 'POST' })
   .inputValidator((data: { workspaceSlug: string } & z.infer<typeof TargetCreateInput>) =>
     WorkspaceSlugInput.extend(TargetCreateInput.shape).parse(data),
   )
-  .handler(async ({ data }): Promise<MutationResult<Target>> => {
+  .handler(({ data }): Promise<MutationResult<Target>> => {
     const { workspaceSlug, ...input } = data
     const db = createDb(env.DB)
-    try {
+    return runMutation(async () => {
       const target = await createTarget(db, workspaceSlug, input)
       await syncTunnels(db, [target.tunnelId])
       // Probe the new Target now so its health resolves immediately instead of
@@ -92,12 +92,8 @@ export const createTargetFn = createServerFn({ method: 'POST' })
           logWarn('target.create_verify_failed', { targetId: target.id })
         }
       }
-      return { ok: true, data: target }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
+      return target
+    })
   })
 
 export const updateTargetFn = createServerFn({ method: 'POST' })
@@ -106,35 +102,27 @@ export const updateTargetFn = createServerFn({ method: 'POST' })
     (data: { workspaceSlug: string; targetSlug: string } & z.infer<typeof TargetUpdateInput>) =>
       TargetSlugPairInput.extend(TargetUpdateInput.shape).parse(data),
   )
-  .handler(async ({ data }): Promise<MutationResult<Target>> => {
+  .handler(({ data }): Promise<MutationResult<Target>> => {
     const { workspaceSlug, targetSlug, ...input } = data
     const db = createDb(env.DB)
-    try {
+    return runMutation(async () => {
       const before = await getTargetBySlug(db, workspaceSlug, targetSlug)
       const target = await updateTarget(db, workspaceSlug, targetSlug, input)
       await syncTunnels(db, [before.tunnelId, target.tunnelId])
-      return { ok: true, data: target }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
+      return target
+    })
   })
 
 export const archiveTargetFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .inputValidator((data) => TargetSlugPairInput.parse(data))
-  .handler(async ({ data }): Promise<MutationResult<Target>> => {
+  .handler(({ data }): Promise<MutationResult<Target>> => {
     const db = createDb(env.DB)
-    try {
+    return runMutation(async () => {
       const target = await archiveTarget(db, data.workspaceSlug, data.targetSlug)
       await syncTunnels(db, [target.tunnelId])
-      return { ok: true, data: target }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
+      return target
+    })
   })
 
 export const restoreTargetFn = createServerFn({ method: 'POST' })

@@ -2,7 +2,7 @@ import { env } from 'cloudflare:workers'
 import { createServerFn } from '@tanstack/react-start'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
-import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
+import { type MutationResult, runMutation } from '@/lib/mutation-result'
 import {
   type AlertRule,
   AlertRuleCreateInput,
@@ -53,16 +53,9 @@ export const createAlertRuleFn = createServerFn({ method: 'POST' })
   .inputValidator((data: { workspaceSlug: string } & z.infer<typeof AlertRuleCreateInput>) =>
     WorkspaceSlugInput.extend(AlertRuleCreateInput.shape).parse(data),
   )
-  .handler(async ({ data }): Promise<MutationResult<AlertRule>> => {
+  .handler(({ data }): Promise<MutationResult<AlertRule>> => {
     const { workspaceSlug, ...input } = data
-    try {
-      const rule = await createAlertRule(createDb(env.DB), workspaceSlug, input)
-      return { ok: true, data: rule }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
+    return runMutation(() => createAlertRule(createDb(env.DB), workspaceSlug, input))
   })
 
 export const updateAlertRuleFn = createServerFn({ method: 'POST' })
@@ -71,16 +64,9 @@ export const updateAlertRuleFn = createServerFn({ method: 'POST' })
     (data: { workspaceSlug: string; ruleSlug: string } & z.infer<typeof AlertRuleUpdateInput>) =>
       AlertRuleSlugPairInput.extend(AlertRuleUpdateInput.shape).parse(data),
   )
-  .handler(async ({ data }): Promise<MutationResult<AlertRule>> => {
+  .handler(({ data }): Promise<MutationResult<AlertRule>> => {
     const { workspaceSlug, ruleSlug, ...input } = data
-    try {
-      const rule = await updateAlertRule(createDb(env.DB), workspaceSlug, ruleSlug, input)
-      return { ok: true, data: rule }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
+    return runMutation(() => updateAlertRule(createDb(env.DB), workspaceSlug, ruleSlug, input))
   })
 
 export const archiveAlertRuleFn = createServerFn({ method: 'POST' })

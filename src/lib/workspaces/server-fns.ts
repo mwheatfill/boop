@@ -3,7 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { adminMiddleware } from '@/lib/auth/admin-middleware'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
-import { asMutationFailure, type MutationResult } from '@/lib/mutation-result'
+import { type MutationResult, runMutation } from '@/lib/mutation-result'
 import type { z } from '@/shared/schemas/openapi'
 import { IncludeArchivedInput, SlugInput } from '@/shared/schemas/resource-refs'
 import type { Workspace } from '@/shared/schemas/workspace'
@@ -50,47 +50,28 @@ export const getDefaultWorkspaceFn = createServerFn({ method: 'GET' })
 export const createWorkspaceFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator((data) => WorkspaceCreateInput.parse(data))
-  .handler(async ({ data }): Promise<MutationResult<Workspace>> => {
-    try {
-      const workspace = await createWorkspace(createDb(env.DB), data)
-      return { ok: true, data: workspace }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
-  })
+  .handler(
+    ({ data }): Promise<MutationResult<Workspace>> =>
+      runMutation(() => createWorkspace(createDb(env.DB), data)),
+  )
 
 export const updateWorkspaceFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator((data: { slug: string } & z.infer<typeof WorkspaceUpdateInput>) =>
     SlugInput.extend(WorkspaceUpdateInput.shape).parse(data),
   )
-  .handler(async ({ data }): Promise<MutationResult<Workspace>> => {
+  .handler(({ data }): Promise<MutationResult<Workspace>> => {
     const { slug, ...input } = data
-    try {
-      const workspace = await updateWorkspace(createDb(env.DB), slug, input)
-      return { ok: true, data: workspace }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
+    return runMutation(() => updateWorkspace(createDb(env.DB), slug, input))
   })
 
 export const archiveWorkspaceFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
   .inputValidator((data: { slug: string }) => SlugInput.parse(data))
-  .handler(async ({ data }): Promise<MutationResult<Workspace>> => {
-    try {
-      const workspace = await archiveWorkspace(createDb(env.DB), data.slug)
-      return { ok: true, data: workspace }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
-  })
+  .handler(
+    ({ data }): Promise<MutationResult<Workspace>> =>
+      runMutation(() => archiveWorkspace(createDb(env.DB), data.slug)),
+  )
 
 export const restoreWorkspaceFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])

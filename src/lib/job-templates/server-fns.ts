@@ -3,9 +3,8 @@ import { createServerFn } from '@tanstack/react-start'
 import { adminMiddleware } from '@/lib/auth/admin-middleware'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { createDb } from '@/lib/db/client'
-import { asMutationFailure, type MutationResult, runMutation } from '@/lib/mutation-result'
+import { runMutation } from '@/lib/mutation-result'
 import {
-  type JobTemplate,
   JobTemplateCreateInput,
   JobTemplateSaveFromJobInput,
   JobTemplateUpdateInput,
@@ -71,15 +70,7 @@ export const saveJobAsTemplateFn = createServerFn({ method: 'POST' })
   .inputValidator((data: z.infer<typeof JobTemplateSaveFromJobInput>) =>
     JobTemplateSaveFromJobInput.parse(data),
   )
-  .handler(async ({ data }): Promise<MutationResult<JobTemplate>> => {
-    try {
-      return { ok: true, data: await saveJobAsTemplate(createDb(env.DB), data) }
-    } catch (err) {
-      const failure = asMutationFailure(err)
-      if (failure) return failure
-      throw err
-    }
-  })
+  .handler(({ data }) => runMutation(() => saveJobAsTemplate(createDb(env.DB), data)))
 
 export const seedStarterRecipesFn = createServerFn({ method: 'POST' })
   .middleware([adminMiddleware])
