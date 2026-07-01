@@ -3,7 +3,7 @@
   "info": {
     "title": "boop",
     "version": "0.0.2",
-    "description": "Generated from Zod schemas. Single source of truth for the API contract. The template ships no endpoints; add paths here as your app grows."
+    "description": "Generated from Zod schemas; the single source of truth for the boop API contract. This document is a schema catalog for the server-function (RPC) surface; operations are not modeled as OpenAPI paths."
   },
   "paths": {},
   "components": {
@@ -949,6 +949,24 @@
           "$ref": "#/components/schemas/VariableValue"
         },
         "description": "Operator-defined variables. Keys match ^[a-z][a-z0-9_]{0,63}$. Up to 64 entries. Workspace-level entries are inherited by Jobs; Job-level entries override by name."
+      },
+      "FieldErrors": {
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": "Per-field validation messages, keyed by field name.",
+        "example": {
+          "name": [
+            "Name is required"
+          ]
+        }
       },
       "TargetRefOutput": {
         "type": "object",
@@ -4579,6 +4597,27 @@
         ],
         "additionalProperties": false,
         "description": "Returned exactly once from create and rotate. boop never returns the plaintext again."
+      },
+      "MutationFailure": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": false
+          },
+          "fieldErrors": {
+            "$ref": "#/components/schemas/FieldErrors"
+          },
+          "message": {
+            "example": "This Tunnel is used by 1 active Target. Archive that Target before removing this Tunnel.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false,
+        "description": "Failure envelope returned by mutating server functions (the ok:false branch of MutationResult). Success responses carry the operation-specific payload under the ok:true branch."
       }
     }
   }

@@ -35,6 +35,7 @@ import {
   JobTemplateSchema,
   JobTemplateUpdateInput,
 } from '../src/shared/schemas/job-template'
+import { FieldErrorsSchema, MutationFailureSchema } from '../src/shared/schemas/mutation-result'
 import {
   AttemptDetailSchema,
   AttemptSummarySchema,
@@ -76,8 +77,9 @@ export const document = createDocument({
     title: 'boop',
     version: pkg.version,
     description:
-      'Generated from Zod schemas. Single source of truth for the API contract. ' +
-      'The template ships no endpoints; add paths here as your app grows.',
+      'Generated from Zod schemas; the single source of truth for the boop API contract. ' +
+      'This document is a schema catalog for the server-function (RPC) surface; ' +
+      'operations are not modeled as OpenAPI paths.',
   },
   paths: {},
   components: {
@@ -133,6 +135,8 @@ export const document = createDocument({
       WorkspaceSecretCreateInput: SecretCreateInputSchema,
       WorkspaceSecretRotateInput: SecretRotateInputSchema,
       WorkspaceSecretRevealedResponse: SecretRevealedResponseSchema,
+      FieldErrors: FieldErrorsSchema,
+      MutationFailure: MutationFailureSchema,
     },
   },
 })

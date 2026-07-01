@@ -1,8 +1,7 @@
 import { ArchiveBlockedError, type FieldErrors, FieldValidationError } from '@/lib/errors'
+import type { MutationFailure } from '@/shared/schemas/mutation-result'
 
-export type MutationResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; fieldErrors?: FieldErrors; message?: string }
+export type MutationResult<T> = { ok: true; data: T } | MutationFailure
 
 export function asMutationFailure(err: unknown): MutationResult<never> | null {
   if (err instanceof FieldValidationError) {
