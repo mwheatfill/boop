@@ -13,6 +13,7 @@ interface ScheduleNlBoxProps {
     cronExpression: string
     intervalSeconds: number
     summary: string
+    request: string
   }) => void
 }
 
@@ -30,6 +31,7 @@ export function ScheduleNlBox({ timezone, onApply }: ScheduleNlBoxProps) {
           cronExpression: p.cronExpression,
           intervalSeconds: p.intervalSeconds,
           summary: p.summary,
+          request: text.trim(),
         })
         setText('')
         setMessage(null)

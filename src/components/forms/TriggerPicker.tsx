@@ -6,6 +6,7 @@ import { SCHEDULE_PRESETS, type SchedulePreset } from '@/components/forms/schedu
 import { WebhookSecretPanel } from '@/components/forms/WebhookSecretPanel'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { describeCron } from '@/lib/cron/describe'
 import { nextRuns } from '@/lib/cron/next-runs'
@@ -117,6 +118,7 @@ export function TriggerPicker({
         : 'schedule'
   const timezone = value.triggerTimezone || workspaceTimezone
   const [aiSummary, setAiSummary] = useState<string | null>(null)
+  const [aiRequest, setAiRequest] = useState<string | null>(null)
   const description = describeSchedule(value)
   const runs = upcomingRuns(value, timezone)
   const hasSchedule =
@@ -144,6 +146,7 @@ export function TriggerPicker({
           timezone={timezone}
           onApply={(p) => {
             setAiSummary(p.summary)
+            setAiRequest(p.request)
             onChange({
               ...value,
               triggerKind: p.triggerKind,
@@ -213,11 +216,39 @@ export function TriggerPicker({
             </div>
 
             {aiSummary ? (
-              <div className="flex items-start gap-2 border-t border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                <Sparkles className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                <span>
-                  AI read that as: <span className="text-foreground">“{aiSummary}”</span>
-                </span>
+              <div className="border-t border-border bg-muted/30 px-3 py-2">
+                <Popover>
+                  <PopoverTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
+                    <Sparkles className="size-3.5 shrink-0" aria-hidden />
+                    How the AI read this
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-80">
+                    <div className="flex flex-col gap-3">
+                      <p className="text-xs text-muted-foreground">
+                        The schedule above is what runs. This is how the AI interpreted your words.
+                      </p>
+                      {aiRequest ? (
+                        <div className="flex flex-col gap-0.5">
+                          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            You described
+                          </p>
+                          <p className="text-sm text-foreground">“{aiRequest}”</p>
+                        </div>
+                      ) : null}
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                          AI read it as
+                        </p>
+                        <p className="text-sm text-foreground">“{aiSummary}”</p>
+                      </div>
+                      {value.triggerKind === 'cron' ? (
+                        <code className="font-mono text-xs text-muted-foreground">
+                          {value.cronExpression}
+                        </code>
+                      ) : null}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             ) : null}
           </div>
@@ -241,6 +272,7 @@ export function TriggerPicker({
               timezone={timezone}
               onChange={(cron) => {
                 setAiSummary(null)
+                setAiRequest(null)
                 onChange({ ...value, triggerKind: 'cron', cronExpression: cron })
               }}
               onTimezone={(tz) => onChange({ ...value, triggerTimezone: tz })}

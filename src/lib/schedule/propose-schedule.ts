@@ -35,6 +35,7 @@ function buildPrompt(text: string, timezone: string): string {
     '- Multiple values use comma lists (hours "15,21" for 3pm and 9pm). Ranges use "-" ("1-5" = Mon-Fri). Steps use "/" ("*/2").',
     '- Nth weekday of the month uses "#": "0#3" = 3rd Sunday, "1#2" = 2nd Monday. Put it in the day-of-week field and keep day-of-month "*".',
     '- Never repeat a value within a field.',
+    '- A single cron uses one minute value across all its hours, so you cannot fire at different minutes-past-the-hour for different hours in one schedule (e.g. exactly 3:00 PM and 4:30 PM together is impossible). When a request needs that, choose the closest single cron.',
     '',
     'Examples:',
     '- "every weekday at 9am" -> cron "0 9 * * 1-5"',
