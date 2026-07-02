@@ -4,6 +4,7 @@ import { DateTime } from '@/components/DateTime'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import type { Channel } from '@/shared/schemas/channel'
+import { ChannelConfigDetails } from './ChannelConfigDetails'
 
 function testStatusToneClass(status: Channel['lastTestAlertStatus']): string {
   if (status === 'delivered') return 'text-success'
@@ -93,11 +94,9 @@ export function ChannelDetailView({
         )}
       </section>
 
-      <section className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-4">
-        <h2 className="text-sm font-medium">Config</h2>
-        <pre className="overflow-x-auto rounded bg-card p-3 font-mono text-xs">
-          {JSON.stringify(channel.config, null, 2)}
-        </pre>
+      <section className="flex flex-col gap-3 rounded-md border border-border bg-muted/20 p-4">
+        <h2 className="text-sm font-medium">Delivery</h2>
+        <ChannelConfigDetails config={channel.config} />
       </section>
     </div>
   )
