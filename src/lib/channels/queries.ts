@@ -2,6 +2,7 @@ import { and, asc, eq } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { channels } from '@/lib/db/schema'
 import { NotFoundError } from '@/lib/errors'
+import { logWarn } from '@/lib/log'
 import { resolveWorkspaceId } from '@/lib/workspaces/resolve'
 import { type Channel, ChannelConfigSchema, type ChannelKind } from '@/shared/schemas/channel'
 
@@ -26,6 +27,22 @@ function toChannel(row: ChannelRow): Channel {
   }
 }
 
+// A single unparseable row (corrupt config, or a kind left behind by a schema
+// change) must not blank the whole list; skip it and log so it can be found.
+function toChannelSafe(row: ChannelRow): Channel | null {
+  try {
+    return toChannel(row)
+  } catch (error) {
+    logWarn('Skipping unparseable Channel row', {
+      channelId: row.id,
+      slug: row.slug,
+      kind: row.kind,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return null
+  }
+}
+
 export async function listChannelsForWorkspace(
   db: Database,
   workspaceSlug: string,
@@ -39,7 +56,7 @@ export async function listChannelsForWorkspace(
     .from(channels)
     .where(and(...conditions))
     .orderBy(asc(channels.name))
-  return rows.map(toChannel)
+  return rows.map(toChannelSafe).filter((channel): channel is Channel => channel !== null)
 }
 
 export async function listChannelsForPicker(
@@ -52,7 +69,7 @@ export async function listChannelsForPicker(
     .from(channels)
     .where(and(eq(channels.status, 'active'), eq(channels.workspaceId, workspaceId)))
     .orderBy(asc(channels.name))
-  return rows.map(toChannel)
+  return rows.map(toChannelSafe).filter((channel): channel is Channel => channel !== null)
 }
 
 export async function getChannelBySlug(
