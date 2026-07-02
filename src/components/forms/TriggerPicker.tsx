@@ -85,8 +85,12 @@ function upcomingRuns(value: TriggerPickerValue, timezone: string): NextRun[] {
     const runs = nextRuns({ expression: value.cronExpression, timezone, n: 3 })
     const absolute = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,
-      dateStyle: 'medium',
-      timeStyle: 'short',
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
     })
     const now = Date.now()
     return runs.map((date) => ({
