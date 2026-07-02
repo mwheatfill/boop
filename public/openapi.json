@@ -940,6 +940,37 @@
           }
         }
       },
+      "DirectoryRecipient": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "3f2504e0-4f89-11d3-9a0c-0305e82c3301"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Dana Ops"
+          },
+          "mail": {
+            "type": "string",
+            "example": "dana@switchthink.com"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "user",
+              "group"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "mail",
+          "type"
+        ],
+        "description": "An Entra user or mail-enabled group matched by a directory search."
+      },
       "VariableMap": {
         "type": "object",
         "propertyNames": {
@@ -1885,6 +1916,38 @@
             "missed_schedule": "#/components/schemas/AlertRuleConfigMissedScheduleOutput"
           }
         }
+      },
+      "DirectoryRecipientOutput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "3f2504e0-4f89-11d3-9a0c-0305e82c3301"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Dana Ops"
+          },
+          "mail": {
+            "type": "string",
+            "example": "dana@switchthink.com"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "user",
+              "group"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "mail",
+          "type"
+        ],
+        "additionalProperties": false,
+        "description": "An Entra user or mail-enabled group matched by a directory search."
       },
       "User": {
         "type": "object",
@@ -4489,6 +4552,44 @@
         ],
         "description": "Synthetic context handed to Channel adapters for template rendering.",
         "type": "object"
+      },
+      "DirectorySearchInput": {
+        "type": "object",
+        "properties": {
+          "workspaceSlug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspaceSlug",
+          "query"
+        ],
+        "additionalProperties": false,
+        "description": "Scopes a directory recipient search to a workspace with a free-text query."
+      },
+      "DirectorySearchResult": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DirectoryRecipientOutput"
+            }
+          }
+        },
+        "required": [
+          "available",
+          "results"
+        ],
+        "additionalProperties": false,
+        "description": "Directory search results. `available` is false when directory credentials are absent, signalling the picker to fall back to plain email entry."
       },
       "WorkspaceSecretSummary": {
         "type": "object",

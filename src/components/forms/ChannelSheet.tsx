@@ -15,7 +15,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { useAppForm } from '@/hooks/use-app-form'
+import { normalizeFieldErrors, useAppForm } from '@/hooks/use-app-form'
 import { channelKeys } from '@/lib/channels/query-options'
 import { createChannelFn, updateChannelFn } from '@/lib/channels/server-fns'
 import { EMAIL_RECIPE_INSTALLED } from '@/lib/email-recipe'
@@ -29,6 +29,8 @@ import {
   EMAIL_DEFAULT_SUBJECT,
   WEBHOOK_DEFAULT_BODY,
 } from '@/shared/schemas/channel'
+import { RecipientPicker } from './RecipientPicker'
+import { dedupeEmails, isValidEmail } from './recipient-utils'
 import { SlugField } from './SlugField'
 import { useSlugAutoFill } from './use-slug-auto-fill'
 
@@ -47,7 +49,7 @@ interface ChannelFormValues {
   slug: string
   kind: ChannelKind
   teamsWebhookUrl: string
-  emailRecipients: string
+  emailRecipients: string[]
   emailSubject: string
   emailBody: string
   webhookUrl: string
@@ -63,7 +65,7 @@ function initialValues(channel: Channel | undefined): ChannelFormValues {
     slug: channel?.slug ?? '',
     kind: channel?.kind ?? 'teams',
     teamsWebhookUrl: config?.kind === 'teams' ? config.webhook_url : '',
-    emailRecipients: config?.kind === 'email' ? config.recipients.join(', ') : '',
+    emailRecipients: config?.kind === 'email' ? config.recipients : [],
     emailSubject: config?.kind === 'email' ? config.subject_template : EMAIL_DEFAULT_SUBJECT,
     emailBody: config?.kind === 'email' ? config.body_template : EMAIL_DEFAULT_BODY,
     webhookUrl: config?.kind === 'webhook' ? config.url : '',
@@ -94,7 +96,7 @@ function buildConfig(v: ChannelFormValues) {
   if (v.kind === 'email') {
     return {
       kind: 'email' as const,
-      recipients: v.emailRecipients.split(/[\s,;]+/).flatMap((s) => (s.trim() ? [s.trim()] : [])),
+      recipients: dedupeEmails(v.emailRecipients),
       subject_template: v.emailSubject,
       body_template: v.emailBody,
     }
@@ -137,6 +139,16 @@ export function ChannelSheet({
     defaultValues: initialValues(channel),
     validators: {
       onSubmitAsync: async ({ value }) => {
+        if (value.kind === 'email') {
+          const emails = dedupeEmails(value.emailRecipients)
+          if (emails.length === 0) {
+            return { fields: { emailRecipients: 'Add at least one recipient' } }
+          }
+          const invalid = emails.find((email) => !isValidEmail(email))
+          if (invalid) {
+            return { fields: { emailRecipients: `"${invalid}" is not a valid email` } }
+          }
+        }
         const parsed = ChannelConfigSchema.safeParse(buildConfig(value))
         if (!parsed.success) {
           return { fields: { config: parsed.error.flatten().fieldErrors as never as string } }
@@ -263,10 +275,11 @@ export function ChannelSheet({
                     <>
                       <form.AppField name="emailRecipients">
                         {(f) => (
-                          <f.TextareaField
-                            label="Recipients"
-                            rows={2}
-                            description="Comma or newline separated."
+                          <RecipientPicker
+                            workspaceSlug={owner.workspaceSlug}
+                            value={f.state.value}
+                            onChange={(emails) => f.handleChange(emails)}
+                            errors={normalizeFieldErrors(f.state.meta.errors)}
                           />
                         )}
                       </form.AppField>

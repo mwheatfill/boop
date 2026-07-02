@@ -24,6 +24,11 @@ import {
   UpcomingFireRowSchema,
 } from '../src/shared/schemas/dashboard'
 import {
+  DirectoryRecipientSchema,
+  DirectorySearchInput,
+  DirectorySearchResult,
+} from '../src/shared/schemas/directory'
+import {
   JobCreateInput,
   JobSchema,
   JobSummarySchema,
@@ -156,6 +161,9 @@ export const document = createDocument({
       AlertRuleCreateInput,
       AlertRuleUpdateInput,
       AlertContext: AlertContextSchema,
+      DirectoryRecipient: DirectoryRecipientSchema,
+      DirectorySearchInput,
+      DirectorySearchResult,
       VariableMap: VariableMapSchema,
       WorkspaceSecretSummary: SecretSummarySchema,
       WorkspaceSecretCreateInput: SecretCreateInputSchema,
