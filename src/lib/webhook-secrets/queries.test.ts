@@ -162,4 +162,11 @@ describe('activeSecretPlaintexts', () => {
     expect(keys).toEqual([])
     expect(keys).not.toContain(row.secret)
   })
+
+  it('fails closed: skips an encrypted row that cannot be decrypted with the given KEK, without throwing', async () => {
+    const { db, jobId } = await seedJob()
+    await generateSecret({ db, kek, now: () => NOW }, jobId)
+    const wrongKek = generateKekBase64()
+    expect(await activeSecretPlaintexts(db, jobId, NOW, wrongKek)).toEqual([])
+  })
 })

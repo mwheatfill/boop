@@ -1,6 +1,7 @@
 import { and, desc, eq, gt, isNull, or } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { webhookSecrets } from '@/lib/db/schema'
+import { logWarn } from '@/lib/log'
 import { decryptSecret } from '@/lib/workspace-secrets/envelope'
 
 export interface ActiveSecretRow {
@@ -37,9 +38,10 @@ export async function listActiveSecrets(
 
 /**
  * Active secrets as usable HMAC keys. Encrypted rows (secret_iv present) are
- * decrypted with the KEK; if the KEK is unavailable such rows are skipped
- * (fail closed) so ciphertext is never used as a signing key. Legacy rows
- * (secret_iv null) hold plaintext and pass through unchanged.
+ * decrypted with the KEK; if the KEK is unavailable, or a row fails to decrypt
+ * (wrong KEK / corrupt ciphertext), that row is skipped (fail closed) so
+ * ciphertext is never used as a signing key and one bad row can't fail the
+ * whole request. Legacy rows (secret_iv null) hold plaintext and pass through.
  */
 export async function activeSecretPlaintexts(
   db: Database,
@@ -50,11 +52,18 @@ export async function activeSecretPlaintexts(
   const rows = await listActiveSecrets(db, jobId, now)
   const plaintexts: string[] = []
   for (const row of rows) {
-    if (row.secretIv !== null) {
-      if (kek === undefined) continue
-      plaintexts.push(await decryptSecret(row.secret, row.secretIv, kek))
-    } else {
+    if (row.secretIv === null) {
       plaintexts.push(row.secret)
+      continue
+    }
+    if (kek === undefined) continue
+    try {
+      plaintexts.push(await decryptSecret(row.secret, row.secretIv, kek))
+    } catch (error) {
+      logWarn('webhook.secret_decrypt_failed', {
+        secretId: row.id,
+        error: error instanceof Error ? error.message : String(error),
+      })
     }
   }
   return plaintexts
