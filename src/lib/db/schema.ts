@@ -374,6 +374,7 @@ export const webhookSecrets = sqliteTable(
       .notNull()
       .references(() => jobs.id, { onDelete: 'cascade' }),
     secret: text('secret').notNull(),
+    secretIv: text('secret_iv'),
     revokedAt: integer('revoked_at', { mode: 'timestamp_ms' }),
     expiresAt: integer('expires_at', { mode: 'timestamp_ms' }),
     ...timestamps(),

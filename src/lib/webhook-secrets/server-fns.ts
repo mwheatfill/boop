@@ -14,6 +14,14 @@ import {
 } from './commands'
 import { listSecretsForJob } from './queries'
 
+async function requireKek(): Promise<string> {
+  const kek = await env.BOOP_SECRETS_KEK.get()
+  if (!kek) {
+    throw new Error('BOOP_SECRETS_KEK is not configured for this environment')
+  }
+  return kek
+}
+
 async function resolveJobId(
   db: ReturnType<typeof createDb>,
   workspaceSlug: string,
@@ -54,7 +62,7 @@ export const generateWebhookSecretFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const jobId = await resolveJobId(db, data.workspaceSlug, data.jobSlug)
-    const created = await generateSecretCmd({ db }, jobId)
+    const created = await generateSecretCmd({ db, kek: await requireKek() }, jobId)
     return {
       id: created.id,
       plaintext: created.plaintext,
@@ -70,7 +78,9 @@ export const rotateWebhookSecretFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const db = createDb(env.DB)
     const jobId = await resolveJobId(db, data.workspaceSlug, data.jobSlug)
-    const created = await rotateSecretCmd({ db }, jobId, { overlapHours: data.overlapHours })
+    const created = await rotateSecretCmd({ db, kek: await requireKek() }, jobId, {
+      overlapHours: data.overlapHours,
+    })
     return {
       id: created.id,
       plaintext: created.plaintext,

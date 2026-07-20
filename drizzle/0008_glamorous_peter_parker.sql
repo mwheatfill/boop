@@ -1,0 +1,1 @@
+ALTER TABLE `webhook_secrets` ADD `secret_iv` text;

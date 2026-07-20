@@ -12,6 +12,7 @@ export const Route = createFileRoute('/w/$workspace/$slug')({
             db: createDb(env.DB),
             dispatchQueue: env.DISPATCH_QUEUE,
             rateLimit: env.WEBHOOK_RATE_LIMIT,
+            kek: (await env.BOOP_SECRETS_KEK?.get()) ?? undefined,
           },
           request,
           params.workspace,

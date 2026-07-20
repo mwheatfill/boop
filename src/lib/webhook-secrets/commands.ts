@@ -2,6 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
 import { webhookSecrets } from '@/lib/db/schema'
+import { encryptSecret } from '@/lib/workspace-secrets/envelope'
 import { generateSecretValue } from './random'
 
 export interface GeneratedSecret {
@@ -10,22 +11,28 @@ export interface GeneratedSecret {
   createdAt: Date
 }
 
-export interface WebhookSecretsDeps {
+export interface WebhookSecretsReadDeps {
   db: Database
   now?: () => Date
 }
 
+export interface WebhookSecretsDeps extends WebhookSecretsReadDeps {
+  kek: string
+}
+
 export async function generateSecret(
-  { db, now = () => new Date() }: WebhookSecretsDeps,
+  { db, kek, now = () => new Date() }: WebhookSecretsDeps,
   jobId: string,
 ): Promise<GeneratedSecret> {
   const id = newId('whs')
   const plaintext = generateSecretValue()
   const createdAt = now()
+  const { ciphertext, iv } = await encryptSecret(plaintext, kek)
   await db.insert(webhookSecrets).values({
     id,
     jobId,
-    secret: plaintext,
+    secret: ciphertext,
+    secretIv: iv,
     createdAt,
     updatedAt: createdAt,
   })
@@ -61,7 +68,7 @@ export async function rotateSecret(
   ) {
     throw new InvalidOverlapError(overlapHours)
   }
-  const { db, now = () => new Date() } = deps
+  const { db, kek, now = () => new Date() } = deps
   const rotateAt = now()
   const expiresAt = new Date(rotateAt.getTime() + overlapHours * HOUR_MS)
   await db
@@ -74,11 +81,11 @@ export async function rotateSecret(
         isNull(webhookSecrets.expiresAt),
       ),
     )
-  return generateSecret({ db, now: () => rotateAt }, jobId)
+  return generateSecret({ db, kek, now: () => rotateAt }, jobId)
 }
 
 export async function revokeAllSecrets(
-  { db, now = () => new Date() }: WebhookSecretsDeps,
+  { db, now = () => new Date() }: WebhookSecretsReadDeps,
   jobId: string,
 ): Promise<{ revoked: number }> {
   const revokedAt = now()

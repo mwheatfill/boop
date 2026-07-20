@@ -1,8 +1,13 @@
+import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { newId } from '@/lib/db/ids'
 import { jobs, targets, webhookSecrets, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
-import { listActiveSecrets, listSecretsForJob } from './queries'
+import { signWebhook } from '@/lib/webhook-signing/sign'
+import { verifyWebhook } from '@/lib/webhook-signing/verify'
+import { generateKekBase64 } from '@/lib/workspace-secrets/envelope'
+import { generateSecret } from './commands'
+import { activeSecretPlaintexts, listActiveSecrets, listSecretsForJob } from './queries'
 
 async function seedJob() {
   const db = createTestDb()
@@ -108,5 +113,53 @@ describe('listSecretsForJob', () => {
     ])
     const rows = await listSecretsForJob(db, jobId)
     expect(rows.map((r) => r.id)).toEqual([newActive, oldRevoked])
+  })
+})
+
+describe('activeSecretPlaintexts', () => {
+  const kek = generateKekBase64()
+
+  it('round-trips an encrypted secret back to plaintext that verifies an HMAC signature', async () => {
+    const { db, jobId } = await seedJob()
+    const { plaintext } = await generateSecret({ db, kek, now: () => NOW }, jobId)
+
+    const keys = await activeSecretPlaintexts(db, jobId, NOW, kek)
+    expect(keys).toEqual([plaintext])
+
+    const body = '{"event":"ping"}'
+    const header = await signWebhook({
+      secret: plaintext,
+      timestamp: Math.floor(NOW.getTime() / 1000),
+      body,
+    })
+    const result = await verifyWebhook({ secrets: keys, header, body, now: NOW.getTime() })
+    expect(result.valid).toBe(true)
+  })
+
+  it('passes a legacy plaintext row (secret_iv null) through unchanged', async () => {
+    const { db, jobId } = await seedJob()
+    await db.insert(webhookSecrets).values({
+      id: newId('whs'),
+      jobId,
+      secret: 'legacy-plaintext-key',
+      secretIv: null,
+      createdAt: NOW,
+      updatedAt: NOW,
+    })
+    // No KEK needed for legacy rows.
+    expect(await activeSecretPlaintexts(db, jobId, NOW, undefined)).toEqual([
+      'legacy-plaintext-key',
+    ])
+  })
+
+  it('fails closed: skips an encrypted row when the KEK is unavailable, never returning ciphertext', async () => {
+    const { db, jobId } = await seedJob()
+    await generateSecret({ db, kek, now: () => NOW }, jobId)
+    const [row] = await db.select().from(webhookSecrets).where(eq(webhookSecrets.jobId, jobId))
+    if (!row?.secretIv) throw new Error('expected an encrypted row with secret_iv set')
+
+    const keys = await activeSecretPlaintexts(db, jobId, NOW, undefined)
+    expect(keys).toEqual([])
+    expect(keys).not.toContain(row.secret)
   })
 })

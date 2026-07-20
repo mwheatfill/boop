@@ -3,7 +3,7 @@ import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
 import { jobs, runs, workspaces } from '@/lib/db/schema'
 import { logInfo, logWarn } from '@/lib/log'
-import { listActiveSecrets } from '@/lib/webhook-secrets/queries'
+import { activeSecretPlaintexts } from '@/lib/webhook-secrets/queries'
 import { verifyWebhook } from '@/lib/webhook-signing/verify'
 import type { DispatchMessage } from './scheduled'
 
@@ -11,6 +11,7 @@ export interface WebhookDeps {
   db: Database
   dispatchQueue: Queue<DispatchMessage>
   rateLimit: Pick<RateLimit, 'limit'>
+  kek?: string
   now?: () => Date
 }
 
@@ -22,7 +23,7 @@ function clientIp(request: Request): string | null {
 }
 
 export async function handleWebhook(
-  { db, dispatchQueue, rateLimit, now = () => new Date() }: WebhookDeps,
+  { db, dispatchQueue, rateLimit, kek, now = () => new Date() }: WebhookDeps,
   request: Request,
   workspaceSlug: string,
   jobSlug: string,
@@ -77,9 +78,9 @@ export async function handleWebhook(
 
   const body = await request.text()
   const header = request.headers.get(SIGNATURE_HEADER)
-  const activeSecrets = await listActiveSecrets(db, row.jobId, now())
+  const secrets = await activeSecretPlaintexts(db, row.jobId, now(), kek)
   const verification = await verifyWebhook({
-    secrets: activeSecrets.map((s) => s.secret),
+    secrets,
     header,
     body,
     now: now().getTime(),

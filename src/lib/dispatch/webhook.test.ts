@@ -2,12 +2,15 @@ import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import type { Database } from '@/lib/db/client'
 import { newId } from '@/lib/db/ids'
-import { jobs, runs, targets, workspaces } from '@/lib/db/schema'
+import { jobs, runs, targets, webhookSecrets, workspaces } from '@/lib/db/schema'
 import { createTestDb } from '@/lib/db/test-db'
 import { generateSecret } from '@/lib/webhook-secrets/commands'
 import { signWebhook } from '@/lib/webhook-signing/sign'
+import { generateKekBase64 } from '@/lib/workspace-secrets/envelope'
 import type { DispatchMessage } from './scheduled'
 import { handleWebhook, type WebhookDeps } from './webhook'
+
+const KEK = generateKekBase64()
 
 function captureQueue(): { queue: Queue<DispatchMessage>; sent: DispatchMessage[] } {
   const sent: DispatchMessage[] = []
@@ -90,12 +93,12 @@ describe('handleWebhook (signed happy path)', () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
     const { workspaceSlug, jobSlug, jobId, workspaceId } = await seedJobForWebhook(db)
-    const { plaintext } = await generateSecret({ db, now: () => FIXED }, jobId)
+    const { plaintext } = await generateSecret({ db, kek: KEK, now: () => FIXED }, jobId)
 
     const req = await signedRequest(plaintext, '{"hello":"world"}')
 
     const res = await handleWebhook(
-      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), kek: KEK, now: () => FIXED },
       req,
       workspaceSlug,
       jobSlug,
@@ -129,15 +132,15 @@ describe('handleWebhook (signed happy path)', () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
     const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
-    await generateSecret({ db, now: () => new Date(FIXED.getTime() - 60_000) }, jobId)
+    await generateSecret({ db, kek: KEK, now: () => new Date(FIXED.getTime() - 60_000) }, jobId)
     const { plaintext: newSecret } = await generateSecret(
-      { db, now: () => new Date(FIXED.getTime() - 1000) },
+      { db, kek: KEK, now: () => new Date(FIXED.getTime() - 1000) },
       jobId,
     )
 
     const req = await signedRequest(newSecret, 'payload')
     const res = await handleWebhook(
-      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), kek: KEK, now: () => FIXED },
       req,
       workspaceSlug,
       jobSlug,
@@ -153,11 +156,11 @@ describe('handleWebhook (rejection paths)', () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
     const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
-    const { plaintext } = await generateSecret({ db, now: () => FIXED }, jobId)
+    const { plaintext } = await generateSecret({ db, kek: KEK, now: () => FIXED }, jobId)
 
     const req = await signedRequest(plaintext, 'x')
     const res = await handleWebhook(
-      { db, dispatchQueue: queue, rateLimit: stubRateLimit(false), now: () => FIXED },
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(false), kek: KEK, now: () => FIXED },
       req,
       workspaceSlug,
       jobSlug,
@@ -175,7 +178,7 @@ describe('handleWebhook (rejection paths)', () => {
     const req = new Request('https://example.test/w/nope/hook', { method: 'POST', body: '' })
 
     const res = await handleWebhook(
-      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true) },
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), kek: KEK },
       req,
       'nope',
       'hook',
@@ -191,7 +194,7 @@ describe('handleWebhook (rejection paths)', () => {
     const req = new Request('https://example.test/w/acme/missing', { method: 'POST', body: '' })
 
     const res = await handleWebhook(
-      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true) },
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), kek: KEK },
       req,
       'acme',
       'missing',
@@ -207,7 +210,7 @@ describe('handleWebhook (rejection paths)', () => {
     const req = new Request('https://example.test', { method: 'POST', body: '' })
 
     const res = await handleWebhook(
-      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true) },
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), kek: KEK },
       req,
       workspaceSlug,
       jobSlug,
@@ -223,7 +226,7 @@ describe('handleWebhook (rejection paths)', () => {
     const req = new Request('https://example.test', { method: 'POST', body: '' })
 
     const res = await handleWebhook(
-      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true) },
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), kek: KEK },
       req,
       workspaceSlug,
       jobSlug,
@@ -239,7 +242,7 @@ describe('handleWebhook (rejection paths)', () => {
     const req = new Request('https://example.test', { method: 'POST', body: '' })
 
     const res = await handleWebhook(
-      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true) },
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), kek: KEK },
       req,
       workspaceSlug,
       jobSlug,
@@ -252,11 +255,11 @@ describe('handleWebhook (rejection paths)', () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
     const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
-    await generateSecret({ db, now: () => FIXED }, jobId)
+    await generateSecret({ db, kek: KEK, now: () => FIXED }, jobId)
     const req = new Request('https://example.test', { method: 'POST', body: 'payload' })
 
     const res = await handleWebhook(
-      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), kek: KEK, now: () => FIXED },
       req,
       workspaceSlug,
       jobSlug,
@@ -270,7 +273,7 @@ describe('handleWebhook (rejection paths)', () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
     const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
-    await generateSecret({ db, now: () => FIXED }, jobId)
+    await generateSecret({ db, kek: KEK, now: () => FIXED }, jobId)
     const req = new Request('https://example.test', {
       method: 'POST',
       headers: { 'X-Boop-Signature': 'this is not parseable' },
@@ -278,7 +281,7 @@ describe('handleWebhook (rejection paths)', () => {
     })
 
     const res = await handleWebhook(
-      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), kek: KEK, now: () => FIXED },
       req,
       workspaceSlug,
       jobSlug,
@@ -292,12 +295,12 @@ describe('handleWebhook (rejection paths)', () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
     const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
-    const { plaintext } = await generateSecret({ db, now: () => FIXED }, jobId)
+    const { plaintext } = await generateSecret({ db, kek: KEK, now: () => FIXED }, jobId)
 
     const staleAt = FIXED.getTime() - 6 * 60 * 1000
     const req = await signedRequest(plaintext, 'payload', staleAt)
     const res = await handleWebhook(
-      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), kek: KEK, now: () => FIXED },
       req,
       workspaceSlug,
       jobSlug,
@@ -311,11 +314,11 @@ describe('handleWebhook (rejection paths)', () => {
     const db = createTestDb()
     const { queue, sent } = captureQueue()
     const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
-    await generateSecret({ db, now: () => FIXED }, jobId)
+    await generateSecret({ db, kek: KEK, now: () => FIXED }, jobId)
 
     const req = await signedRequest('wrong-secret', 'payload')
     const res = await handleWebhook(
-      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), kek: KEK, now: () => FIXED },
       req,
       workspaceSlug,
       jobSlug,
@@ -331,6 +334,51 @@ describe('handleWebhook (rejection paths)', () => {
     const { workspaceSlug, jobSlug } = await seedJobForWebhook(db)
 
     const req = await signedRequest('anything', 'payload')
+    const res = await handleWebhook(
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), kek: KEK, now: () => FIXED },
+      req,
+      workspaceSlug,
+      jobSlug,
+    )
+    expect(res.status).toBe(403)
+    expect(await res.json()).toEqual({ error: 'no_match' })
+    expect(sent).toHaveLength(0)
+  })
+})
+
+describe('handleWebhook (secret encryption at rest)', () => {
+  it('accepts a signature made with a legacy plaintext secret (secret_iv null)', async () => {
+    const db = createTestDb()
+    const { queue, sent } = captureQueue()
+    const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
+    const legacyPlaintext = 'legacy-plaintext-signing-key'
+    await db.insert(webhookSecrets).values({
+      id: newId('whs'),
+      jobId,
+      secret: legacyPlaintext,
+      secretIv: null,
+      createdAt: FIXED,
+      updatedAt: FIXED,
+    })
+
+    const req = await signedRequest(legacyPlaintext, 'payload')
+    const res = await handleWebhook(
+      { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), kek: KEK, now: () => FIXED },
+      req,
+      workspaceSlug,
+      jobSlug,
+    )
+    expect(res.status).toBe(200)
+    expect(sent).toHaveLength(1)
+  })
+
+  it('fails closed (403) for an encrypted secret when no KEK is available', async () => {
+    const db = createTestDb()
+    const { queue, sent } = captureQueue()
+    const { workspaceSlug, jobSlug, jobId } = await seedJobForWebhook(db)
+    const { plaintext } = await generateSecret({ db, kek: KEK, now: () => FIXED }, jobId)
+
+    const req = await signedRequest(plaintext, 'payload')
     const res = await handleWebhook(
       { db, dispatchQueue: queue, rateLimit: stubRateLimit(true), now: () => FIXED },
       req,
