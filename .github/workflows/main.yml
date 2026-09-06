@@ -18,7 +18,7 @@ jobs:
       pull-requests: write
       issues: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
         # Composite action handles pnpm + node + install. See
         # .github/actions/setup/action.yml. Checkout has to run first
@@ -44,7 +44,7 @@ jobs:
 
       - name: Upload audit-patterns report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: audit-report
           path: audit-report.md
@@ -53,7 +53,7 @@ jobs:
 
       - name: Comment audit-patterns report on PR
         if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           script: |
             const fs = require('fs');
@@ -93,7 +93,7 @@ jobs:
     environment:
       name: dev
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup
 
       - name: Build
@@ -126,7 +126,7 @@ jobs:
         # `wrangler deploy`, which follows .wrangler/deploy/config.json to
         # use the resolved dist/server/wrangler.json (dev bindings baked in
         # since the build ran without CLOUDFLARE_ENV).
-        uses: cloudflare/wrangler-action@v4
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
