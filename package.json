@@ -41,7 +41,7 @@
     "postinstall": "wrangler types 2>/dev/null || echo 'wrangler types skipped: run pnpm cf-typegen after wrangler login'"
   },
   "dependencies": {
-    "@ai-sdk/azure": "^3.0.71",
+    "@ai-sdk/azure": "^4.0.48",
     "@base-ui/react": "^1.4.1",
     "@codemirror/autocomplete": "^6.20.2",
     "@codemirror/lang-liquid": "^6.3.2",
